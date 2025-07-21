@@ -216,7 +216,7 @@ The description of data in `anndata_obj$obs` will be add to `your_seurat@meta.da
 
 **helpful documentation:**
 
--   [AnnData-book](https://anndata.readthedocs.io/en/latest/)
+-   [AnnData for R](https://github.com/dynverse/anndata)
 
 ### 2.2 Bulk expression data
 
@@ -307,6 +307,8 @@ The function returns a list containing:
 -   `phenotype`: A named vector of binary mutational signature data
 -   `matched_bulk_data`: A data frame of bulk expression data after intersecting samples
 -   `ms_select`: The column name specified, i.e. a particular mutation signature
+
+
 
 ------------------------------------------------------------------------
 
@@ -581,12 +583,23 @@ Use `?ScreenFractionPlot` in R to see more details.
 
 ## 5. Example
 
-Here we use the example data () to demonstrate how to use the functions in `SigBridgeR` to screen cells associated with mutational signatures.
+Here we use the example data to demonstrate how to use the functions in `SigBridgeR` to screen cells associated with mutational signatures.
 
 ```{r example}
 library(SigBridgeR)
+library(zeallot) # for %<-%
 
+```
 
+Since each value in matched result needs to be used, I recommend using `zeallot` to assign values to individual variables.
+
+```{r example_matchsample}
+c(matched_bulk, matched_phenotype, ms_select) %<-% MatchSample(
+  ms_signature = your_ms_data, # After preprocessing
+  bulk_data = your_bulk_data,
+  col_id = col_id,
+  ms_status_thresh = 0L
+)
 ```
 
 ------------------------------------------------------------------------

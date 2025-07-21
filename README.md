@@ -2,20 +2,12 @@
 
 [![CRAN Status](https://www.r-pkg.org/badges/version/SigBridgeR)](https://cran.r-project.org/package=SigBridgeR) [![Repo Status](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)[![](https://img.shields.io/badge/devel%20version-0.0.0.9000-blue.svg)](https://github.com/WangLabCSU/SigBridgeR)
 
-An R package for the integration of single-cell RNA-seq data, mutational signatures and bulk expression data.
-
 ------------------------------------------------------------------------
 
 ## 🌐 Overview
 
 SigBridgeR integrates multiple algorithms to identify the cells most closely associated with the Mutational Signatures phenotype, preforming as an birdge to the existing tools.
 
-SigbridgeR integrates algorithms from the following packages:
-
--   [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor)
--   [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/)
--   [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP)
--   [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
 
 ## 🔧 Installation
 
@@ -40,7 +32,7 @@ remotes::install_github("WangLabCSU/SigBridgeR")
 
 Use `?SigBridgeR` to access the help documents in R.
 
-Key resources:
+Get Started:
 
 -   [Quick Started Guide](vignettes/Quick_Start.md)
 -   [Full Tutorial](vignettes/Full_Tutorial.md) for more details
@@ -60,8 +52,15 @@ Other information:
 -   What is *RNA-seq*?
     -   [View in Wiki](https://en.wikipedia.org/wiki/RNA-Seq)
 
+SigbridgeR integrates algorithms from the following repositories:
+
+-   [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor)
+-   [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/)
+-   [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP)
+-   [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
+
 ## 📮 Contact
 
 For support or questions:
 
-Maintainer: Exceret
+Maintainer: Exceret 

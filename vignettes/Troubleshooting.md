@@ -2,7 +2,7 @@
 
 ------------------------------------------------------------------------
 
-> **Error in normalize.quantiles(dataset0) : ERROR; return code from pthread_create() is 22**
+> ## Error in normalize.quantiles(dataset0) : ERROR; return code from pthread_create() is 22
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
 
@@ -22,6 +22,8 @@ BiocManager::install(
 )
 ```
 
-You can see [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor_docker/issues/22), [Scissor/issues/15](https://github.com/sunduanchen/Scissor/issues/15) for more details.
+See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor_docker/issues/22), [Scissor/issues/15](https://github.com/sunduanchen/Scissor/issues/15) for more details.
 
 ------------------------------------------------------------------------
+
+> ##

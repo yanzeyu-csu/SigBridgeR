@@ -25,7 +25,7 @@ Imports:
     ScPP,
     SeuratObject,
     tibble,
-    tidyr
+    tidyr,
 Depends: 
     dplyr,
     ggplot2,
@@ -35,5 +35,6 @@ Suggests:
     rmarkdown,
     anndata,
     reticulate,
-    org.Hs.eg.db
+    org.Hs.eg.db,
+    zeallot
 VignetteBuilder: knitr
