@@ -39,7 +39,7 @@ SCPreProcess <- function(sc, ...) {
 #' @rdname SCPreProcess
 #' @export
 SCPreProcess.default <- function(sc, ...) {
-    stop("Unknown Input type")
+    cli::cli_abort(c("x" = "Unknown Input type"))
 }
 
 #' @rdname SCPreProcess
@@ -57,7 +57,7 @@ SCPreProcess.default <- function(sc, ...) {
 #' @param future_global_maxsize Memory limit for parallelization (bytes)
 #' @export
 #'
-SCPreProcess.data.frame <- function(
+SCPreProcess.matrix <- function(
     sc,
     column2only_tumor = NULL,
     project = "Scissor_Single_Cell",
@@ -106,6 +106,53 @@ SCPreProcess.data.frame <- function(
         sc_seurat,
         column2only_tumor = column2only_tumor,
         verbose = verbose
+    )
+}
+
+#' @rdname SCPreProcess
+#' @param column2only_tumor Metadata column for tumor cell filtering (regex patterns:
+#'        "[Tt]umo.?r", "[Cc]ancer", "[Mm]alignant", "[Nn]eoplasm")
+#' @param project Project name for Seurat object
+#' @param min_cells Minimum cells per gene to retain
+#' @param min_features Minimum features per cell to retain
+#' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
+#' @param scale_factor Scaling factor for normalization
+#' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
+#' @param resolution Cluster resolution (higher for more clusters)
+#' @param dims PCA dimensions to use
+#' @param verbose Print progress messages
+#' @param future_global_maxsize Memory limit for parallelization (bytes)
+#' @export
+#'
+SCPreProcess.data.frame <- function(
+    sc,
+    column2only_tumor = NULL,
+    project = "Scissor_Single_Cell",
+    min_cells = 400,
+    min_features = 0,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = 1:10,
+    verbose = TRUE,
+    future_global_maxsize = 6 * 1024^3,
+    ...
+) {
+    SCPreProcess.matrix(
+        sc = as.matrix(sc),
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
+        future_global_maxsize = future_global_maxsize,
+        ...
     )
 }
 
@@ -333,5 +380,3 @@ BulkPreProcess = function(data) {
     rownames(data) <- IDConverter::convert_hm_genes(rownames(data))
     return(data)
 }
-
-

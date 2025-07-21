@@ -28,18 +28,30 @@
 #'     \item{scissor_alpha}{(numeric) default 0.05}
 #'     \item{scissor_cutoff}{(numeric) default 0.2}
 #'     \item{path2load_scissor_cache}{(character) default `NULL`}
-#'     \item{dir2save_scissor_inputs}{(character) default `NULl`}
-#'     \item{nfold}{(integer) default 10}
+#'     \item{path2save_scissor_inputs}{(character) default `"Scissor_inputs.RData"`}
+#'     \item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
 #'     \item{reliability_test}{(logical) default FALSE}
 #'   }}
 #'   \item{scPP}{\describe{
-#'     \item{embedding_type}{(character) 嵌入类型，可选"UMAP"或"tSNE"，默认"UMAP"}
+#'     \item{ref_group}{(integer) Reference group for binary comparisons, default 1}
+#'     \item{Log2FC_cutoff}{(numeric) Minimum log2 fold-change for binary markers, default 0.585}
+#'     \item{estimate_cutoff}{(numeric) Effect size threshold for continuous traits, default 0.2}
+#'     \item{probs}{(numeric) Quantile cutoff for cell classification, default 0.2}
 #'   }}
 #'   \item{scPAS}{\describe{
-#'     \item{n_components}{(integer) 主成分数量，默认10}
+#'     \item{assay}{(character) Assay to use from sc_data, default "RNA"}
+#'     \item{imputation}{(logical) Whether to perform imputation, default FALSE}
+#'     \item{nfeature}{(integer) Number of features to select, default 3000}
+#'     \item{alpha}{(numeric) Significance threshold, default 0.01}
+#'     \item{extra_filter}{(logical) Whether to perform extra filtering based on RNA count, default FALSE}
+#'     \item{gene_RNAcount_filter}{(numeric) Only used when `extra_filter=TRUE`, default 20}
+#'     \item{bulk_0_filter_thresh}{(numeric) Only used when `extra_filter=TRUE`,default 0.25}
 #'   }}
 #'   \item{scAB}{\describe{
-#'     \item{bandwidth}{(numeric) 核密度估计带宽，默认0.1}
+#'     \item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
+#'     \item{alpha_2}{(numeric) Coefficent of cell-cell similarity regularization, default 5e-05}
+#'     \item{maxiter}{(integer) NMF optimization iterations, default 2000}
+#'     \item{tred}{(integer) Z-score threshold, default 2}
 #'   }}
 #' }
 #'
@@ -84,7 +96,7 @@ Screen <- function(
     matched_bulk,
     sc_data,
     phenotype,
-    label_type,
+    label_type = NULL,
     phenotype_class = c("binary", "survival", "continuous"),
     screen_method = c("Scissor", "scPP", "scPAS", "scAB"),
     ...
@@ -102,6 +114,13 @@ Screen <- function(
             "x" = "Invalid {.arg phenotype_class = {phenotype_class}}.",
             "i" = " Must be one of {.val binary}, {.val survival}, or {.val continuous}."
         ))
+    }
+
+    if (is.null(label_type) || length(label_type) != 1) {
+        cli::cli_warn(c(
+            "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
+        ))
+        label_type = screen_method
     }
 
     screened_result = tolower(screen_method) %>%
@@ -157,7 +176,9 @@ Screen <- function(
             },
             "scab" = {
                 if (phenotype_class == "continuous") {
-                    stop("scAB does not support continuous phenotype.")
+                    cli::cli_abort(c(
+                        "x" = "{.strong scAB} does not support continuous phenotype."
+                    ))
                 }
 
                 DoscAB(

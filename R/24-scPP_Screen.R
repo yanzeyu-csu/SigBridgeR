@@ -103,10 +103,10 @@ DoscPP = function(
     library(Seurat)
 
     # robust
-    if (!all(rownames(phenotype) == colnames(bulk_dataset))) {
-        stop(
-            "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
-        )
+    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+        cli::cli_abort(c(
+            "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
+        ))
     }
 
     TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
@@ -128,34 +128,31 @@ DoscPP = function(
             tibble::rownames_to_column("Sample") %>%
             dplyr::rename("Feature" := 2)
     }
-    if (
-        length(table(phenotype[2])) == 2 || tolower(phenotype_class) == "binary"
-    ) {
+    if (tolower(phenotype_class) == "binary") {
         gene_list = ScPP::marker_Binary(
             bulk_data = matched_bulk,
             features = phenotype,
             ref_group = ref_group,
             Log2FC_cutoff = Log2FC_cutoff
         )
-    } else if (
-        length(table(phenotype[2])) > 3 ||
-            tolower(phenotype_class) == "continuous"
-    ) {
+    } else if (tolower(phenotype_class) == "continuous") {
         gene_list = ScPP::marker_Continuous(
             bulk_data = matched_bulk,
-            features = phenotype[2],
+            features = phenotype$Feature,
             estimate_cutoff = estimate_cutoff
         )
-    } else if (ncol(phenotype) == 3 || tolower(phenotype_class) == "survival") {
+    } else if (tolower(phenotype_class) == "survival") {
         gene_list = ScPP::marker_Survival(
             bulk_data = matched_bulk,
-            features = phenotype,
+            survival_data = phenotype
         )
     } else {
-        stop(
-            "Unknown phenotype type, please check the `phenotype_class` and `phenotype`"
-        )
+        cli::cli_abort(c(
+            "x" = "Unknown phenotype type, please check the `phenotype_class` and `phenotype`"
+        ))
     }
+
+    cli::cli_alert_info("Significant genes found {.val {length(gene_list)}}")
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",

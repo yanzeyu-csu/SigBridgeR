@@ -101,11 +101,19 @@ DoScissor = function(
 
     TimeStamp = function() format(Sys.time(), "%Y/%m/%d %H:%M:%S")
 
-    if (length(scissor_family) != 1) {
-        cli::cli_abort(
-            "Please choose one scissor family, use parameter {.var scissor_family}.",
-            class = "FamilyError"
+    if (scissor_family %in% c("binomial", "cox")) {
+        label_type = c(
+            glue::glue("{label_type}_Negative"),
+            glue::glue("{label_type}_Positive")
         )
+    } else if (scissor_family == "gaussian") {
+        n = length(table(phenotype))
+        label_type = glue::glue("{label_type}_{seq_len(n)}")
+    } else if (length(scissor_family) != 1) {
+        cli::cli_abort(c(
+            "x" = "Please choose one scissor family, use parameter {.var scissor_family}.",
+            class = "FamilyError"
+        ))
     }
     path = dirname(path2save_scissor_inputs)
     if (!dir.exists(path)) {
@@ -116,10 +124,7 @@ DoScissor = function(
         bulk_dataset = matched_bulk,
         sc_dataset = sc_data,
         phenotype = phenotype,
-        tag = c(
-            glue::glue("{label_type}_Negative"),
-            glue::glue("{label_type}_Positive")
-        ),
+        tag = label_type,
         alpha = scissor_alpha,
         cutoff = scissor_cutoff,
         family = scissor_family,
@@ -136,7 +141,7 @@ DoScissor = function(
     sc_meta$scissor[rownames(sc_meta) %in% infos1$Scissor_pos] <- "Positive"
     sc_meta$scissor[rownames(sc_meta) %in% infos1$Scissor_neg] <- "Negative"
     sc_data <- Seurat::AddMetaData(sc_data, metadata = sc_meta) %>%
-        AddMisc(scissor_type = label_type, cover = TRUE)
+        AddMisc(scissor_type = label_type, cover = FALSE)
 
     # reliability test
     if (reliability_test) {
@@ -319,18 +324,19 @@ Scissor.v5.optimized <- function(
                     Y <- as.numeric(phenotype)
                     z <- table(Y)
                     if (length(z) != length(tag)) {
-                        stop(
-                            "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
-                            .call = FALSE
-                        )
+                        cli::cli_abort(c(
+                            "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
+                            "i" = "length of tags: {.val {length(tag)}}",
+                            "i" = "length of phenotypes: {.val {length(z)}}"
+                        ))
                     } else {
                         tmp <- paste(z, tag)
-                        print(paste0(
-                            "Current phenotype contains ",
-                            paste(tmp[1:(length(z) - 1)], collapse = ", "),
-                            ", and ",
-                            tmp[length(z)],
-                            " samples."
+                        cli::cli_alert_info("Current phenotype contains: {.val {length(tmp)}} samples.")
+                        cli::cli_text("Sample examples:")
+                        cli::cli_bullets(c(
+                            " " = "{.val {head(tmp, 5)}}",
+                            " " = "... ({length(tmp)-6} more samples)",
+                            " " = "{.val {tail(tmp, 1)}}"
                         ))
                         cli::cli_alert_info(
                             "[{TimeStamp()}] Perform linear regression on the given phenotypes:"
@@ -376,13 +382,9 @@ Scissor.v5.optimized <- function(
     )
     # garbage collection
     rm(
-        dataset0,
-        dataset1,
         Expression_bulk,
         Expression_cell,
-        sc_exprs,
         sc_dataset,
-        Seurat_tmp,
         bulk_dataset,
         phenotype
     )

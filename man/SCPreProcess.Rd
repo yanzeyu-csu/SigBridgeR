@@ -3,6 +3,7 @@
 \name{SCPreProcess}
 \alias{SCPreProcess}
 \alias{SCPreProcess.default}
+\alias{SCPreProcess.matrix}
 \alias{SCPreProcess.data.frame}
 \alias{SCPreProcess.AnnDataR6}
 \alias{SCPreProcess.Seurat}
@@ -13,6 +14,22 @@ SCPreProcess(sc, ...)
 SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{default}(sc, ...)
+
+\method{SCPreProcess}{matrix}(
+  sc,
+  column2only_tumor = NULL,
+  project = "Scissor_Single_Cell",
+  min_cells = 400,
+  min_features = 0,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = 1:10,
+  verbose = TRUE,
+  future_global_maxsize = 6 * 1024^3,
+  ...
+)
 
 \method{SCPreProcess}{data.frame}(
   sc,

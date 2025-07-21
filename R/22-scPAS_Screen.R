@@ -48,10 +48,10 @@ DoscPAS = function(
     library(dplyr)
 
     # robust
-    if (!all(rownames(phenotype) == colnames(bulk_dataset))) {
-        cli::cli_abort(
-            "Please check the rownames of {.var {phenotype}} and colnames of {.var {matched_bulk}}, they should be the same"
-        )
+    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+        cli::cli_abort(c(
+            "x" = "Please check the rownames of {.var phenotype} and colnames of {.var matched_bulk}, they should be the same"
+        ))
     }
 
     TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')

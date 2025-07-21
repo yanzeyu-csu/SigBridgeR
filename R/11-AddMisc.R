@@ -43,32 +43,36 @@
 #' @export
 #'
 AddMisc <- function(seurat_obj, ..., cover = TRUE) {
-  # Get the key-value pairs from ... arguments
-  kv_pairs <- list(...)
+    # Get the key-value pairs from ... arguments
+    kv_pairs <- list(...)
 
-  for (key in names(kv_pairs)) {
-    value <- kv_pairs[[key]]
+    for (key in names(kv_pairs)) {
+        value <- kv_pairs[[key]]
 
-    if (key %in% names(seurat_obj@misc) && !cover) {
-      existing_keys <- grep(
-        glue::glue("^{key}\\d*$"),
-        names(seurat_obj@misc),
-        value = TRUE
-      )
-      if (length(existing_keys) > 0) {
-        nums <- as.integer(sub(glue("^{key}(\\d+)$"), "\\1", existing_keys))
-        nums <- nums[!is.na(nums)]
-        key <- if (length(nums) > 0) {
-          glue::glue("{key}{max(nums) + 1}")
-        } else {
-          glue::glue("{key}1")
+        if (key %in% names(seurat_obj@misc) && !cover) {
+            existing_keys <- grep(
+                glue::glue("^{key}\\d*$"),
+                names(seurat_obj@misc),
+                value = TRUE
+            )
+            if (length(existing_keys) > 0) {
+                nums <- as.integer(sub(
+                    glue("^{key}(\\d+)$"),
+                    "\\1",
+                    existing_keys
+                ))
+                nums <- nums[!is.na(nums)]
+                key <- if (length(nums) > 0) {
+                    glue::glue("{key}{max(nums) + 1}")
+                } else {
+                    glue::glue("{key}1")
+                }
+            } else {
+                key <- glue::glue("{key}1")
+            }
         }
-      } else {
-        key <- glue::glue("{key}1")
-      }
+        seurat_obj@misc[[key]] <- value
     }
-    seurat_obj@misc[[key]] <- value
-  }
 
-  return(seurat_obj)
+    return(seurat_obj)
 }

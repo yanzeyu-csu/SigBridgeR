@@ -43,18 +43,30 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 \item{scissor_alpha}{(numeric) default 0.05}
 \item{scissor_cutoff}{(numeric) default 0.2}
 \item{path2load_scissor_cache}{(character) default \code{NULL}}
-\item{dir2save_scissor_inputs}{(character) default \code{NULl}}
-\item{nfold}{(integer) default 10}
+\item{path2save_scissor_inputs}{(character) default \code{"Scissor_inputs.RData"}}
+\item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
 \item{reliability_test}{(logical) default FALSE}
 }}
 \item{scPP}{\describe{
-\item{embedding_type}{(character) 嵌入类型，可选"UMAP"或"tSNE"，默认"UMAP"}
+\item{ref_group}{(integer) Reference group for binary comparisons, default 1}
+\item{Log2FC_cutoff}{(numeric) Minimum log2 fold-change for binary markers, default 0.585}
+\item{estimate_cutoff}{(numeric) Effect size threshold for continuous traits, default 0.2}
+\item{probs}{(numeric) Quantile cutoff for cell classification, default 0.2}
 }}
 \item{scPAS}{\describe{
-\item{n_components}{(integer) 主成分数量，默认10}
+\item{assay}{(character) Assay to use from sc_data, default "RNA"}
+\item{imputation}{(logical) Whether to perform imputation, default FALSE}
+\item{nfeature}{(integer) Number of features to select, default 3000}
+\item{alpha}{(numeric) Significance threshold, default 0.01}
+\item{extra_filter}{(logical) Whether to perform extra filtering based on RNA count, default FALSE}
+\item{gene_RNAcount_filter}{(numeric) Only used when \code{extra_filter=TRUE}, default 20}
+\item{bulk_0_filter_thresh}{(numeric) Only used when \code{extra_filter=TRUE},default 0.25}
 }}
 \item{scAB}{\describe{
-\item{bandwidth}{(numeric) 核密度估计带宽，默认0.1}
+\item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
+\item{alpha_2}{(numeric) Coefficent of cell-cell similarity regularization, default 5e-05}
+\item{maxiter}{(integer) NMF optimization iterations, default 2000}
+\item{tred}{(integer) Z-score threshold, default 2}
 }}
 }}
 }

@@ -34,7 +34,7 @@
 
 ### 0.1 Introduction to SigBridgeR
 
-SigBridgeR is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP) and [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS).
+SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP) and [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS).
 
 ------------------------------------------------------------------------
 
@@ -285,10 +285,12 @@ You can use the intermediate data for repeated runs. This is an inherent feature
 
 ```{r scissor_screening_cache}
 scissor_result = Screen(
+  sc_data = sc_dataset, 
   label_type = "TP53", 
   phenotype_class = "binary", 
   screen_method = c("Scissor"),
   path2load_scissor_cahce = "Tmp/Scissor_inputs.RData" # Intermediate data
+  path2save_scissor_inputs = "Tmp/Scissor_inputs.RData" 
 )
 ```
 
@@ -342,7 +344,7 @@ scpas_result = Screen(
   phenotype = phenotype,
   label_type = "TP53", # The filtering labels are stored in the `@misc` 
   screen_method = "scpas",
-  phenotype_class = "binary", # choose `binary` if phenotype is a mutational signature
+  phenotype_class = "binary"
 )
 ```
 
@@ -512,7 +514,7 @@ Use `?ScreenFractionPlot` in R to see more details.
 
 ## 5. Example
 
-Here we use the example data to demonstrate how to use the functions in `SigBridgeR` to screen cells associated with mutational signatures.
+Here we use the example data to demonstrate how to use the functions in `SigBridgeR` to screen cells associated with phenotype.
 
 ```{r example}
 library(SigBridgeR)
