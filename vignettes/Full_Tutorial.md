@@ -9,18 +9,17 @@
     - [0.1 Contents](#01-contents)
     - [0.1 Introduction to SigBridgeR](#01-introduction-to-sigbridger)
   - [1. Installation](#1-installation)
-    - [1.1 Stable release from CRAN](#11-stable-release-from-cran)
-    - [1.2 Development version from GitHub](#12-development-version-from-github)
+    - [1.1 Stable Release from CRAN](#11-stable-release-from-cran)
+    - [1.2 Development Version From GitHub](#12-development-version-from-github)
     - [1.3 Check Dependencies](#13-check-dependencies)
   - [2. Loading and preprocessing data](#2-loading-and-preprocessing-data)
-    - [2.1 Single-cell RNA-seq data](#21-single-cell-rna-seq-data)
-      - [2.1.1 (Option A) Start from Seurat object](#211-option-a-start-from-seurat-object)
-      - [2.1.2 (Option B) Start from raw matrix](#212-option-b-start-from-raw-matrix)
-      - [2.1.3 (Option C) Start from AnnDataR6 object](#213-option-c-start-from-anndatar6-object)
+    - [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
+      - [2.1.1 (Option A) Start from Raw Matrix](#211-option-a-start-from-raw-matrix)
+      - [2.1.2 (Option B) Start from AnnDataR6 Object](#212-option-b-start-from-anndatar6-object)
+      - [2.1.3 (Optional) Filter Out Tumor Cells](#213-optional-filter-out-tumor-cells)
     - [2.2 Bulk expression data](#22-bulk-expression-data)
-    - [2.3 Mutational signature data](#23-mutational-signature-data)
-    - [2.4 Matching Samples](#24-matching-samples)
-  - [3. Screening Cells Associated with Mutational Signatures](#3-screening-cells-associated-with-mutational-signatures)
+    - [2.3 Phenotype Data](#23-phenotype-data)
+  - [3. Screening Cells Associated with Phenotype](#3-screening-cells-associated-with-phenotype)
     - [3.1 (Option A) Scissor Screening](#31-option-a-scissor-screening)
     - [3.2 (Option B) scPAS Screening](#32-option-b-scpas-screening)
     - [3.3 (Option C) scAB Screening](#33-option-c-scab-screening)
@@ -35,7 +34,7 @@
 
 ### 0.1 Introduction to SigBridgeR
 
-SigBridgeR (short for Mutational **Sig**natures **Bridge** in **R**) is an R package for screening tumor cells highly associated with mutational signatures using single-cell RNA-seq, bulk expression and mutational signature phenotype data at a pan-cancer level. It integrates functionality from these R packages: [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP) and [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS).
+SigBridgeR is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP) and [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS).
 
 ------------------------------------------------------------------------
 
@@ -43,13 +42,13 @@ SigBridgeR (short for Mutational **Sig**natures **Bridge** in **R**) is an R pac
 
 Install **SigBridgeR** using one of these methods:
 
-### 1.1 Stable release from CRAN
+### 1.1 Stable Release from CRAN
 
 ```{r install_from_cran}
 install.packages("SigBridgeR")
 ```
 
-### 1.2 Development version from GitHub
+### 1.2 Development Version From GitHub
 
 ```{r install_from_github}
 if(!requireNamespace("remotes")) {
@@ -124,26 +123,17 @@ First load the package:
 library(SigBridgeR)
 ```
 
-### 2.1 Single-cell RNA-seq data
+### 2.1 Single-cell RNA-seq Data
 
 You can use function `SCPreProcess` to preprocess your single-cell RNA-seq data. Here are some options:
 
-#### 2.1.1 (Option A) Start from Seurat object
+#### 2.1.1 (Option A) Start from Raw Matrix
 
-if you hase a preprocessed Seurat object (containing results from `NormalizeData, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunTSNE, RunUMAP`), `SCPreProcess` will filter out tumor cells using the specified metadata column:
-
-```{r scpreprocessing_seurat}
-your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
-```
-
-#### 2.1.2 (Option B) Start from raw matrix
-
-When starting from a raw count matrix, `SCPreProcess` will automatically perform Seurat preprocess and the tumor cell filtration described in [Section 2.1.1](#211-option-a-start-from-seurat-object). In typical workflows where the appropriate tumor-filtering column is unknown (since you haven't yet generated the Seurat object or explored the data comprehensively), `SCPreProcess` still returns a fully preprocessed Seurat object for downstream use.
+When starting from a raw count matrix, `SCPreProcess` will automatically perform Seurat preprocess (including `NormalizeData, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunTSNE, RunUMAP`). `SCPreProcess` returns a fully preprocessed Seurat object for downstream use.
 
 ```{r scpreprocessing_raw_matrix}
 your_seurat <- SCPreProcess(
   your_matrix,
-  column2only_tumor = NULL, # specify a column name if already familiar with the data
   project = "Scissor_Single_Cell", # Parameters used in Seurat preprocessing pipeline
   min_cells = 400,
   min_features = 0,
@@ -158,35 +148,9 @@ your_seurat <- SCPreProcess(
 )
 ```
 
-You may then:
 
-1.  Add metadata to annotate cell types/conditions
-2.  Specify tumor-filtering criteria (e.g., column2only_tumor = "Tissue")
-3.  Filter out tumor cells as described in [Section 2.1.1](#211-option-a-start-from-seurat-object), or like this:
 
-```{r scpreprocessing_raw_matrix_tumor_filtering}
-your_seurat <- SCPreProcess(
-    your_seurat,
-    column2only_tumor = "Tissue",
-)
-```
-
-> Note: I don't recommend using columns like `column2only_tumor = "Celltype"` as tumor cell identities vary across tissues. instead:
->
-> -   Create a Dedicated Column: Add a new metadata column (e.g., is_tumor) to explicitly label cells:"Tumo(u)r"/"Normal"
->
-> -   Code Exmaple:
->
-> ```{r }
-> # For glioblastoma (GBM)
-> seurat_obj@meta.data$is_tumor <- ifelse(
->  grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj@meta.data$Celltype, ignore.case = TRUE),
->  "Tumor",  # or "Tumour" 
->  "Normal"  # or "Non-Tumor" 
-> )
-> ```
-
-#### 2.1.3 (Option C) Start from AnnDataR6 object
+#### 2.1.2 (Option B) Start from AnnDataR6 Object
 
 `SCPreProcess` also supports AnnData objects. You may reference and use the following code:
 
@@ -197,7 +161,6 @@ anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad")
 
 your_seurat <- SCPreProcess(
   anndata_obj,
-  column2only_tumor = NULL, # specify a column name if you are already familiar with the data
   project = "Scissor_Single_Cell", # Parameters used in Seurat preprocessing pipeline
   min_cells = 400,
   min_features = 0,
@@ -217,6 +180,30 @@ The description of data in `anndata_obj$obs` will be add to `your_seurat@meta.da
 **helpful documentation:**
 
 -   [AnnData for R](https://github.com/dynverse/anndata)
+
+#### 2.1.3 (Optional) Filter Out Tumor Cells
+
+If you aim to filter out phenotype-associated cells in all tumor cells. With a preprocessed Seurat object (containing results from ), `SCPreProcess` will filter out tumor cells using the specified metadata column:
+
+```{r scpreprocessing_seurat}
+your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
+```
+
+> Note: I don't recommend using columns like `column2only_tumor = "Celltype"` as tumor cell identities vary across tissues. instead:
+>
+> -   Create a Dedicated Column: Add a new metadata column (e.g., is_tumor) to explicitly label cells:"Tumo(u)r"/"Normal"
+>
+> -   Code Example:
+>
+> ```{r }
+> # For glioblastoma (GBM)
+> seurat_obj@meta.data$is_tumor <- ifelse(
+>  grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj@meta.data$Celltype, ignore.case = TRUE),
+>  "Tumor",  # or "Tumour" 
+>  "Normal"  # or "Non-Tumor" 
+> )
+> ```
+
 
 ### 2.2 Bulk expression data
 
@@ -248,81 +235,23 @@ your_bulk_data <- your_bulk_data[!is.na(rownames(your_bulk_data)), ]
 
 ```
 
-### 2.3 Mutational signature data
+### 2.3 Phenotype Data
 
-Key parameters for `MSPreProcess`:
-
--   `ms_signature`: A data frame of mutational signatures,
-    -   Each row = one sample
-    -   Columns = sample info (tumor type, accuracy, ...) + signature values (SBS1, SBS2, ...)"
--   `filter_tumor_type`: A character value specifying the tumor type to be filtered out
-    -   default: "all" (all tumor types included)
-    -   using regex magic to find and filter tumor columns
--   `col_thresh`: A numeric value specifying the threshold for filtering out samples with low counts
-    -   Keeps only samples where: `(Number of samples with mutational signatures) / (Total samples) > col_thresh`
--   `accuracy_thresh`: A numeric value specifying the threshold for filtering out samples with low accuracy, if `accuracy` column exists in data.
--   `ms_search_pattern`: A character value specifying the pattern for searching mutational signatures
-    -   default: `SBS|DBS|CN|CNV|SV|ID|INDEL` (all mutational signatures included)
-
-```{r mutational_signatures_preprocessing}
-your_ms_data <- read.csv("path_to_your_file.csv", header = TRUE, row.names = 1)
-
-your_ms_data <- MSPreProcess(   
-    your_ms_data,
-    filter_tumor_type = "all", # all tumor types included
-    col_thresh = 0.05, 
-    accuracy_thresh = 0, # no filtering for accuracy
-    ms_search_pattern = "SBS|DBS|CN|CNV|SV|ID|INDEL" # all ms included
-)
-```
-
-You will see some progress messages in your R console
-
-### 2.4 Matching Samples
-
-The original phenotype and bulk expression data may not contain identical sample sets. This processing step performs sample matching to retain only the intersecting samples.
-
-Key parameters for `MatchSample`:
-
--   `ms_signature`: A data frame of mutational signatures after preprocessing
--   `bulk_data`: A data frame of bulk expression data,
--   `col_id`: Character or numeric value specifying the column. When multiple columns are specified, the status column will only be recorded as `1` if each column \> `ms_status_thresh`
--   `ms_status_thresh`: A numeric value specifying the threshold for binarizing mutational signatures. default: `0L`
-
-**usage**：
-
-```{r matching_samples}
-match_result <- MatchSample(
-  ms_signature = your_ms_data, # After preprocessing
-  bulk_data = your_bulk_data,
-  col_id = col_id,
-  ms_status_thresh = 0L
-)
-```
-
-After matching, the specified column in the mutational signatures data (i.e., phenotype data) will be binarized from continuous values - all positive numbers are recoded as 1 because `ms_status_thresh` is set to 0.
-
-The function returns a list containing:
-
--   `phenotype`: A named vector of binary mutational signature data
--   `matched_bulk_data`: A data frame of bulk expression data after intersecting samples
--   `ms_select`: The column name specified, i.e. a particular mutation signature
-
-
+bascially you can just use your phenotype data directly. If you are confused about the structure `Screen()` requires, please refer to [Section 5](#example).
 
 ------------------------------------------------------------------------
 
-## 3. Screening Cells Associated with Mutational Signatures
+## 3. Screening Cells Associated with Phenotype
 
-The function **`Screen`** provide 4 different options for screening cells associated with mutational signatures, These 4 algorithms come from the repositories mentioned in [Section 0.1](#01-introduction-to-sigbridger), and you can choose one of them to screen your cells.
+The function **`Screen`** provide 4 different options for screening cells associated with phenotype, These 4 algorithms come from the repositories mentioned in [Section 0.1](#01-introduction-to-sigbridger), and you can choose one of them to screen your cells.
 
 Key parameters for `Screen`:
 
--   `matched_bulk`: A data frame of bulk expression data after intersecting samples, use the output of `MatchSample` function.
+-   `matched_bulk`: A data frame of bulk expression data after intersecting samples.
 -   `sc_data`: A Seurat object after preprocessing, you can use the output of `Preprocess` function or your own preprocessed Seurat object.
--   `phenotype`: A named vector of binary mutational signature data, use the output of `MatchSample` function.
--   `label_type`: A character value specifying the filtering labels are stored in the `Seurat_object@misc` , use the output of `MatchSample` function or your own label.
--   `phenotype_class`: A character value specifying the phenotype data type, i.e. `"binary"`, `"survival"` or `"continuous"`. When the phenotype data is a mutational signature, use `"binary"`.
+-   `phenotype`: A data frame of phenotype data after intersecting samples.
+-   `label_type`: A character value specifying the filtering labels are stored in the `Seurat_object@misc` , default: `NULL`.
+-   `phenotype_class`: A character value specifying the phenotype data type, i.e. `"binary"`, `"survival"` or `"continuous"`. 
 -   `screen_method`: A character value specifying the screening method, i.e. "Scissor", "scPAS", "scAB" or "scPP"
 -   `...`: Other parameters for the screening methods.
 
@@ -587,20 +516,11 @@ Here we use the example data to demonstrate how to use the functions in `SigBrid
 
 ```{r example}
 library(SigBridgeR)
-library(zeallot) # for %<-%
 
 ```
 
-Since each value in matched result needs to be used, I recommend using `zeallot` to assign values to individual variables.
 
-```{r example_matchsample}
-c(matched_bulk, matched_phenotype, ms_select) %<-% MatchSample(
-  ms_signature = your_ms_data, # After preprocessing
-  bulk_data = your_bulk_data,
-  col_id = col_id,
-  ms_status_thresh = 0L
-)
-```
+
 
 ------------------------------------------------------------------------
 

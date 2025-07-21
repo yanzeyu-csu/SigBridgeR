@@ -43,15 +43,15 @@ Set to NULL to disable.}
 
 \item{order}{Plotting order for points (default: c(2,1) - Significant first)}
 
+\item{...}{Additional arguments passed to either:
+- \code{Seurat::DimPlot()} for cluster plots
+- \code{Seurat::FeaturePlot()} for expression plots}
+
 \item{feature_max_cutoff}{Maximum expression cutoff (default: NA)}
 
 \item{feature_min_cutoff}{Minimum expression cutoff (default: NA)}
 
 \item{feature_plot_raster}{Logical to rasterize feature plots (default: NULL)}
-
-\item{...}{Additional arguments passed to either:
-- \code{Seurat::DimPlot()} for cluster plots
-- \code{Seurat::FeaturePlot()} for expression plots}
 }
 \value{
 A list of ggplot objects containing:

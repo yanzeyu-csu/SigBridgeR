@@ -8,7 +8,7 @@ DoscAB(
   matched_bulk,
   sc_data,
   phenotype,
-  label_type,
+  label_type = "scAB",
   phenotype_class = c("binary", "survival"),
   alpha = 0.005,
   alpha_2 = 5e-05,
@@ -46,6 +46,7 @@ A list containing:
 \describe{
 \item{scRNA_data}{Filtered Seurat object with selected cells}
 \item{scAB_result}{scAB screening result}
+}
 }
 \description{
 Implements the scAB algorithm to identify phenotype-associated cell subpopulations

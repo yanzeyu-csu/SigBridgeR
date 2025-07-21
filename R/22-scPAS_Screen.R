@@ -25,87 +25,90 @@
 #' @import dplyr
 #'
 #' @family screen method
-#' 
+#'
 #' @keywords internal
 #' @export
 #'
 DoscPAS = function(
-  matched_bulk,
-  sc_data,
-  phenotype,
-  label_type,
-  assay = 'RNA',
-  imputation = F,
-  nfeature = 3000,
-  alpha = 0.01,
-  extra_filter = FALSE,
-  gene_RNAcount_filter = 20,
-  bulk_0_filter_thresh = 0.25,
-  network_class = 'SC',
-  scPAS_family = c("cox", "gaussian", "binomial"),
-  ...
-) {
-  library(dplyr)
-
-  # robust
-  if (!all(rownames(phenotype) == colnames(bulk_dataset))) {
-    cli::cli_abort(
-      "Please check the rownames of {.var {phenotype}} and colnames of {.var {matched_bulk}}, they should be the same"
-    )
-  }
-
-  TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
-
-  cli::cli_alert_info(c(
-    "[{TimeStamp()}]",
-    crayon::green(" Start scPAS screening.")
-  ))
-
-  if (extra_filter) {
-    # *sc filter
-    keep_genes <- rownames(sc_data)[
-      Matrix::rowSums(sc_data@assays$RNA@counts > 1) >= gene_RNA_count_filter
-    ]
-    sc_data <- subset(sc_data, features = keep_genes)
-    # *bulk filter zero data
-    matched_bulk <- matched_bulk %>%
-      Matrix::as.matrix() %>%
-      .[
-        apply(., 1, function(x) sum(x == 0) < bulk_0_filter_thresh * ncol(.)),
-      ]
-  } else {
-    matched_bulk = as.matrix(matched_bulk)
-  }
-
-  scPAS_result <- scPAS::scPAS(
-    bulk_dataset = matched_bulk,
-    sc_dataset = sc_data,
+    matched_bulk,
+    sc_data,
+    phenotype,
+    label_type = "scPAS",
     assay = 'RNA',
-    tag = label_type,
-    phenotype = phenotype,
-    imputation = imputation,
-    nfeature = nfeature,
-    alpha = alpha,
-    network_class = network_class,
-    family = scPAS_family,
+    imputation = F,
+    nfeature = 3000,
+    alpha = 0.01,
+    extra_filter = FALSE,
+    gene_RNAcount_filter = 20,
+    bulk_0_filter_thresh = 0.25,
+    network_class = 'SC',
+    scPAS_family = c("cox", "gaussian", "binomial"),
     ...
-  ) %>%
-    AddMisc(scPAS_type = label_type, cover = FALSE)
+) {
+    library(dplyr)
 
-  # *rename level
-  scPAS_result@meta.data = scPAS_result@meta.data %>%
-    dplyr::mutate(
-      `scPAS` = dplyr::case_when(
-        scPAS == "scPAS+" ~ "Positive",
-        scPAS == "scPAS-" ~ "Negative",
-        scPAS == "0" ~ "Neutral"
-      )
-    )
+    # robust
+    if (!all(rownames(phenotype) == colnames(bulk_dataset))) {
+        cli::cli_abort(
+            "Please check the rownames of {.var {phenotype}} and colnames of {.var {matched_bulk}}, they should be the same"
+        )
+    }
 
-  cli::cli_alert_success(c(
-    "[{TimeStamp()}]",
-    crayon::green(" scPAS screening done.")
-  ))
+    TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
 
-  return(list(scRNA_data = scPAS_result))
+    cli::cli_alert_info(c(
+        "[{TimeStamp()}]",
+        crayon::green(" Start scPAS screening.")
+    ))
+
+    if (extra_filter) {
+        # *sc filter
+        keep_genes <- rownames(sc_data)[
+            Matrix::rowSums(sc_data@assays$RNA@counts > 1) >=
+                gene_RNA_count_filter
+        ]
+        sc_data <- subset(sc_data, features = keep_genes)
+        # *bulk filter zero data
+        matched_bulk <- matched_bulk %>%
+            Matrix::as.matrix() %>%
+            .[
+                apply(., 1, function(x) {
+                    sum(x == 0) < bulk_0_filter_thresh * ncol(.)
+                }),
+            ]
+    } else {
+        matched_bulk = as.matrix(matched_bulk)
+    }
+
+    scPAS_result <- scPAS::scPAS(
+        bulk_dataset = matched_bulk,
+        sc_dataset = sc_data,
+        assay = 'RNA',
+        tag = label_type,
+        phenotype = phenotype,
+        imputation = imputation,
+        nfeature = nfeature,
+        alpha = alpha,
+        network_class = network_class,
+        family = scPAS_family,
+        ...
+    ) %>%
+        AddMisc(scPAS_type = label_type, cover = FALSE)
+
+    # *rename level
+    scPAS_result@meta.data = scPAS_result@meta.data %>%
+        dplyr::mutate(
+            `scPAS` = dplyr::case_when(
+                scPAS == "scPAS+" ~ "Positive",
+                scPAS == "scPAS-" ~ "Negative",
+                scPAS == "0" ~ "Neutral"
+            )
+        )
+
+    cli::cli_alert_success(c(
+        "[{TimeStamp()}]",
+        crayon::green(" scPAS screening done.")
+    ))
+
+    return(list(scRNA_data = scPAS_result))
 }

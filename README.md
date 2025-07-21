@@ -6,8 +6,7 @@
 
 ## 🌐 Overview
 
-SigBridgeR integrates multiple algorithms to identify the cells most closely associated with the Mutational Signatures phenotype, preforming as an birdge to the existing tools.
-
+SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
 
 ## 🔧 Installation
 
@@ -43,10 +42,6 @@ If you encounter problems, please see:
 
 Other information:
 
--   What is *Mutational Signature*?
-    -   [COSMIC \| Mutational Signatures - An Introduction](https://cancer.sanger.ac.uk/cosmic)
-    -   [View in Wiki](https://en.wikipedia.org/wiki/Mutational_signatures)
-    -   [Nature \| Mutational signatures: emerging concepts, caveats and clinical applications](https://www.nature.com/articles/s41568-021-00377-7)
 -   What is *Single Cell Sequencing*?
     -   [Veiw in Wiki](https://en.wikipedia.org/wiki/Single-cell_sequencing)
 -   What is *RNA-seq*?

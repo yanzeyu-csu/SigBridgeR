@@ -8,7 +8,7 @@ DoscPAS(
   matched_bulk,
   sc_data,
   phenotype,
-  label_type,
+  label_type = "scPAS",
   assay = "RNA",
   imputation = F,
   nfeature = 3000,

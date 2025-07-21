@@ -92,7 +92,7 @@ DoscPP = function(
     matched_bulk,
     sc_data,
     phenotype,
-    label_type,
+    label_type = "scPP",
     phenotype_class = c("Binary", "Continuous", "Survival"),
     ref_group = 1,
     Log2FC_cutoff = 0.585,

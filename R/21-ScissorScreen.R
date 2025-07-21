@@ -112,7 +112,6 @@ DoScissor = function(
         dir.create(path, recursive = TRUE)
     }
 
-    # MAKE SURE ONLY TUMOR
     infos1 <- Scissor.v5.optimized(
         bulk_dataset = matched_bulk,
         sc_dataset = sc_data,

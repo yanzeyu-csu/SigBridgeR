@@ -322,7 +322,7 @@ ScreenFractionPlot = function(
         dplyr::pull(!!sym(group_by))
 
     # for plot labels
-    ms_type = screened_seurat@misc[[grep(
+    label_type = screened_seurat@misc[[grep(
         screen_type,
         names(screened_seurat@misc),
         value = TRUE
@@ -355,7 +355,7 @@ ScreenFractionPlot = function(
         ggplot2::labs(
             x = x_lab,
             y = y_lab,
-            fill = ms_type
+            fill = label_type
         ) +
         ggplot2::theme(
             axis.text.x = ggplot2::element_text(

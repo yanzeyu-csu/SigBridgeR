@@ -49,8 +49,6 @@ SCPreProcess(sc, ...)
 \method{SCPreProcess}{Seurat}(
   sc,
   column2only_tumor = NULL,
-  resolution = 0.6,
-  dims = 1:10,
   verbose = TRUE,
   future_global_maxsize = 6 * 1024^3,
   ...

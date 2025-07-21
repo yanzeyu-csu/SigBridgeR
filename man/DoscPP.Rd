@@ -34,7 +34,7 @@ DoscPP(
 - \code{"Continuous"}: Quantitative traits (e.g., drug response)
 - \code{"Survival"}: Time-to-event data (requires time/status columns)}
 
-\item{ref_group}{Reference group for binary comparisons (default: 0)}
+\item{ref_group}{Reference group for binary comparisons (default: 1)}
 
 \item{Log2FC_cutoff}{Minimum log2 fold-change for binary markers (default: 0.585)}
 
