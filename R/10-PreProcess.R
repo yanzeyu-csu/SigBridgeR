@@ -373,7 +373,12 @@ FilterTumorCell <- function(
 #' @export
 #'
 BulkPreProcess = function(data) {
-    #   rownames(data) <- substr(rownames(data), 1, 15)
+    # Check if the data is UMI count data
+    is_umi <- all(data == floor(data))
+    if (!is_umi) {
+        cli::cli_abort(c("x" = "Decimal exists in data."))
+    }
+
     options(
         IDConverter.datapath = system.file("extdata", package = "IDConverter")
     )
