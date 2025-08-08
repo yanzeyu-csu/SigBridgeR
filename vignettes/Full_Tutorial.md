@@ -9,9 +9,8 @@
     - [0.1 Contents](#01-contents)
     - [0.1 Introduction to SigBridgeR](#01-introduction-to-sigbridger)
   - [1. Installation](#1-installation)
-    - [1.1 Stable Release from CRAN](#11-stable-release-from-cran)
-    - [1.2 Development Version From GitHub](#12-development-version-from-github)
-    - [1.3 Check Dependencies](#13-check-dependencies)
+    - [1.1 Stable Release from GitHub](#11-stable-release-from-github)
+    - [1.2 Check Dependencies](#12-check-dependencies)
   - [2. Loading and preprocessing data](#2-loading-and-preprocessing-data)
     - [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
       - [2.1.1 (Option A) Start from Raw Matrix](#211-option-a-start-from-raw-matrix)
@@ -42,13 +41,7 @@ SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is 
 
 Install **SigBridgeR** using one of these methods:
 
-### 1.1 Stable Release from CRAN
-
-```{r install_from_cran}
-install.packages("SigBridgeR")
-```
-
-### 1.2 Development Version From GitHub
+### 1.1 Stable Release from GitHub
 
 ```{r install_from_github}
 if(!requireNamespace("remotes")) {
@@ -57,7 +50,7 @@ if(!requireNamespace("remotes")) {
 remotes::install_github("WangLabCSU/SigBridgeR")
 ```
 
-### 1.3 Check Dependencies
+### 1.2 Check Dependencies
 
 You can use this function to quickly verify installed dependencies and their versions:
 

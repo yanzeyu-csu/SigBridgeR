@@ -39,7 +39,7 @@ SCPreProcess <- function(sc, ...) {
 #' @rdname SCPreProcess
 #' @export
 SCPreProcess.default <- function(sc, ...) {
-    cli::cli_abort(c("x" = "Unknown Input type"))
+    cli::cli_abort(c("x" = "Unsupported input type: {.var {class(sc)}}"))
 }
 
 #' @rdname SCPreProcess

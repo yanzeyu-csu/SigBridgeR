@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^R/9.*
 tmp
+^LICENSE\.md$

@@ -1,6 +1,6 @@
 # **SigBridgeR** <a href="https://wanglabcsu.github.io/sigbridger/"><img src="man/figures/logo_white.png" alt="sigbridger website" align="right" height="139"/></a>
 
-[![CRAN Status](https://www.r-pkg.org/badges/version/SigBridgeR)](https://cran.r-project.org/package=SigBridgeR) [![Repo Status](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)[![](https://img.shields.io/badge/devel%20version-0.0.0.9000-blue.svg)](https://github.com/WangLabCSU/SigBridgeR)
+[![CRAN Status](https://www.r-pkg.org/badges/version/SigBridgeR)](https://cran.r-project.org/package=SigBridgeR) [![Repo Status](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)[![](https://img.shields.io/badge/devel%20version-0.0.0.9000-blue.svg)](https://github.com/WangLabCSU/SigBridgeR)[![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3)
 
 ------------------------------------------------------------------------
 
@@ -9,16 +9,6 @@
 SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
 
 ## 🔧 Installation
-
-You can install the **SigBridgeR** using the following options:
-
-### Stable release from CRAN
-
-```{r install_from_cran}
-install.packages("SigBridgeR")
-```
-
-### Development version from GitHub
 
 ```{r install_from_github}
 if(!requireNamespace("remotes")) {
@@ -29,16 +19,16 @@ remotes::install_github("WangLabCSU/SigBridgeR")
 
 ## 📓 Documentation
 
-Use `?SigBridgeR` to access the help documents in R.
-
 Get Started:
 
 -   [Quick Started Guide](vignettes/Quick_Start.md)
 -   [Full Tutorial](vignettes/Full_Tutorial.md) for more details
+- Use `?SigBridgeR` to access the help documents in R.
 
 If you encounter problems, please see:
 
 -   [Troubleshooting Guide](vignettes/Troubleshooting.md)
+-   Please use [Github issues](https://github.com/WangLabCSU/SigBridgeR/issues) if you want to file bug reports or feature requests, let us know if you have ideas to make this project better!
 
 Other information:
 
@@ -54,8 +44,8 @@ SigbridgeR integrates algorithms from the following repositories:
 -   [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP)
 -   [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
 
-## 📮 Contact
+## 📮 Question and Issues
 
 For support or questions:
 
-Maintainer: Exceret 
+Maintainer: Exceret
