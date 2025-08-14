@@ -1,7 +1,10 @@
 # **Troubleshooting**
 
+Here are some common problems and their solutions. If you cannot find your problem here, please file an issue.
+
 ------------------------------------------------------------------------
 
+> [!ERROR]\
 > ## Error in normalize.quantiles(dataset0) : ERROR; return code from pthread_create() is 22
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:

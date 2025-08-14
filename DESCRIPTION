@@ -1,9 +1,9 @@
 Package: SigBridgeR
-Title: Multi-algorithm Integration of Mutational Signatures, scRNA-seq, and Bulk Data for Tumor Cell Screening
+Title: Multi-algorithm Integration of Phenotypic, scRNA-seq, and Bulk Data for Cell Screening
 Version: 1.0.0
 Authors@R: 
-    person("Yuxi", "Yang", "15364051195@163.com", role = "cre")
-Description: SigBridgeR is an integrative toolkit designed to identify tumor phenotype-associated cell subpopulations by combining mutational signatures (as phenotype), bulk expression and single-cell RNA-seq data, and . It leverages multiple algorithms (including 'Scissor', 'scPAS', 'scPP', and 'scAB') to robustly link molecular features with clinical or functional phenotypes. The package provides a unified pipeline for cross-modal data analysis, enabling the discovery of biologically and clinically relevant cell states in heterogeneous tumor samples.  
+    person("Yuxi", "Yang", email="15364051195@163.com", role = "cre")
+Description: SigBridgeR is an integrative toolkit designed to identify phenotype-associated cell subpopulations by combining phenotype(e.g. survival, drug sensitivity), bulk expression and single-cell RNA-seq data. It leverages multiple algorithms (including 'Scissor', 'scPAS', 'scPP', and 'scAB') to robustly link cell features with clinical or functional phenotypes. The package provides a unified pipeline for cross-modal data analysis, enabling the discovery of biologically and clinically relevant cell states in heterogeneous  samples.  
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -24,10 +24,10 @@ Imports:
     ScPP,
     SeuratObject,
     tibble,
-    tidyr,
+    ggplot2,
+    tidyr
 Depends: 
     dplyr,
-    ggplot2,
     Seurat
 Suggests: 
     knitr,

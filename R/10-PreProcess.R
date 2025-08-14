@@ -75,7 +75,9 @@ SCPreProcess.matrix <- function(
     options(future.globals.maxSize = future_global_maxsize)
 
     # sc is a count matrix
-    cli::cli_alert_info("Start from count matrix")
+    if (verbose) {
+        cli::cli_alert_info("Start from count matrix")
+    }
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
