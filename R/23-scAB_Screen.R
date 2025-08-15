@@ -169,12 +169,21 @@ create_scAB.v5 <- function(
 ) {
     # cell neighbors
     method = match.arg(method)
-    if (is.null(Object@graphs$RNA_snn)) {
+    if ("RNA_snn" %in% names(Object@graphs)) {
+        A <- as.matrix(Object@graphs$RNA_snn)
+        cli::cli_alert_info(
+            "Using {.val RNA_snn} graph for network."
+        )
+    } else if ("integrated_snn" %in% names(Object@graphs)) {
+        A <- as.matrix(Object@graphs$integrated_snn)
+        cli::cli_alert_info(
+            "Using {.val integrated_snn} graph for network."
+        )
+    } else {
         cli::cli_abort(c(
-            "x" = "{.var RNA_snn} not found, please run {.fun FindNeighbors} function in Seurat."
+            "x" = "No `RNA_snn` or `integrated_snn` graph in the given Seurat object. Please check `Object@graphs`."
         ))
     }
-    A <- as.matrix(Object@graphs$RNA_snn)
     diag(A) <- 0
     A[which(A != 0)] <- 1
     degrees <- rowSums(A)
