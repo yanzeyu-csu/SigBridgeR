@@ -241,7 +241,21 @@ Scissor.v5.optimized <- function(
 
             if (class(sc_dataset) == "Seurat") {
                 sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
-                network <- as.matrix(sc_dataset@graphs$RNA_snn)
+                if ("RNA_snn" %in% names(sc_dataset@graphs)) {
+                    network <- as.matrix(sc_dataset@graphs$RNA_snn)
+                    cli::cli_alert_info(
+                        "Using {.val RNA_snn} graph for network."
+                    )
+                } else if ("integrated_snn" %in% names(sc_dataset@graphs)) {
+                    network <- as.matrix(sc_dataset@graphs$integrated_snn)
+                    cli::cli_alert_info(
+                        "Using {.val integrated_snn} graph for network."
+                    )
+                } else {
+                    cli::cli_abort(c(
+                        "x" = "No `RNA_snn` or `integrated_snn` graph in the given Seurat object. Please check Scissor inputs."
+                    ))
+                }
             } else {
                 sc_exprs <- as.matrix(sc_dataset)
                 Seurat_tmp <- Seurat::CreateSeuratObject(
@@ -331,7 +345,9 @@ Scissor.v5.optimized <- function(
                         ))
                     } else {
                         tmp <- paste(z, tag)
-                        cli::cli_alert_info("Current phenotype contains: {.val {length(tmp)}} samples.")
+                        cli::cli_alert_info(
+                            "Current phenotype contains: {.val {length(tmp)}} samples."
+                        )
                         cli::cli_text("Sample examples:")
                         cli::cli_bullets(c(
                             " " = "{.val {head(tmp, 5)}}",
