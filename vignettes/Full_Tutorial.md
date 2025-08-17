@@ -87,7 +87,7 @@ CheckPkgs(list(
   list(pkg = "Seurat", version = "5.0.0"),
   list(pkg = "dplyr"),
   list(pkg = "cli"),
-  list(pkg = "AUCell"),
+  list(pkg = "AUCell", version = "1.20.2"),
   list(pkg = "future"),
   list(pkg = "ggrepel"),
   list(pkg = "grid"),
@@ -384,6 +384,7 @@ Parameters pass to `...` when using `scPP` method :
 **usage**:
 
 ```{r scPP_screening}
+# This will take several hours
 scpp_result = Screen(
   matched_bulk = your_matched_bulk,
   sc_data = A_Seurat_object,

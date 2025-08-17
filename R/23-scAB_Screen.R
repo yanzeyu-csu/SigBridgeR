@@ -101,7 +101,7 @@ DoscAB <- function(
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
         " Run NMF with phenotype and cell-cell similarity regularization at",
-        " K = {k}."
+        " K = {.val {k}}."
     ))
 
     scAB_result <- scAB::scAB(
@@ -114,7 +114,7 @@ DoscAB <- function(
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
-        " Screening cells"
+        " Screening cells..."
     ))
 
     sc_data <- scAB::findSubset(

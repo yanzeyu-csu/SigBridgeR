@@ -152,7 +152,37 @@ DoscPP = function(
         ))
     }
 
-    cli::cli_alert_info("Significant genes found {.val {length(gene_list)}}")
+    l = unlist(lapply(gene_list, length))
+    ifelse(
+        l["gene_pos"] > 0 & l["gene_neg"] > 0,
+        {
+            cli::cli_alert_info(c(
+                "[{TimeStamp()}]",
+                " Found {.val {l['gene_pos']}} significant positive genes and {.val {l['gene_neg']}} significant negative genes."
+            ))
+        },
+        {
+            if (l["gene_pos"] == 0) {
+                cli::cli_alert_info(c(
+                    "[{TimeStamp()}]",
+                    " No significant positive genes found"
+                ))
+            }
+            if (l["gene_neg"] == 0) {
+                cli::cli_alert_info(c(
+                    "[{TimeStamp()}]",
+                    " No significant negative genes found"
+                ))
+            }
+            if (l["gene_pos"] == 0 & l["gene_neg"] == 0) {
+                cli::cli_alert_success(c(
+                    "[{TimeStamp()}]",
+                    crayon::green(" scPP screening done.")
+                ))
+                return(NULL)
+            }
+        }
+    )
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
@@ -169,7 +199,11 @@ DoscPP = function(
             scPP = data.table::fifelse(
                 ScPP == "Phenotype+",
                 "Positive",
-                data.table::fifelse(ScPP == "Phenotype-", "Negative", "Neutral")
+                data.table::fifelse(
+                    ScPP == "Phenotype-",
+                    "Negative",
+                    "Neutral"
+                )
             )
         )
     ]$scPP
