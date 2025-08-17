@@ -44,15 +44,15 @@
 #' @param ... Additional arguments passed to `Scissor.v5.optimized`.
 #'
 #' @return A list containing:
-#' \itemize{
+#' \item{
 #'   \item{scRNA_data}{A Seurat object with screened cells:
-#'     \itemize{
+#'     \item{
 #'       \item{scissor: "Positive"/"Negative"/"Neutral" classification}
 #'       \item{label_type: Outcome label used}
 #'     }
 #'   }
 #'   \item{reliability_result}{
-#'     \itemize{
+#'     \item{
 #'       \item{}
 #'       \item{}
 #'     }
@@ -239,7 +239,7 @@ Scissor.v5.optimized <- function(
                 )
             }
 
-            if (class(sc_dataset) == "Seurat") {
+            if (inherits(sc_dataset, "Seurat")) {
                 sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
                 if ("RNA_snn" %in% names(sc_dataset@graphs)) {
                     network <- as.matrix(sc_dataset@graphs$RNA_snn)

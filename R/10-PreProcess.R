@@ -183,9 +183,6 @@ SCPreProcess.AnnDataR6 <- function(
     cli::cli_alert_info("Start from anndata object")
 
     sc_matrix <- if (inherits(sc$X, "sparseMatrix")) {
-        if (!requireNamespace("Matrix", quietly = TRUE)) {
-            stop("Matrix package required for sparse matrix support")
-        }
         Matrix::t(sc$X)
     } else {
         t(sc$X)

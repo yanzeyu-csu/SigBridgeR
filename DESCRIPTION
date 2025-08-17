@@ -9,12 +9,8 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
-    AUCell,
     cli,
     data.table,
-    future,
-    ggrepel,
-    grid,
     IDConverter,
     Matrix,
     patchwork,
@@ -25,15 +21,19 @@ Imports:
     SeuratObject,
     tibble,
     ggplot2,
-    tidyr
+    tidyr,
+    crayon,
+    glue,
+    preprocessCore,
+    purrr,
+    scales,
+    doParallel
 Depends: 
     dplyr,
     Seurat
 Suggests: 
-    knitr,
     rmarkdown,
     anndata,
     reticulate,
     org.Hs.eg.db,
     zeallot
-VignetteBuilder: knitr

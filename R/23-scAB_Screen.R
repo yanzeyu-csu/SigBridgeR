@@ -147,14 +147,13 @@ DoscAB <- function(
 #' @description
 #' preprocess the single-cell data, bulk data, and phenotype data.
 #'
-#' @param Object  Seurat object
-#' @param bulk_dataset  matrix of bulk data
+#' @param Object Seurat object
+#' @param bulk_dataset matrix of bulk data
 #' @param phenotype Phenotype data, a matrix with two columns "time" and "state", or a vector
 #' @param method method "survival" or "binary"
 #'
 #' @return a scAB_data
 #' @importFrom preprocessCore normalize.quantiles
-#' @export
 #'
 #' @family screen method
 #'

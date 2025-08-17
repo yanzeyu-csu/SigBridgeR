@@ -35,9 +35,9 @@
 #' @param probs Quantile cutoff for cell classification (default: 0.2)
 #'
 #' @return A list containing:
-#' \itemize{
+#' \item{
 #'   \item{scRNA_data}{Seurat object with added metadata:
-#'     \itemize{
+#'     \item{
 #'       \item{ScPP: "Positive"/"Negative"/"Neutral" classification}
 #'       \item{label_type: Outcome label used}
 #'     }
