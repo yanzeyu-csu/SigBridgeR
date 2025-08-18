@@ -66,7 +66,7 @@ MergeResult = function(...) {
             return(x$scRNA_data)
         } else {
             cli::cli_alert_warning(crayon::yellow(
-                "Skipping object of class {.code class(x)} - not a Seurat object or list with Seurat object"
+                "Skipping object of class {.code class(x)} - not a Seurat object or a list with Seurat object"
             ))
             return(NULL)
         }
@@ -99,7 +99,7 @@ MergeResult = function(...) {
         tibble::column_to_rownames("cell_id")
 
     cli::cli_alert_success(
-        "Successfully merged {length(seurat_objects)} objects."
+        "Successfully merged {.val {length(seurat_objects)}} objects."
     )
 
     return(merged_obj)

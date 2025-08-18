@@ -81,9 +81,6 @@ DoscAB <- function(
         crayon::green(" Start scAB screening.")
     ))
 
-    sc_data = sc_data %>%
-        Seurat::AddMetaData(rep(label_type, ncol(.)), col.name = "label_type")
-
     scAB_obj <- create_scAB.v5(
         Object = sc_data,
         bulk_dataset = matched_bulk,

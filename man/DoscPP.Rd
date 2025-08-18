@@ -44,9 +44,9 @@ DoscPP(
 }
 \value{
 A list containing:
-\itemize{
+\item{
 \item{scRNA_data}{Seurat object with added metadata:
-\itemize{
+\item{
 \item{ScPP: "Positive"/"Negative"/"Neutral" classification}
 \item{label_type: Outcome label used}
 }

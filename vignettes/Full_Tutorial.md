@@ -428,47 +428,63 @@ This function performs a simple task of consolidating screening results into the
 
 ## 4. Visualization
 
-After screening, you can use these two functions for plotting the results of screening, **`FetchUMAP`** and **`ScreenFractionPlot`**.
+After screening, you can use **`ScreenFractionPlot`** and **`DimPlot`** from `Seurat` for plotting the results of screening
 
 ### 4.1 UMAP for screening results
 
-Key parameters for `FetchUMAP`:
-
--   `seurat_obj`: A Seurat object after screening.
--   `group_by`: Used to specify the column of the meta.data in `seurat_obj`. The plot results will be grouped by this parameter. Pass to `Seurat::DimPlot`'s `group.by` parameter.
--   `plot_color`: Custom color palette (named vector format):
-    -   Required names: "Positive", "Negative", "Neutral"
-    -   Default: c("Neutral"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")
--   `order`: The order of the groups. Pass to `Seurat::DimPlot`'s `order` parameter.
--   `...`: Other parameters passed to `Seurat::DimPlot` or `Seurat::FeaturePlot`, autodetected by parameters' names.
-
-**usage**:
+**example**:
 
 Suppose you have performed `scissor` algorithm screening on your Seurat object and wish to examine the distribution across different celltypes and patient, you may reference and use the following code:
 
 ```{r umap_exmaple}
-umaps <- FetchUMAP(
-  seurat_obj = your_seurat_obj,
-  group_by = c("celltype","patient","scissor"),
-  plot_color = NULL,
-  plot_show = TRUE,
-  order = c(2, 1),
-)
+library(patchwork)
+library(zeallot)
+
+c(celltype_umap, patient_umap, scissor_umap) %<-%
+    purrr::map(
+        c("celltype", "patient", "scissor"),
+        ~ Seurat::DimPlot(
+            your_seurat_obj,
+            group.by = .x,
+            label.size = 6,
+            pt.size = 0.6,
+            reduction = "umap"
+        ) +
+            ggplot2::ggtitle(.x)
+    )
+
+# * Show
+celltype_umap | patient_umap | scissor_umap
 ```
 
-This will generates three UMAP plots (one for each group specified in `group_by`, passed to `Seurat::DimPlot`), stored in a list. When `plot_show = TRUE`, you will see a composite plot displaying all groups together.
+This will generate three UMAP plots separately. 
+
 
 Or suppose you have performed `scPAS` screening on your Seurat object and want to visualize the distribution of prediction confidence scores, you may reference and use the following code:
 
 ```{r umap_exmaple2}
-umaps <- FetchUMAP(
-  seurat_obj = your_seurat_obj,
-  feature = c("scPAS_Pvalue","scPAS_NRS"),
-  plot_color = NULL,
-)
+library(patchwork)
+library(zeallot)
+
+c(scPAS_Pvalue_umap, scPAS_NRS_umap) %<-%
+    purrr::map(
+        c("scPAS_Pvalue", "scPAS_NRS"),
+        ~ Seurat::FeaturePlot(
+            object = your_seurat_obj,
+            features = .x,
+            label.size = 6,
+            pt.size = 0.6,
+            label = TRUE
+        ) +
+            ggplot2::ggtitle(.x) +
+            theme(legend.position = "right")
+    )
+
+# * Show
+scPAS_Pvalue_umap | scPAS_NRS_umap
 ```
 
-This will generate two plots, one for each feature specified in `feature` (passed to `Seurat::FeaturePlot`), stored in a list.
+This will generate two plots, one for each feature specified in `feature`.
 
 **helpful documentation**:
 

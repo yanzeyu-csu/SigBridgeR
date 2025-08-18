@@ -54,15 +54,15 @@ Higher values increase specificity.}
 }
 \value{
 A list containing:
-\itemize{
+\item{
 \item{scRNA_data}{A Seurat object with screened cells:
-\itemize{
+\item{
 \item{scissor: "Positive"/"Negative"/"Neutral" classification}
 \item{label_type: Outcome label used}
 }
 }
 \item{reliability_result}{
-\itemize{
+\item{
 \item{}
 \item{}
 }
