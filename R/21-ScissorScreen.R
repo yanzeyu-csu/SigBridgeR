@@ -78,7 +78,7 @@
 #' @importFrom Seurat AddMetaData
 #' @importFrom Scissor reliability.test
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @export
 #'
 DoScissor = function(
@@ -98,8 +98,6 @@ DoScissor = function(
     ...
 ) {
     library(dplyr)
-
-    TimeStamp = function() format(Sys.time(), "%Y/%m/%d %H:%M:%S")
 
     if (scissor_family %in% c("binomial", "cox")) {
         label_type = c(
@@ -181,6 +179,7 @@ DoScissor = function(
 
     return(list(
         scRNA_data = sc_data,
+        scissor_result = infos1,
         reliability_result = reliability_result
     ))
 }
@@ -192,7 +191,7 @@ DoScissor = function(
 #'
 #' @family screen method
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @noRd
 #'
 Scissor.v5.optimized <- function(
@@ -213,8 +212,6 @@ Scissor.v5.optimized <- function(
 
     cl <- parallel::makeCluster(min(workers, parallel::detectCores() - 1))
     doParallel::registerDoParallel(cl)
-
-    TimeStamp = function() format(Sys.time(), "%Y/%m/%d %H:%M:%S")
 
     cli::cli_alert_info(
         c("[{TimeStamp()}]", crayon::green(" Scissor start..."))

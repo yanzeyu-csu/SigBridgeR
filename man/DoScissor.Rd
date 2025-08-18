@@ -91,4 +91,4 @@ res <- DoScissor(
 }
 
 }
-\keyword{internal}
+\keyword{SigBridgeR_internal}

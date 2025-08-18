@@ -43,11 +43,17 @@ SCPreProcess.default <- function(sc, ...) {
 }
 
 #' @rdname SCPreProcess
+#' @param meta_data Optional metadata dataframe (rows = cells, columns = attributes)
 #' @param column2only_tumor Metadata column for tumor cell filtering (regex patterns:
 #'        "[Tt]umo.?r", "[Cc]ancer", "[Mm]alignant", "[Nn]eoplasm")
 #' @param project Project name for Seurat object
-#' @param min_cells Minimum cells per gene to retain
-#' @param min_features Minimum features per cell to retain
+#' @param min_cells Minimum cells per gene to retain (features present in at least this many cells)
+#' @param min_features Minimum features per cell to retain (cells with at least this many features)
+#' @param quality_control Logical indicating whether to perform mitochondrial QC
+#' @param quality_control.pattern Regex pattern to identify mitochondrial genes (e.g., "^MT-" for human)
+#' @param data_filter Logical indicating whether to filter low-quality cells
+#' @param data_filter.nFeature_RNA_thresh Numeric vector of length 2 specifying (min, max) features per cell
+#' @param data_filter.percent.mt Maximum mitochondrial percentage allowed (0-100)
 #' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
 #' @param scale_factor Scaling factor for normalization
 #' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
@@ -59,10 +65,16 @@ SCPreProcess.default <- function(sc, ...) {
 #'
 SCPreProcess.matrix <- function(
     sc,
+    meta_data = NULL,
     column2only_tumor = NULL,
-    project = "Scissor_Single_Cell",
+    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
     min_cells = 400,
     min_features = 0,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200, 6000),
+    data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
     selection_method = "vst",
@@ -76,25 +88,63 @@ SCPreProcess.matrix <- function(
 
     # sc is a count matrix
     if (verbose) {
-        cli::cli_alert_info("Start from count matrix")
+        cli::cli_alert_info("[{TimeStamp()}] Start from count matrix")
     }
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
         project = project,
+        meta.data = meta_data,
         min.cells = min_cells,
         min.features = min_features
-    ) %>%
-        ProcessSeuratObject(
-            normalization_method = normalization_method,
-            scale_factor = scale_factor,
-            selection_method = selection_method,
-            verbose = verbose
+    )
+
+    if (quality_control) {
+        if (length(quality_control.pattern) != 1) {
+            cli::cli_abort(c(
+                "x" = "{.arg quality_control.pattern} must be specified",
+                "i" = "human: '^MT-', mouse: '^mt-', or your own"
+            ))
+        }
+        sc_seurat[["percent.mt"]] <- PercentageFeatureSet(
+            sc_seurat,
+            pattern = quality_control.pattern
         )
+    }
+    if (data_filter) {
+        if (
+            length(data_filter.nFeature_RNA_thresh) != 2 |
+                data_filter.nFeature_RNA_thresh[2] <
+                    data_filter.nFeature_RNA_thresh[1]
+        ) {
+            cli::cli_abort(c(
+                "x" = "{.arg data_filter.nFeature_RNA_thresh}:{.val c({data_filter.nFeature_RNA_thresh[1]}, {data_filter.nFeature_RNA_thresh[2]})} specified incorrectly."
+            ))
+        }
+        if (data_filter.percent.mt < 0 | data_filter.percent.mt > 100) {
+            cli::cli_abort(c(
+                "x" = "{.arg data_filter.percent.mt}:{.val {data_filter.percent.mt}} specified incorrectly.",
+                "i" = "Must be between 0 and 100"
+            ))
+        }
+        sc_seurat = subset(
+            x = sc_seurat,
+            subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
+                nFeature_RNA < data_filter.nFeature_RNA_thresh[2] &
+                percent.mt < data_filter.percent.mt
+        )
+    }
+    sc_seurat = ProcessSeuratObject(
+        obj = sc_seurat,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        selection_method = selection_method,
+        verbose = verbose
+    )
 
     # Add metadata
     if ("obs" %in% names(sc)) {
-        sc_seurat <- sc_seurat %>% Seurat::AddMetaData(sc$obs)
+        sc_seurat <- Seurat::AddMetaData(sc_seurat, sc$obs)
     }
 
     sc_seurat <- ClusterAndReduce(
@@ -112,11 +162,17 @@ SCPreProcess.matrix <- function(
 }
 
 #' @rdname SCPreProcess
+#' @param meta_data Optional metadata dataframe (rows = cells, columns = attributes)
 #' @param column2only_tumor Metadata column for tumor cell filtering (regex patterns:
 #'        "[Tt]umo.?r", "[Cc]ancer", "[Mm]alignant", "[Nn]eoplasm")
 #' @param project Project name for Seurat object
-#' @param min_cells Minimum cells per gene to retain
-#' @param min_features Minimum features per cell to retain
+#' @param min_cells Minimum cells per gene to retain (features present in at least this many cells)
+#' @param min_features Minimum features per cell to retain (cells with at least this many features)
+#' @param quality_control Logical indicating whether to perform mitochondrial QC
+#' @param quality_control.pattern Regex pattern to identify mitochondrial genes (e.g., "^MT-" for human)
+#' @param data_filter Logical indicating whether to filter low-quality cells
+#' @param data_filter.nFeature_RNA_thresh Numeric vector of length 2 specifying (min, max) features per cell
+#' @param data_filter.percent.mt Maximum mitochondrial percentage allowed (0-100)
 #' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
 #' @param scale_factor Scaling factor for normalization
 #' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
@@ -128,10 +184,16 @@ SCPreProcess.matrix <- function(
 #'
 SCPreProcess.data.frame <- function(
     sc,
+    meta_data = NULL,
     column2only_tumor = NULL,
-    project = "Scissor_Single_Cell",
+    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
     min_cells = 400,
     min_features = 0,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200, 6000),
+    data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
     selection_method = "vst",
@@ -143,10 +205,16 @@ SCPreProcess.data.frame <- function(
 ) {
     SCPreProcess.matrix(
         sc = as.matrix(sc),
+        meta_data = meta_data,
         column2only_tumor = column2only_tumor,
         project = project,
         min_cells = min_cells,
         min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
         selection_method = selection_method,
@@ -162,10 +230,16 @@ SCPreProcess.data.frame <- function(
 #' @export
 SCPreProcess.AnnDataR6 <- function(
     sc,
+    meta_data = NULL,
     column2only_tumor = NULL,
-    project = "Scissor_Single_Cell",
+    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
     min_cells = 400,
     min_features = 0,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200, 6000),
+    data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
     selection_method = "vst",
@@ -178,9 +252,9 @@ SCPreProcess.AnnDataR6 <- function(
     options(future.globals.maxSize = future_global_maxsize)
 
     if (is.null(sc$X)) {
-        stop("Input must contain $X matrix")
+        cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
-    cli::cli_alert_info("Start from anndata object")
+    cli::cli_alert_info("[{TimeStamp()}] Start from anndata object")
 
     sc_matrix <- if (inherits(sc$X, "sparseMatrix")) {
         Matrix::t(sc$X)
@@ -189,21 +263,60 @@ SCPreProcess.AnnDataR6 <- function(
     }
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
-        counts = sc_matrix,
+        counts = sc,
         project = project,
+        meta.data = meta_data,
         min.cells = min_cells,
         min.features = min_features
-    ) %>%
-        ProcessSeuratObject(
-            normalization_method = normalization_method,
-            scale_factor = scale_factor,
-            selection_method = selection_method,
-            verbose = verbose
+    )
+
+    if (quality_control) {
+        if (length(quality_control.pattern) != 1) {
+            cli::cli_abort(c(
+                "x" = "{.arg quality_control.pattern} must be specified",
+                "i" = "human: '^MT-', mouse: '^mt-', or your own"
+            ))
+        }
+        sc_seurat[["percent.mt"]] <- PercentageFeatureSet(
+            sc_seurat,
+            pattern = quality_control.pattern
         )
+    }
+    if (data_filter) {
+        if (
+            length(data_filter.nFeature_RNA_thresh) != 2 |
+                data_filter.nFeature_RNA_thresh[2] <
+                    data_filter.nFeature_RNA_thresh[1]
+        ) {
+            cli::cli_abort(c(
+                "x" = "{.arg data_filter.nFeature_RNA_thresh}:{.val c({data_filter.nFeature_RNA_thresh[1]}, {data_filter.nFeature_RNA_thresh[2]})} specified incorrectly."
+            ))
+        }
+        if (data_filter.percent.mt < 0 | data_filter.percent.mt > 100) {
+            cli::cli_abort(c(
+                "x" = "{.arg data_filter.percent.mt}:{.val {data_filter.percent.mt}} specified incorrectly.",
+                "i" = "Must be between 0 and 100"
+            ))
+        }
+        sc_seurat = subset(
+            x = sc_seurat,
+            subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
+                nFeature_RNA < data_filter.nFeature_RNA_thresh[2] &
+                percent.mt < data_filter.percent.mt
+        )
+    }
+
+    sc_seurat = ProcessSeuratObject(
+        obj = sc_seurat,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        selection_method = selection_method,
+        verbose = verbose
+    )
 
     # Add metadata
     if ("obs" %in% names(sc)) {
-        sc_seurat <- sc_seurat %>% Seurat::AddMetaData(sc$obs)
+        sc_seurat <- Seurat::AddMetaData(sc_seurat, sc$obs)
     }
 
     sc_seurat <- ClusterAndReduce(
@@ -251,7 +364,7 @@ SCPreProcess.Seurat <- function(
 #' @param verbose Print progress messages
 #' @return Seurat object
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #'
 ProcessSeuratObject <- function(
     obj,
@@ -283,7 +396,7 @@ ProcessSeuratObject <- function(
 #' FindNeighbors, FindClusters, RunTSNE, RunUMAP
 #'
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #'
 ClusterAndReduce <- function(
     obj,
@@ -294,9 +407,9 @@ ClusterAndReduce <- function(
     n_pcs <- ncol(obj@reductions$pca)
     if (is.null(dims) || max(dims) > n_pcs) {
         dims <- 1:min(max(dims), n_pcs)
-        cli::cli_alert_warning(crayon::yellow(
+        cli::cli_warn(
             "The input dimension is greater than the dimension in PCA. It is now set to the maximum dimension in PCA."
-        ))
+        )
     }
 
     obj %>%
@@ -318,7 +431,7 @@ ClusterAndReduce <- function(
 #' @param name2only_tumor Name of the column to filter out tumor cells.
 #' @param verbose Logical. Whether to print messages.
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #'
 #'
 FilterTumorCell <- function(
@@ -372,12 +485,6 @@ FilterTumorCell <- function(
 #' @export
 #'
 BulkPreProcess = function(data) {
-    # Check if the data is UMI count data
-    is_umi <- all(data == floor(data))
-    if (!is_umi) {
-        cli::cli_abort(c("x" = "Decimal exists in data."))
-    }
-
     options(
         IDConverter.datapath = system.file("extdata", package = "IDConverter")
     )

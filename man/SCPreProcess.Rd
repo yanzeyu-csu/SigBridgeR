@@ -17,10 +17,16 @@ SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{matrix}(
   sc,
+  meta_data = NULL,
   column2only_tumor = NULL,
-  project = "Scissor_Single_Cell",
+  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
   min_cells = 400,
   min_features = 0,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200, 6000),
+  data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
   selection_method = "vst",
@@ -33,10 +39,16 @@ SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{data.frame}(
   sc,
+  meta_data = NULL,
   column2only_tumor = NULL,
-  project = "Scissor_Single_Cell",
+  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
   min_cells = 400,
   min_features = 0,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200, 6000),
+  data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
   selection_method = "vst",
@@ -49,10 +61,16 @@ SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{AnnDataR6}(
   sc,
+  meta_data = NULL,
   column2only_tumor = NULL,
-  project = "Scissor_Single_Cell",
+  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
   min_cells = 400,
   min_features = 0,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200, 6000),
+  data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
   selection_method = "vst",
@@ -79,14 +97,26 @@ SCPreProcess(sc, ...)
 
 \item{...}{Method-specific arguments (see below)}
 
+\item{meta_data}{Optional metadata dataframe (rows = cells, columns = attributes)}
+
 \item{column2only_tumor}{Metadata column for tumor cell filtering (regex patterns:
 "\link{Tt}umo.?r", "\link{Cc}ancer", "\link{Mm}alignant", "\link{Nn}eoplasm")}
 
 \item{project}{Project name for Seurat object}
 
-\item{min_cells}{Minimum cells per gene to retain}
+\item{min_cells}{Minimum cells per gene to retain (features present in at least this many cells)}
 
-\item{min_features}{Minimum features per cell to retain}
+\item{min_features}{Minimum features per cell to retain (cells with at least this many features)}
+
+\item{quality_control}{Logical indicating whether to perform mitochondrial QC}
+
+\item{quality_control.pattern}{Regex pattern to identify mitochondrial genes (e.g., "^MT-" for human)}
+
+\item{data_filter}{Logical indicating whether to filter low-quality cells}
+
+\item{data_filter.nFeature_RNA_thresh}{Numeric vector of length 2 specifying (min, max) features per cell}
+
+\item{data_filter.percent.mt}{Maximum mitochondrial percentage allowed (0-100)}
 
 \item{normalization_method}{Normalization method ("LogNormalize", "CLR", or "RC")}
 

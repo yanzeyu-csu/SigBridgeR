@@ -77,4 +77,4 @@ result <- DoscAB(
 }
 
 }
-\keyword{internal}
+\keyword{SigBridgeR_internal}

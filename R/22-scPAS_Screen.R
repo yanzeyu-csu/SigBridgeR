@@ -26,7 +26,7 @@
 #'
 #' @family screen method
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @export
 #'
 DoscPAS = function(
@@ -53,8 +53,6 @@ DoscPAS = function(
             "x" = "Please check the rownames of {.var phenotype} and colnames of {.var matched_bulk}, they should be the same"
         ))
     }
-
-    TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",

@@ -190,7 +190,11 @@ Screen <- function(
                     ...
                 )
             },
-            TRUE ~ stop("Screen method not found.")
+            TRUE ~
+                cli::cli_abort(c(
+                    "x" = "Screen method not found.",
+                    "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}"
+                ))
         )
 
     return(screened_result)

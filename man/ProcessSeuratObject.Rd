@@ -29,4 +29,4 @@ Seurat object
 \description{
 Normalize, find variable features, scale, and run PCA
 }
-\keyword{internal}
+\keyword{SigBridgeR_internal}

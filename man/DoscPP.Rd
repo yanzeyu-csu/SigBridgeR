@@ -100,4 +100,4 @@ Other screen method:
 \code{\link{DoscPAS}()}
 }
 \concept{screen method}
-\keyword{internal}
+\keyword{SigBridgeR_internal}

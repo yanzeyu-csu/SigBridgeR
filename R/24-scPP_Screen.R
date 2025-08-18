@@ -85,7 +85,7 @@
 #'
 #' @family screen method
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @export
 #'
 DoscPP = function(
@@ -108,8 +108,6 @@ DoscPP = function(
             "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
         ))
     }
-
-    TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",

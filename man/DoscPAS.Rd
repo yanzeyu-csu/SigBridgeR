@@ -58,4 +58,4 @@ Other screen method:
 \code{\link{DoscPP}()}
 }
 \concept{screen method}
-\keyword{internal}
+\keyword{SigBridgeR_internal}

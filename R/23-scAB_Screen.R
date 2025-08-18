@@ -52,7 +52,7 @@
 #' @importFrom cli cli_alert_info
 #' @importFrom crayon green
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @export
 #'
 DoscAB <- function(
@@ -74,8 +74,7 @@ DoscAB <- function(
             "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
         )
     }
-    TimeStamp = function() format(Sys.time(), '%Y/%m/%d %H:%M:%S')
-
+    
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
         crayon::green(" Start scAB screening.")
@@ -154,7 +153,7 @@ DoscAB <- function(
 #'
 #' @family screen method
 #'
-#' @keywords internal
+#' @keywords SigBridgeR_internal
 #' @noRd
 #'
 create_scAB.v5 <- function(

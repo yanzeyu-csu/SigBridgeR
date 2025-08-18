@@ -9,4 +9,4 @@ ClusterAndReduce(obj, dims = 1:10, resolution = 0.6, verbose = TRUE)
 \description{
 FindNeighbors, FindClusters, RunTSNE, RunUMAP
 }
-\keyword{internal}
+\keyword{SigBridgeR_internal}
