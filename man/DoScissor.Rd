@@ -5,18 +5,19 @@
 \title{Perform Scissor Screening Analysis}
 \usage{
 DoScissor(
-  path2load_scissor_cache = NULL,
-  matched_bulk,
-  sc_data,
-  phenotype,
-  label_type = NULL,
-  scissor_alpha = 0.05,
-  scissor_cutoff = 0.2,
-  scissor_family = c("gaussian", "binomial", "cox"),
-  reliability_test = FALSE,
-  path2save_scissor_inputs = "Scissor_inputs.RData",
-  nfold = 10,
-  ...
+   path2load_scissor_cache = NULL,
+   matched_bulk,
+   sc_data,
+   phenotype,
+   label_type = "scissor",
+   scissor_alpha = 0.05,
+   scissor_cutoff = 0.2,
+   scissor_family = c("gaussian", "binomial", "cox"),
+   reliability_test = TRUE,
+   path2save_scissor_inputs = "Scissor_inputs.RData",
+   reliability_test_n = 10,
+   nfold = 10,
+   ...
 )
 }
 \arguments{
@@ -34,7 +35,7 @@ Column names must match \code{phenotype} identifiers.}
 
 \item{label_type}{Character specifying phenotype label type (e.g., "SBS1", "time"), stored in \code{scRNA_data@misc}}
 
-\item{scissor_alpha}{(default: 0.05).}
+\item{scissor_alpha}{Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.(default: 0.05).}
 
 \item{scissor_cutoff}{(default: 0.2).
 Higher values increase specificity.}
@@ -44,9 +45,11 @@ Higher values increase specificity.}
 - "binomial": Binary outcomes (default)
 - "cox": Survival outcomes}
 
-\item{reliability_test}{Logical to perform stability assessment (default: FALSE).}
+\item{reliability_test}{Logical to perform stability assessment when \code{scissor_alpha} is specified as a value between 0 and 1.(default: TRUE).}
 
-\item{path2save_scissor_inputs}{Path to save intermediate files (default: ".").}
+\item{path2save_scissor_inputs}{Path to save intermediate files (default: "Scissor_inputs.RData").}
+
+\item{reliability_test_n}{Number of CV folds for reliability test (default: 10).}
 
 \item{nfold}{Cross-validation folds for reliability test (default: 10).}
 
@@ -54,17 +57,20 @@ Higher values increase specificity.}
 }
 \value{
 A list containing:
-\item{
-\item{scRNA_data}{A Seurat object with screened cells:
-\item{
-\item{scissor: "Positive"/"Negative"/"Neutral" classification}
-\item{label_type: Outcome label used}
+\describe{
+\item{scRNA_data}{A Seurat object with screened cells containing metadata:
+\describe{
+\item{scissor}{"Positive"/"Negative"/"Neutral" classification}
+\item{label_type}{Outcome label used}
 }
 }
-\item{reliability_result}{
-\item{
-\item{}
-\item{}
+\item{scissor_result}{Raw Scissor results}
+\item{reliability_result}{If reliability_test=TRUE, contains:
+\describe{
+\item{statistic}{A value between 0 and 1}
+\item{p}{p-value of the test statistic}
+\item{AUC_test_real}{10 values of AUC for real data}
+\item{AUC_test_back}{A list of AUC for background data}
 }
 }
 }

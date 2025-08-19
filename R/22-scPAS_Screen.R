@@ -13,10 +13,12 @@
 #' @param imputation Logical, whether to perform imputation (default: FALSE)
 #' @param nfeature Number of features to select (default: 3000, indicating that the top 3000 highly variable genes are selected for model training
 #' @param alpha Significance threshold (default: 0.01)
+#' @param extra_filter Logical, whether to perform extra filtering (default: FALSE)
 #' @param gene_RNAcount_filter Minimum gene expression threshold (default: 20)
 #' @param bulk_0_filter_thresh Maximum proportion of zeros allowed in bulk data (default: 0.25)
 #' @param network_class Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data.)
-#' @param family Model family for analysis (options: "cox", "gaussian", "binomial")
+#' @param scPAS_family Model family for analysis (options: "cox", "gaussian", "binomial")
+#' @param ... Additional arguments passed to `DoscPAS` functions
 #'
 #' @return A Seurat object from scPAS analysis
 #'
@@ -45,8 +47,6 @@ DoscPAS = function(
     scPAS_family = c("cox", "gaussian", "binomial"),
     ...
 ) {
-    library(dplyr)
-
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(

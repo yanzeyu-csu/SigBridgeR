@@ -6,6 +6,18 @@
 \usage{
 ClusterAndReduce(obj, dims = 1:10, resolution = 0.6, verbose = TRUE)
 }
+\arguments{
+\item{obj}{Seurat object}
+
+\item{dims}{Dimension to use for clustering and dimension reduction}
+
+\item{resolution}{Resolution for clustering}
+
+\item{verbose}{logical, whether to print progress messages}
+}
+\value{
+Seurat object
+}
 \description{
 FindNeighbors, FindClusters, RunTSNE, RunUMAP
 }

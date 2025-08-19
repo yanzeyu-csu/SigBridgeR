@@ -66,7 +66,7 @@ DoscAB <- function(
     maxiter = 2000,
     tred = 2
 ) {
-    library(dplyr)
+    # library(dplyr)
 
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
@@ -74,7 +74,7 @@ DoscAB <- function(
             "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
         )
     }
-    
+
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
         crayon::green(" Start scAB screening.")
@@ -167,7 +167,7 @@ create_scAB.v5 <- function(
     if ("RNA_snn" %in% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$RNA_snn)
         cli::cli_alert_info(
-            "Using {.val RNA_snn} graph for network."
+            " Using {.val RNA_snn} graph for network."
         )
     } else if ("integrated_snn" %in% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$integrated_snn)
@@ -199,7 +199,7 @@ create_scAB.v5 <- function(
     colnames(dataset1) <- colnames(dataset0)
     Expression_bulk <- dataset1[, 1:ncol(bulk_dataset)]
     Expression_cell <- dataset1[, (ncol(bulk_dataset) + 1):ncol(dataset1)]
-    X <- cor(Expression_bulk, Expression_cell)
+    X <- stats::cor(Expression_bulk, Expression_cell)
     X = X / norm(X, "F")
 
     # phenotype ranking

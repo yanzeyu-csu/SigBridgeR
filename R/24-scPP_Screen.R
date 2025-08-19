@@ -9,9 +9,9 @@
 #'   matched_bulk,
 #'   sc_data,
 #'   phenotype,
-#'   label_type,
+#'   label_type = "scPP",
 #'   phenotype_class = c("Binary", "Continuous", "Survival"),
-#'   ref_group = 0,
+#'   ref_group = 1,
 #'   Log2FC_cutoff = 0.585,
 #'   estimate_cutoff = 0.2,
 #'   probs = 0.2
@@ -35,11 +35,11 @@
 #' @param probs Quantile cutoff for cell classification (default: 0.2)
 #'
 #' @return A list containing:
-#' \item{
+#' \describe{
 #'   \item{scRNA_data}{Seurat object with added metadata:
-#'     \item{
-#'       \item{ScPP: "Positive"/"Negative"/"Neutral" classification}
-#'       \item{label_type: Outcome label used}
+#'     \describe{
+#'       \item{ScPP}{"Positive"/"Negative"/"Neutral" classification}
+#'       \item{label_type}{Outcome label used}
 #'     }
 #'   }
 #' }
@@ -76,12 +76,14 @@
 #' }
 #'
 #' @importFrom ScPP marker_Binary marker_Continuous marker_Survival ScPP
-#' @import Seurat
-#' @import dplyr
+#' @importFrom Seurat AddMetaData
+#' @importFrom dplyr %>% rename
 #' @importFrom glue glue
 #' @importFrom crayon green
-#' @importFrom cli cli_alert_info cli_alert_success
+#' @importFrom cli cli_abort cli_alert_info cli_alert_success
 #' @importFrom tibble rownames_to_column
+#' @importFrom data.table as.data.table fifelse
+#' @importFrom stats quantile
 #'
 #' @family screen method
 #'
@@ -99,9 +101,6 @@ DoscPP = function(
     estimate_cutoff = 0.2,
     probs = 0.2
 ) {
-    library(dplyr)
-    library(Seurat)
-
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(

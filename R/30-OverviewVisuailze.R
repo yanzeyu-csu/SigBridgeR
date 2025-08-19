@@ -21,7 +21,9 @@
 #'   stack_width = 0.85,
 #'   x_text_angle = 45,
 #'   axis_linewidth = 0.8,
-#'   legend_position = "right"
+#'   legend_position = "right",
+#'   x_lab = NULL,
+#'   y_lab = "Fraction of Status"
 #' )
 #'
 #' @param screened_seurat A Seurat object containing screening results in metadata.
@@ -40,7 +42,7 @@
 #' @param axis_linewidth Axis line thickness (default: 0.8).
 #' @param legend_position Legend position (default: "right").
 #' @param x_lab X-axis label (default: NULL).
-#' @param y_lab Y-axis label (default: "Status Fraction")
+#' @param y_lab Y-axis label (default: "Fraction of Status")
 #'
 #' @return A list containing:
 #' \itemize{
@@ -103,7 +105,7 @@ ScreenFractionPlot = function(
     x_lab = NULL,
     y_lab = "Fraction of Status"
 ) {
-    library(dplyr)
+    # library(dplyr)
 
     if (!inherits(screened_seurat, "Seurat")) {
         cli::cli_abort(

@@ -7,18 +7,19 @@
 #'
 #' @usage
 #' DoScissor(
-#'   path2load_scissor_cache = NULL,
-#'   matched_bulk,
-#'   sc_data,
-#'   phenotype,
-#'   label_type = NULL,
-#'   scissor_alpha = 0.05,
-#'   scissor_cutoff = 0.2,
-#'   scissor_family = c("gaussian", "binomial", "cox"),
-#'   reliability_test = FALSE,
-#'   path2save_scissor_inputs = "Scissor_inputs.RData",
-#'   nfold = 10,
-#'   ...
+#'    path2load_scissor_cache = NULL,
+#'    matched_bulk,
+#'    sc_data,
+#'    phenotype,
+#'    label_type = "scissor",
+#'    scissor_alpha = 0.05,
+#'    scissor_cutoff = 0.2,
+#'    scissor_family = c("gaussian", "binomial", "cox"),
+#'    reliability_test = TRUE,
+#'    path2save_scissor_inputs = "Scissor_inputs.RData",
+#'    reliability_test_n = 10,
+#'    nfold = 10,
+#'    ...
 #' )
 #'
 #' @param path2load_scissor_cache Path to precomputed Scissor inputs (RData file).
@@ -30,31 +31,35 @@
 #'        - Vector: named with sample IDs
 #'        - Data frame: with row names matching bulk columns
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
-#' @param scissor_alpha (default: 0.05).
+#' @param scissor_alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.(default: 0.05).
 #' @param scissor_cutoff  (default: 0.2).
 #'        Higher values increase specificity.
 #' @param scissor_family Model family for outcome type:
 #'        - "gaussian": Continuous outcomes
 #'        - "binomial": Binary outcomes (default)
 #'        - "cox": Survival outcomes
-#' @param reliability_test Logical to perform stability assessment (default: FALSE).
+#' @param reliability_test Logical to perform stability assessment when `scissor_alpha` is specified as a value between 0 and 1.(default: TRUE).
+#' @param reliability_test_n Number of CV folds for reliability test (default: 10).
 #'
-#' @param path2save_scissor_inputs Path to save intermediate files (default: ".").
+#' @param path2save_scissor_inputs Path to save intermediate files (default: "Scissor_inputs.RData").
 #' @param nfold Cross-validation folds for reliability test (default: 10).
 #' @param ... Additional arguments passed to `Scissor.v5.optimized`.
 #'
 #' @return A list containing:
-#' \item{
-#'   \item{scRNA_data}{A Seurat object with screened cells:
-#'     \item{
-#'       \item{scissor: "Positive"/"Negative"/"Neutral" classification}
-#'       \item{label_type: Outcome label used}
+#' \describe{
+#'   \item{scRNA_data}{A Seurat object with screened cells containing metadata:
+#'     \describe{
+#'       \item{scissor}{"Positive"/"Negative"/"Neutral" classification}
+#'       \item{label_type}{Outcome label used}
 #'     }
 #'   }
-#'   \item{reliability_result}{
-#'     \item{
-#'       \item{}
-#'       \item{}
+#'   \item{scissor_result}{Raw Scissor results}
+#'   \item{reliability_result}{If reliability_test=TRUE, contains:
+#'     \describe{
+#'       \item{statistic}{A value between 0 and 1}
+#'       \item{p}{p-value of the test statistic}
+#'       \item{AUC_test_real}{10 values of AUC for real data}
+#'       \item{AUC_test_back}{A list of AUC for background data}
 #'     }
 #'   }
 #' }
@@ -77,6 +82,10 @@
 #' @importFrom dplyr %>%
 #' @importFrom Seurat AddMetaData
 #' @importFrom Scissor reliability.test
+#' @importFrom stats cor
+#' @importFrom glue glue
+#' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger
+#' @importFrom crayon green red
 #'
 #' @keywords SigBridgeR_internal
 #' @export
@@ -90,14 +99,14 @@ DoScissor = function(
     scissor_alpha = 0.05,
     scissor_cutoff = 0.2,
     scissor_family = c("gaussian", "binomial", "cox"),
-    reliability_test = FALSE,
+    reliability_test = TRUE,
     path2save_scissor_inputs = "Scissor_inputs.RData",
-    reliability_test_alpha = 0.2,
     reliability_test_n = 10,
     nfold = 10,
     ...
 ) {
-    library(dplyr)
+    # Input validation
+    scissor_family <- match.arg(scissor_family)
 
     if (scissor_family %in% c("binomial", "cox")) {
         label_type = c(
@@ -155,7 +164,7 @@ DoScissor = function(
                     infos1$X,
                     infos1$Y,
                     infos1$network,
-                    alpha = reliability_test_alpha,
+                    alpha = scissor_alpha,
                     family = scissor_family,
                     cell_num = length(infos1$Scissor_pos) +
                         length(infos1$Scissor_neg),
@@ -191,6 +200,8 @@ DoScissor = function(
 #'
 #' @family screen method
 #'
+#' @importFrom Matrix Matrix
+#'
 #' @keywords SigBridgeR_internal
 #' @noRd
 #'
@@ -207,8 +218,7 @@ Scissor.v5.optimized <- function(
     workers = 32,
     ...
 ) {
-    library(dplyr)
-    library(Matrix)
+    # Scissor needs Matrix()
 
     cl <- parallel::makeCluster(min(workers, parallel::detectCores() - 1))
     doParallel::registerDoParallel(cl)

@@ -8,9 +8,9 @@ DoscPP(
   matched_bulk,
   sc_data,
   phenotype,
-  label_type,
+  label_type = "scPP",
   phenotype_class = c("Binary", "Continuous", "Survival"),
-  ref_group = 0,
+  ref_group = 1,
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
   probs = 0.2
@@ -44,11 +44,11 @@ DoscPP(
 }
 \value{
 A list containing:
-\item{
+\describe{
 \item{scRNA_data}{Seurat object with added metadata:
-\item{
-\item{ScPP: "Positive"/"Negative"/"Neutral" classification}
-\item{label_type: Outcome label used}
+\describe{
+\item{ScPP}{"Positive"/"Negative"/"Neutral" classification}
+\item{label_type}{Outcome label used}
 }
 }
 }

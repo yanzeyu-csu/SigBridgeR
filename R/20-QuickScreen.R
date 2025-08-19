@@ -101,7 +101,6 @@ Screen <- function(
     screen_method = c("Scissor", "scPP", "scPAS", "scAB"),
     ...
 ) {
-    library(dplyr)
     if (length(screen_method) != 1) {
         cli::cli_abort(c("x" = "Only one {.arg screen_method} is allowed."))
     }

@@ -15,7 +15,9 @@ ScreenFractionPlot(
   stack_width = 0.85,
   x_text_angle = 45,
   axis_linewidth = 0.8,
-  legend_position = "right"
+  legend_position = "right",
+  x_lab = NULL,
+  y_lab = "Fraction of Status"
 )
 }
 \arguments{
@@ -47,7 +49,7 @@ Must contain columns corresponding to \code{screen_type}.}
 
 \item{x_lab}{X-axis label (default: NULL).}
 
-\item{y_lab}{Y-axis label (default: "Status Fraction")}
+\item{y_lab}{Y-axis label (default: "Fraction of Status")}
 }
 \value{
 A list containing:

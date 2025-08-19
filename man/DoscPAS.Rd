@@ -38,13 +38,17 @@ DoscPAS(
 
 \item{alpha}{Significance threshold (default: 0.01)}
 
+\item{extra_filter}{Logical, whether to perform extra filtering (default: FALSE)}
+
 \item{gene_RNAcount_filter}{Minimum gene expression threshold (default: 20)}
 
 \item{bulk_0_filter_thresh}{Maximum proportion of zeros allowed in bulk data (default: 0.25)}
 
 \item{network_class}{Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data.)}
 
-\item{family}{Model family for analysis (options: "cox", "gaussian", "binomial")}
+\item{scPAS_family}{Model family for analysis (options: "cox", "gaussian", "binomial")}
+
+\item{...}{Additional arguments passed to \code{DoscPAS} functions}
 }
 \value{
 A Seurat object from scPAS analysis

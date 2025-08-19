@@ -103,10 +103,10 @@ SCPreProcess.matrix <- function(
         if (length(quality_control.pattern) != 1) {
             cli::cli_abort(c(
                 "x" = "{.arg quality_control.pattern} must be specified",
-                "i" = "human: '^MT-', mouse: '^mt-', or your own"
+                "i" = "human: '^MT-', mouse: '^mt-', specify your own or set {.arg quality_control=FALSE}."
             ))
         }
-        sc_seurat[["percent.mt"]] <- PercentageFeatureSet(
+        sc_seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(
             sc_seurat,
             pattern = quality_control.pattern
         )
@@ -274,10 +274,10 @@ SCPreProcess.AnnDataR6 <- function(
         if (length(quality_control.pattern) != 1) {
             cli::cli_abort(c(
                 "x" = "{.arg quality_control.pattern} must be specified",
-                "i" = "human: '^MT-', mouse: '^mt-', or your own"
+                "i" = "human: '^MT-', mouse: '^mt-', specify your own or set {.arg quality_control=FALSE}."
             ))
         }
-        sc_seurat[["percent.mt"]] <- PercentageFeatureSet(
+        sc_seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(
             sc_seurat,
             pattern = quality_control.pattern
         )
@@ -395,6 +395,11 @@ ProcessSeuratObject <- function(
 #' @description
 #' FindNeighbors, FindClusters, RunTSNE, RunUMAP
 #'
+#' @param obj Seurat object
+#' @param dims Dimension to use for clustering and dimension reduction
+#' @param resolution Resolution for clustering
+#' @param verbose logical, whether to print progress messages
+#' @return Seurat object
 #'
 #' @keywords SigBridgeR_internal
 #'
@@ -428,7 +433,7 @@ ClusterAndReduce <- function(
 #' Filter tumor cells from Seurat object.
 #'
 #' @param obj Seurat object with a column to filter out tumor cells.
-#' @param name2only_tumor Name of the column to filter out tumor cells.
+#' @param column2only_tumor Name of the column to filter out tumor cells.
 #' @param verbose Logical. Whether to print messages.
 #'
 #' @keywords SigBridgeR_internal
