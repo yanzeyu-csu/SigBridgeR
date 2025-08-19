@@ -27,7 +27,7 @@
   - [4. Visualization](#4-visualization)
     - [4.1 UMAP for screening results](#41-umap-for-screening-results)
     - [4.2 Stack bar plot for screening results](#42-stack-bar-plot-for-screening-results)
-  - [5. Example](#5-example)
+  - [5. Example {#example}](#5-example-example)
   - [6. Other function details](#6-other-function-details)
   - [7. References](#7-references)
 
@@ -141,8 +141,6 @@ your_seurat <- SCPreProcess(
 )
 ```
 
-
-
 #### 2.1.2 (Option B) Start from AnnDataR6 Object
 
 `SCPreProcess` also supports AnnData objects. You may reference and use the following code:
@@ -197,7 +195,6 @@ your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
 > )
 > ```
 
-
 ### 2.2 Bulk expression data
 
 `BulkPreProcess` performs a straightforward task: converting common gene identifiers (e.g., Ensembl IDs, Entrez) to standardized gene symbols by using the [IDConverter](https://github.com/ShixiangWang/IDConverter) package.
@@ -244,7 +241,7 @@ Key parameters for `Screen`:
 -   `sc_data`: A Seurat object after preprocessing, you can use the output of `Preprocess` function or your own preprocessed Seurat object.
 -   `phenotype`: A data frame of phenotype data after intersecting samples.
 -   `label_type`: A character value specifying the filtering labels are stored in the `Seurat_object@misc` , default: `NULL`.
--   `phenotype_class`: A character value specifying the phenotype data type, i.e. `"binary"`, `"survival"` or `"continuous"`. 
+-   `phenotype_class`: A character value specifying the phenotype data type, i.e. `"binary"`, `"survival"` or `"continuous"`.
 -   `screen_method`: A character value specifying the screening method, i.e. "Scissor", "scPAS", "scAB" or "scPP"
 -   `...`: Other parameters for the screening methods.
 
@@ -301,10 +298,28 @@ scissor_result = Screen(
 
 ```
 
-**returning structure**: A list containing:
+**Returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
+-   `scissor_result`: The result of Scissor screening
 -   `reliability_test`: Reliability test results
+
+**Cell level Evaluation**:
+
+You can use `Sissor::evaluate.cell()` to obtain some supporting information for each Scissor selected cell. First, prepare a benchmark data set.
+
+```{r scissor_screening_cell_level_evaluation}
+evaluate_summary <- Scissor::evaluate.cell(
+    './data/benchmark_data.RData',
+    scissor_result$scissor_result,
+    FDR = 0.05,
+    bootstrap_n = 100
+)
+```
+
+helpful documentation:
+
+[Scissor-Cell Level Evaluations](https://sunduanchen.github.io/Scissor/vignettes/Scissor_Tutorial.html#cell-level-evaluations)
 
 ### 3.2 (Option B) scPAS Screening
 
@@ -457,8 +472,7 @@ c(celltype_umap, patient_umap, scissor_umap) %<-%
 celltype_umap | patient_umap | scissor_umap
 ```
 
-This will generate three UMAP plots separately. 
-
+This will generate three UMAP plots separately.
 
 Or suppose you have performed `scPAS` screening on your Seurat object and want to visualize the distribution of prediction confidence scores, you may reference and use the following code:
 
@@ -522,7 +536,7 @@ Use `?ScreenFractionPlot` in R to see more details.
 
 ------------------------------------------------------------------------
 
-## 5. Example
+## 5. Example {#example}
 
 Here we use the example data to demonstrate how to use the functions in `SigBridgeR` to screen cells associated with phenotype.
 
@@ -530,9 +544,6 @@ Here we use the example data to demonstrate how to use the functions in `SigBrid
 library(SigBridgeR)
 
 ```
-
-
-
 
 ------------------------------------------------------------------------
 
@@ -557,3 +568,5 @@ Use `?AddMisc` in R to see more details.
 ------------------------------------------------------------------------
 
 ## 7. References
+
+Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nature Biotechnology (2021). https://doi.org/10.1038/s41587-021-01091-3. Duanchen Sun, Xiangnan Guan, Amy E. Moran, Ling-Yun Wu, David Z. Qian, Pepper Schedin, Mu-Shui Dai, Alexey V. Danilov, Joshi J. Alumkal, Andrew C. Adey, Paul T. Spellman and Zheng Xia
