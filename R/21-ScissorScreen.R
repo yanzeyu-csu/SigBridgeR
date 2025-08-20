@@ -117,10 +117,12 @@ DoScissor = function(
         n = length(table(phenotype))
         label_type = glue::glue("{label_type}_{seq_len(n)}")
     } else if (length(scissor_family) != 1) {
-        cli::cli_abort(c(
-            "x" = "Please choose one scissor family, use parameter {.var scissor_family}.",
+        cli::cli_abort(
+            c(
+                "x" = "Please choose one scissor family, use parameter {.var scissor_family}."
+            ),
             class = "FamilyError"
-        ))
+        )
     }
     path = dirname(path2save_scissor_inputs)
     if (!dir.exists(path)) {

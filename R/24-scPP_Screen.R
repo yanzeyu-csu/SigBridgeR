@@ -150,36 +150,26 @@ DoscPP = function(
     }
 
     l = lapply(gene_list, length)
-
+    pos_null = FALSE
+    neg_null = FALSE
     if ("gene_pos" %in% names(l)) {
-        ifelse(
-            l[["gene_pos"]] == 0,
-            {
-                cli::cli_alert_info(c(
-                    "[{TimeStamp()}]",
-                    " No significant positive genes found"
-                ))
-                pos_null = TRUE
-            },
-            {
-                pos_null = FALSE
-            }
-        )
+        # Cannot combine the conditions due to the feature of `gene_list`
+        if (l[["gene_pos"]] == 0) {
+            cli::cli_alert_info(c(
+                "[{TimeStamp()}]",
+                " No significant positive genes found"
+            ))
+            pos_null = TRUE
+        }
     }
     if ("gene_neg" %in% names(l)) {
-        ifelse(
-            l[["gene_neg"]] == 0,
-            {
-                cli::cli_alert_info(c(
-                    "[{TimeStamp()}]",
-                    " No significant negative genes found"
-                ))
-                neg_null = TRUE
-            },
-            {
-                neg_null = FALSE
-            }
-        )
+        if (l[["gene_neg"]] == 0) {
+            cli::cli_alert_info(c(
+                "[{TimeStamp()}]",
+                " No significant negative genes found"
+            ))
+            neg_null = TRUE
+        }
     }
     if (pos_null & neg_null) {
         cli::cli_alert_info(c(
