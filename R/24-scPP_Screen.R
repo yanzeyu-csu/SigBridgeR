@@ -149,37 +149,45 @@ DoscPP = function(
         ))
     }
 
-    l = unlist(lapply(gene_list, length))
-    ifelse(
-        l["gene_pos"] > 0 & l["gene_neg"] > 0,
-        {
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                " Found {.val {l['gene_pos']}} significant positive genes and {.val {l['gene_neg']}} significant negative genes."
-            ))
-        },
-        {
-            if (l["gene_pos"] == 0) {
+    l = lapply(gene_list, length)
+
+    if ("gene_pos" %in% names(l)) {
+        ifelse(
+            l[["gene_pos"]] == 0,
+            {
                 cli::cli_alert_info(c(
                     "[{TimeStamp()}]",
                     " No significant positive genes found"
                 ))
+                pos_null = TRUE
+            },
+            {
+                pos_null = FALSE
             }
-            if (l["gene_neg"] == 0) {
+        )
+    }
+    if ("gene_neg" %in% names(l)) {
+        ifelse(
+            l[["gene_neg"]] == 0,
+            {
                 cli::cli_alert_info(c(
                     "[{TimeStamp()}]",
                     " No significant negative genes found"
                 ))
+                neg_null = TRUE
+            },
+            {
+                neg_null = FALSE
             }
-            if (l["gene_pos"] == 0 & l["gene_neg"] == 0) {
-                cli::cli_alert_success(c(
-                    "[{TimeStamp()}]",
-                    crayon::green(" scPP screening done.")
-                ))
-                return(NULL)
-            }
-        }
-    )
+        )
+    }
+    if (pos_null & neg_null) {
+        cli::cli_alert_info(c(
+            "[{TimeStamp()}]",
+            crayon::green(" scPP screening done.")
+        ))
+        return(list(scRNA_data = sc_data))
+    }
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
