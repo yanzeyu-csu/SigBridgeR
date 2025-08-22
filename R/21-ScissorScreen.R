@@ -158,6 +158,14 @@ DoScissor = function(
             # indicate that Y has only two levels, both Pos and Neg cells exist
             !length(table(infos1$Y)) < 2,
             {
+                if (is.numeric(scissor_alpha)) {
+                    cli::cli_abort(c(
+                        "x" = "Please specify a value for alpha",
+                        "i" = "Alpha should be a value between 0 and 1",
+                        "i" = "If you have performed scissor screening with a specific alpha, use the same alpha value."
+                    ))
+                }
+
                 cli::cli_alert_info(c(
                     "[{TimeStamp()}]",
                     crayon::green(" Start reliability test")
@@ -178,10 +186,9 @@ DoScissor = function(
                 )
             },
             {
-                cli::cli_alert_danger(c(
-                    "{crayon::red('Error in reliability test')}: one of the Pos or Neg cells doesn't exist"
+                cli::cli_abort(c(
+                    "x" = "{crayon::red('Error in reliability test')}: one of the Pos or Neg cells doesn't exist"
                 ))
-                reliability_result <- NULL
             }
         )
     } else {

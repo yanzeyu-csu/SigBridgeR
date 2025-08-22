@@ -177,7 +177,7 @@ DoscPP = function(
             "[{TimeStamp()}]",
             crayon::green(" scPP screening done.")
         ))
-        return(list(scRNA_data = sc_data))
+        return(list(scRNA_data = NULL))
     }
 
     cli::cli_alert_info(c(
@@ -197,7 +197,7 @@ DoscPP = function(
                 crayon::yellow(" scPP screening exit.")
             ))
 
-            return(list(scRNA_data = sc_data))
+            return(list(scRNA_data = NULL))
         }
     )
 
