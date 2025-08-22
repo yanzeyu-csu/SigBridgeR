@@ -186,6 +186,7 @@ DoscPP = function(
     ))
 
     # *Start screen
+    err_flag = FALSE
     tryCatch(
         scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs),
         error = function(e) {
@@ -197,9 +198,12 @@ DoscPP = function(
                 crayon::yellow(" scPP screening exit.")
             ))
 
-            return(list(scRNA_data = NULL))
+            err_flag = TRUE
         }
     )
+    if (err_flag) {
+        return(list(scRNA_data = NULL))
+    }
 
     sc_data@meta.data[, "scPP"] <- data.table::as.data.table(
         scPP_result$metadata

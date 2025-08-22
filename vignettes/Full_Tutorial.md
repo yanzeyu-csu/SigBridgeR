@@ -29,6 +29,8 @@
     - [4.2 Stack bar plot for screening results](#42-stack-bar-plot-for-screening-results)
   - [5. Example {#example}](#5-example-example)
   - [6. Other function details](#6-other-function-details)
+    - [6.1 Add miscellaneous information to the Seurat object](#61-add-miscellaneous-information-to-the-seurat-object)
+    - [6.2 Calculate the variance of each row in a matrix](#62-calculate-the-variance-of-each-row-in-a-matrix)
   - [7. References](#7-references)
 
 ### 0.1 Introduction to SigBridgeR
@@ -148,7 +150,7 @@ your_seurat <- SCPreProcess(
 ```{r scpreprocessing_anndata}
 reticulate::use_pythonenv("The_path_to_your_python") 
 
-anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad")
+anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other formats
 
 your_seurat <- SCPreProcess(
   anndata_obj,
@@ -212,6 +214,8 @@ You can also use the `org.Hs.eg.db` package for gene symbol matching if you pref
 library(org.Hs.eg.db)
 
 your_bulk_data <- read.csv("path_to_your_file.csv", header = TRUE, row.names = 1)
+
+your_bulk_data <- BulkPreProcess(your_bulk_data, gene_symbol_conversion = FALSE)
 
 ensembl_ids <- sub("\\..*", "", rownames(your_bulk_data))
 gene_symbols <- mapIds(org.Hs.eg.db, 
@@ -549,6 +553,8 @@ library(SigBridgeR)
 
 ## 6. Other function details
 
+### 6.1 Add miscellaneous information to the Seurat object
+
 -   `AddMisc()` : Add miscellaneous information to the Seurat object. Support for adding multiple attributes to the `SeuratObject@misc` slot simultaneously.
 
 ```{r add_misc_example}
@@ -564,6 +570,35 @@ seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
 ```
 
 Use `?AddMisc` in R to see more details.
+
+### 6.2 Calculate the variance of each row in a matrix
+
+- `rowVars()` : Calculate the variance of each row in a matrix.
+
+```{r row_vars_example}
+ # Basic usage with a matrix
+ mat <- matrix(1:12, nrow = 3)
+ rowVars(mat)
+
+ # With missing values
+ mat[1, 2] <- NA
+ mat[2, 3] <- NA
+ rowVars(mat, na.rm = TRUE)   # Excludes NAs
+ rowVars(mat, na.rm = FALSE)  # Includes NAs (returns NA for affected rows)
+
+ # With a data frame
+ df <- data.frame(
+   a = c(1, 4, 7),
+   b = c(2, 5, 8),
+   c = c(3, 6, 9)
+ )
+ rowVars(df)
+
+ # Edge case: single column (variance is 0)
+ single_col <- matrix(1:3, ncol = 1)
+ rowVars(single_col)  # Returns NaN due to division by 0
+```
+
 
 ------------------------------------------------------------------------
 

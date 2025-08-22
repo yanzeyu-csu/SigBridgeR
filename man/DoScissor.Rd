@@ -35,7 +35,7 @@ Column names must match \code{phenotype} identifiers.}
 
 \item{label_type}{Character specifying phenotype label type (e.g., "SBS1", "time"), stored in \code{scRNA_data@misc}}
 
-\item{scissor_alpha}{Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.(default: 0.05).}
+\item{scissor_alpha}{Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.}
 
 \item{scissor_cutoff}{(default: 0.2).
 Higher values increase specificity.}
