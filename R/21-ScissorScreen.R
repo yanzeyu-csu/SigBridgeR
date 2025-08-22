@@ -241,11 +241,9 @@ Scissor.v5.optimized <- function(
                 rownames(sc_dataset)
             )
             if (length(common) == 0) {
-                stop(
-                    "There is",
-                    crayon::bold(" no common genes "),
-                    "between the given single-cell and bulk samples. Please check Scissor inputs."
-                )
+                cli::cli_abort(c(
+                    "x" = "There is no common genes between the given single-cell and bulk samples. Please check Scissor inputs."
+                ))
             }
 
             if (inherits(sc_dataset, "Seurat")) {
@@ -473,12 +471,12 @@ Scissor.v5.optimized <- function(
                 cat("\n")
             },
             error = function(e) {
-                cli::cli_alert_danger(
+                cli::cli_alert_danger(c(
                     "[{TimeStamp()}]",
                     crayon::red("Error at alpha={alpha}:"),
                     e$message
-                )
-                cli::cli_alert_danger(conditionMessage(e))
+                ))
+                cli::cli_alert_danger(c("[{TimeStamp()}]", conditionMessage(e)))
             }
         )
     }

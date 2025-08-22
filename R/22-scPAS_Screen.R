@@ -99,7 +99,7 @@ DoscPAS = function(
             `scPAS` = dplyr::case_when(
                 scPAS == "scPAS+" ~ "Positive",
                 scPAS == "scPAS-" ~ "Negative",
-                scPAS == "0" ~ "Neutral"
+                TRUE ~ "Neutral"
             )
         )
 

@@ -1,7 +1,6 @@
 utils::globalVariables(
     c(
         ".",
-        ":=",
         "scAB_select",
         "gene_RNA_count_filter",
         "nFeature_RNA",

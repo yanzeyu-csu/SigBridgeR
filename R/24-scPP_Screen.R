@@ -123,7 +123,8 @@ DoscPP = function(
     if (is.vector(phenotype)) {
         phenotype = as.data.frame(phenotype) %>%
             tibble::rownames_to_column("Sample") %>%
-            dplyr::rename("Feature" := 2)
+            dplyr::rename("Feature" = 2) %>%
+            dplyr::mutate(Feature = as.numeric(Feature))
     }
     if (tolower(phenotype_class) == "binary") {
         gene_list = ScPP::marker_Binary(
@@ -185,7 +186,20 @@ DoscPP = function(
     ))
 
     # *Start screen
-    scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs)
+    tryCatch(
+        scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs),
+        error = function(e) {
+            cli::cli_alert_danger(c("[{TimeStamp()}]", e$message))
+            cli::cli_alert_danger(c("[{TimeStamp()}]", conditionMessage(e)))
+
+            cli::cli_alert_info(c(
+                "[{TimeStamp()}]",
+                crayon::yellow(" scPP screening exit.")
+            ))
+
+            return(list(scRNA_data = sc_data))
+        }
+    )
 
     sc_data@meta.data[, "scPP"] <- data.table::as.data.table(
         scPP_result$metadata

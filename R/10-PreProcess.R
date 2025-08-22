@@ -484,7 +484,7 @@ FilterTumorCell <- function(
 #' @title Preprocess bulk expression data
 #'
 #' @description
-#' Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes.
+#' Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes. NA values are replaced with `unknown_k` format (k stands for the position of the NA value in the row).
 #' @param data raw bulk expression data
 #'
 #' @export
@@ -493,6 +493,21 @@ BulkPreProcess = function(data) {
     options(
         IDConverter.datapath = system.file("extdata", package = "IDConverter")
     )
-    rownames(data) <- IDConverter::convert_hm_genes(rownames(data))
+    gene_symbols <- IDConverter::convert_hm_genes(rownames(data))
+
+    na_count <- sum(is.na(gene_symbols))
+    if (na_count > 0) {
+        cli::cli_warn(c(
+            "Found {.val {na_count}} NA values in gene symbols during conversion."
+        ))
+
+        na_indices <- which(is.na(gene_symbols))
+        gene_symbols[na_indices] <- glue::glue("unknown_{na_indices}")
+        cli::cli_warn(
+            "Replaced {.val {na_count}} NA values with `unknown_k` format."
+        )
+    }
+
+    rownames(data) <- gene_symbols
     return(data)
 }

@@ -10,5 +10,5 @@ BulkPreProcess(data)
 \item{data}{raw bulk expression data}
 }
 \description{
-Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes.
+Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes. NA values are replaced with \code{unknown_k} format (k stands for the position of the NA value in the row).
 }
