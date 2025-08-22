@@ -31,7 +31,7 @@
 #'        - Vector: named with sample IDs
 #'        - Data frame: with row names matching bulk columns
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
-#' @param scissor_alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.(default: 0.05).
+#' @param scissor_alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.
 #' @param scissor_cutoff  (default: 0.2).
 #'        Higher values increase specificity.
 #' @param scissor_family Model family for outcome type:
@@ -96,7 +96,7 @@ DoScissor = function(
     sc_data,
     phenotype,
     label_type = "scissor",
-    scissor_alpha = 0.05,
+    scissor_alpha = c(0.05, NULL),
     scissor_cutoff = 0.2,
     scissor_family = c("gaussian", "binomial", "cox"),
     reliability_test = FALSE,
@@ -106,7 +106,17 @@ DoScissor = function(
     ...
 ) {
     # Input validation
-    scissor_family <- match.arg(scissor_family)
+    if (length(scissor_alpha) != 1) {
+        cli::cli_abort(c(
+            "x" = "Please specify scissor alpha",
+            "i" = "Options: {.val NULL} or {.val [0, 1]}"
+        ))
+    }
+    if (length(scissor_family) != 1) {
+        cli::cli_abort(c(
+            "x" = "Please choose one scissor family, use parameter {.var scissor_family}."
+        ))
+    }
 
     if (scissor_family %in% c("binomial", "cox")) {
         label_type = c(
