@@ -10,7 +10,7 @@ BulkPreProcess(
   gene_symbol_conversion = TRUE,
   check = TRUE,
   min_count_threshold = 10,
-  min_samples_expressed = 3,
+  min_gene_expressed = 3,
   min_total_reads = 1e+06,
   min_genes_detected = 10000,
   min_correlation = 0.8,
@@ -30,7 +30,7 @@ BulkPreProcess(
 
 \item{min_count_threshold}{Minimum count threshold for gene filtering, default 10}
 
-\item{min_samples_expressed}{Minimum number of samples a gene must be expressed in, default 3}
+\item{min_gene_expressed}{Minimum number of samples a gene must be expressed in, default 3}
 
 \item{min_total_reads}{Minimum total reads per sample, default 1e6}
 
@@ -97,7 +97,7 @@ The sample_info data frame should contain:
 
 Genes are retained if:
 \itemize{
-\item They have counts >= min_count_threshold in >= min_samples_expressed samples
+\item They have counts >= min_count_threshold in >= min_gene_expressed samples
 }
 
 Samples are retained if:

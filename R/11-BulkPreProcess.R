@@ -62,7 +62,7 @@ SymbolConvert = function(data) {
 #' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default TRUE.
 #' @param check Whether to perform detailed quality checks, default TRUE
 #' @param min_count_threshold Minimum count threshold for gene filtering, default 10
-#' @param min_samples_expressed Minimum number of samples a gene must be expressed in, default 3
+#' @param min_gene_expressed Minimum number of samples a gene must be expressed in, default 3
 #' @param min_total_reads Minimum total reads per sample, default 1e6
 #' @param min_genes_detected Minimum number of genes detected per sample, default 10000
 #' @param min_correlation Minimum correlation threshold between samples, default 0.8
@@ -95,7 +95,7 @@ SymbolConvert = function(data) {
 #' @section Filtering Criteria:
 #' Genes are retained if:
 #' \itemize{
-#'   \item They have counts >= min_count_threshold in >= min_samples_expressed samples
+#'   \item They have counts >= min_count_threshold in >= min_gene_expressed samples
 #' }
 #'
 #' Samples are retained if:
@@ -122,7 +122,7 @@ BulkPreProcess <- function(
     gene_symbol_conversion = TRUE,
     check = TRUE,
     min_count_threshold = 10,
-    min_samples_expressed = 3,
+    min_gene_expressed = 3,
     min_total_reads = 1e6,
     min_genes_detected = 10000,
     min_correlation = 0.8,
@@ -228,12 +228,11 @@ BulkPreProcess <- function(
         cli::cli_alert_info("[{TimeStamp()}] Computing basic statistics...")
     }
 
-    # Vectorized calculations, avoid loops
     missing_data <- sum(is.na(counts_matrix))
     total_reads_per_sample <- colSums(counts_matrix, na.rm = TRUE)
     genes_detected_per_sample <- colSums(counts_matrix > 0, na.rm = TRUE)
     genes_with_reads <- rowSums(counts_matrix > 0, na.rm = TRUE)
-    genes_expressed_multiple <- sum(genes_with_reads >= min_samples_expressed)
+    genes_expressed_multiple <- sum(genes_with_reads >= min_gene_expressed)
 
     if (verbose) {
         cli::cli_alert_success(
@@ -323,7 +322,7 @@ BulkPreProcess <- function(
             if (length(outliers) > 0) {
                 outlier_names <- sample_info$sample[outliers]
                 cli::cli_warn(
-                    "Outlier samples detected: {.emph {glue::glue(outlier_names, sep = ', ')}}"
+                    "Outlier samples detected: {.emph {glue::glue_collapse(outlier_names, sep = ', ')}}"
                 )
             }
         }
@@ -456,7 +455,7 @@ BulkPreProcess <- function(
 
     # Gene filtering
     genes_pass_count <- rowSums(counts_matrix >= min_count_threshold) >=
-        min_samples_expressed
+        min_gene_expressed
 
     # Sample filtering
     samples_pass_reads <- total_reads_per_sample >= min_total_reads
