@@ -17,6 +17,11 @@
       - [2.1.2 (Option B) Start from AnnDataR6 Object](#212-option-b-start-from-anndatar6-object)
       - [2.1.3 (Optional) Filter Out Tumor Cells](#213-optional-filter-out-tumor-cells)
     - [2.2 Bulk expression data](#22-bulk-expression-data)
+      - [2.2.1 Evaluate the quality of your bulk RNA-seq data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
+        - [Quality Control Metrics Reported: {#quality-control-metrics-reported}](#quality-control-metrics-reported-quality-control-metrics-reported)
+        - [Visualization Output: {#visualization-output}](#visualization-output-visualization-output)
+        - [Recommended Parameter Adjustments: {#recommended-parameter-adjustments}](#recommended-parameter-adjustments-recommended-parameter-adjustments)
+      - [2.2.2 Gene Symbol Conversion](#222-gene-symbol-conversion)
     - [2.3 Phenotype Data](#23-phenotype-data)
   - [3. Screening Cells Associated with Phenotype](#3-screening-cells-associated-with-phenotype)
     - [3.1 (Option A) Scissor Screening](#31-option-a-scissor-screening)
@@ -199,18 +204,93 @@ your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
 
 ### 2.2 Bulk expression data
 
-`BulkPreProcess` performs a straightforward task: converting common gene identifiers (e.g., Ensembl IDs, Entrez) to standardized gene symbols by using the [IDConverter](https://github.com/ShixiangWang/IDConverter) package.
+#### 2.2.1 Evaluate the quality of your bulk RNA-seq data
 
-```{r bulk_preprocessing}
+`BulkPreProcess` performs comprehensive quality control on bulk RNA-seq data.
+
+Key parameters for `BulkPreProcess`:
+
+-   `data`: Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info.
+-   `sample_info`: Sample information data frame (optional), ignored if data is a list.
+-   `gene_symbol_conversion`: Whether to convert Ensembl version IDs and TCGA version IDs to genes with [SymbolConvert](#222-gene-symbol-conversion), default TRUE.
+-   `check`: Whether to perform detailed quality checks, default TRUE.
+-   `min_count_threshold`: Minimum count threshold for gene filtering, default 10.
+-   `min_gene_expressed`: Minimum number of samples a gene must be expressed in, default 3.
+-   `min_total_reads`: Minimum total reads per sample, default 1e6.
+-   `min_genes_detected`: Minimum number of genes detected per sample, default 10000.
+-   `min_correlation`: Minimum correlation threshold between samples, default 0.8.
+-   `n_top_genes`: Number of top variable genes for PCA analysis, default 500.
+-   `show_plot_results`: Whether to generate PCA visualization plots, default TRUE.
+-   `verbose`: Whether to output detailed information, default TRUE.
+
+Suppose you have bulk RNA-seq count data and sample information, and you want to perform comprehensive preprocessing and quality control. You can refer to and use the following code:
+
+```{r bulk_preprocess_example}
+# Example usage of BulkPreProcess
+filtered_counts <- BulkPreProcess(
+   data = your_count_matrix,
+   sample_info = your_sample_info,
+   gene_symbol_conversion = TRUE,
+   check = TRUE,
+   min_count_threshold = 10,
+   min_samples_expressed = 3,
+   min_total_reads = 1e6,
+   min_genes_detected = 10000,
+   min_correlation = 0.8,
+   n_top_genes = 500,
+   show_plot_results = TRUE,
+   verbose = TRUE
+)
+```
+
+The function returns a filtered count matrix after applying quality control steps. The order of filtering is: first genes, then samples.
+
+##### Quality Control Metrics Reported: {#quality-control-metrics-reported}
+
+-   Data Integrity: Number of missing values detected
+
+-   Gene Count: Total number of genes after filtering
+
+-   Sample Read Depth: Total reads per sample
+
+-   Gene Detection Rate: Number of genes detected per sample
+
+-   Sample Correlation: Pearson correlation between samples
+
+-   PCA Variance: Variance explained by first two principal components
+
+-   Batch Effects: Proportion of genes significantly affected by batch
+
+##### Visualization Output: {#visualization-output}
+
+When `show_plot_results = TRUE`, the function generates:
+
+PCA plot colored by experimental condition
+
+##### Recommended Parameter Adjustments: {#recommended-parameter-adjustments}
+
+-   For low-depth sequencing data: reduce `min_total_reads` and `min_genes_detected`
+
+-   For noisy datasets: increase `min_correlation` threshold
+
+-   For large datasets: set `check = FALSE` for faster processing
+
+Use `?BulkPreProcess` in R to see more details.
+
+#### 2.2.2 Gene Symbol Conversion
+
+`SymbolConvert` performs a straightforward task: converting common gene identifiers (e.g., Ensembl IDs, Entrez) to standardized gene symbols by using the [IDConverter](https://github.com/ShixiangWang/IDConverter) package.
+
+```{r symbol_convert_example}
 # genes * samples
 your_bulk_data <- read.csv("path_to_your_file.csv", header = TRUE, row.names = 1)
 
-your_bulk_data <- BulkPreProcess(your_bulk_data)
+your_bulk_data <- SymbolConvert(your_bulk_data)
 ```
 
-You can also use the `org.Hs.eg.db` package for gene symbol matching if you prefer not to use BulkPreProcess's built-in `IDConverter`.
+You can also use the `org.Hs.eg.db` package for gene symbol matching if you prefer not to use SymbolConvert's built-in `IDConverter`.
 
-```{r bulk_preprocessing2}
+```{r symbol_convert_example2}
 library(org.Hs.eg.db)
 
 your_bulk_data <- read.csv("path_to_your_file.csv", header = TRUE, row.names = 1)
@@ -573,7 +653,7 @@ Use `?AddMisc` in R to see more details.
 
 ### 6.2 Calculate the variance of each row in a matrix
 
-- `rowVars()` : Calculate the variance of each row in a matrix.
+-   `rowVars()` : Calculate the variance of each row in a matrix.
 
 ```{r row_vars_example}
  # Basic usage with a matrix
@@ -598,7 +678,6 @@ Use `?AddMisc` in R to see more details.
  single_col <- matrix(1:3, ncol = 1)
  rowVars(single_col)  # Returns NaN due to division by 0
 ```
-
 
 ------------------------------------------------------------------------
 
