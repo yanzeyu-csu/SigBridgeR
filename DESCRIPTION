@@ -11,12 +11,6 @@ RoxygenNote: 7.3.2
 Imports: 
     cli,
     data.table,
-    IDConverter,
-    scAB,
-    Scissor,
-    scPAS,
-    ScPP,
-    SeuratObject,
     tibble,
     ggplot2,
     tidyr,
@@ -29,6 +23,12 @@ Imports:
     Seurat,
     edgeR,
     ggforce
+Remotes: 
+    ShixiangWang/IDConverter,
+    Qinran-Zhang/scAB,
+    sunduanchen/Scissor,
+    aiminXie/scPAS,
+    WangX-Lab/ScPP
 Depends: 
     dplyr,
     Matrix
