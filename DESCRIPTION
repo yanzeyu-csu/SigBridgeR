@@ -22,7 +22,8 @@ Imports:
     doParallel,
     Seurat,
     edgeR,
-    ggforce
+    ggforce,
+    patchwork
 Remotes: 
     ShixiangWang/IDConverter,
     Qinran-Zhang/scAB,
