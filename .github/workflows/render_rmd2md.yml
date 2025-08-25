@@ -1,0 +1,45 @@
+name: Render Rmd to Md
+
+on:
+  push:
+    branches: [main]
+    paths: ['**.Rmd']
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: Install pandoc
+      uses: r-lib/actions/setup-pandoc@v2
+
+    - name: Install dependencies
+      run: |
+        install.packages(c("rmarkdown", "knitr"))
+
+    - name: Render all Rmd files
+      run: |
+        for file in $(find . -name "*.Rmd" -o -name "*.rmd"); do
+          output_file="${file%.*}.md"
+          echo "Rendering $file to $output_file"
+          Rscript -e "rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')"
+        done
+
+    - name: Commit results
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add *.md
+        git commit -m "Re-build Rmd files" || echo "No changes to commit"
+        git push
