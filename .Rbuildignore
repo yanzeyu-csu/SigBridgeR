@@ -4,3 +4,6 @@
 tmp
 ^LICENSE\.md$
 .RData$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

@@ -1,0 +1,20 @@
+---
+title: "Full Tutorial"
+author: "Exceret"
+date: '`r Sys.Date()`'
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Full Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# **Quick Start Guide for SigBridgeR**
+
+```r
+library(SigBridgeR)
+```
+
+```r
+
+```

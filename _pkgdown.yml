@@ -1,0 +1,28 @@
+url:  https://wanglabcsu.github.io/sigbridger/
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+
+title: SigBridgeR
+logo: man/figures/logo_white.png
+
+# 导航栏配置
+navbar:
+  structure:
+    left: [home, reference, articles, news]
+    right: [github]
+  components:
+    home:
+      icon: fa-home
+      href: index.html
+    reference:
+      text: Functions
+      href: reference/index.html
+    articles:
+      text: Articles
+      menu:
+      - text: Getting Started
+        href: articles/getting-started.html
+    github:
+      icon: fa-github
+      href: https://wanglabcsu.github.io/sigbridger/

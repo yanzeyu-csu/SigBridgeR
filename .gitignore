@@ -12,3 +12,4 @@ tmp
 *.RData
 inst/doc
 Tmp/*
+docs

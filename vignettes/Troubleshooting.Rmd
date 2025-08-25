@@ -1,3 +1,14 @@
+---
+title: "Full Tutorial"
+author: "Exceret"
+date: '`r Sys.Date()`'
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Full Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
 # Overview
 
 This vignette provides solutions to common problems you might encounter when using this package. If you cannot find your problem here, please file an issue on our GitHub repository.
