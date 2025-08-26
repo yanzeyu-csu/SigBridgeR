@@ -43,6 +43,7 @@ vignette: >
   - [4. Visualization](#4-visualization)
     - [4.1 UMAP for screening results](#41-umap-for-screening-results)
     - [4.2 Stack bar plot for screening results](#42-stack-bar-plot-for-screening-results)
+    - [4.3 Venn diagram for screening results](#43-venn-diagram-for-screening-results)
   - [5. Example {#example}](#5-example-example)
   - [6. Other function details](#6-other-function-details)
     - [6.1 Add miscellaneous information to the Seurat object](#61-add-miscellaneous-information-to-the-seurat-object)
@@ -538,7 +539,7 @@ This function performs a simple task of consolidating screening results into the
 
 ## 4. Visualization
 
-After screening, you can use **`ScreenFractionPlot`** and **`DimPlot`** from `Seurat` for plotting the results of screening
+Here we provide some visualization methods for the screening results.
 
 ### 4.1 UMAP for screening results
 
@@ -597,9 +598,9 @@ This will generate two plots, one for each feature specified in `feature`.
 
 **helpful documentation**:
 
-[Browser-Seurat::DimPlot](https://satijalab.org/seurat/reference/DimPlot.html)
+[Seurat::DimPlot - https://satijalab.org/seurat/reference/DimPlot.html](https://satijalab.org/seurat/reference/DimPlot.html)
 
-[Browser-Seurat::FeaturePlot](https://satijalab.org/seurat/reference/FeaturePlot.html)
+[Seurat::FeaturePlot - https://satijalab.org/seurat/reference/FeaturePlot.html](https://satijalab.org/seurat/reference/FeaturePlot.html)
 
 ### 4.2 Stack bar plot for screening results
 
@@ -610,8 +611,8 @@ Key parameters for `ScreenFractionPlot`:
 -   `screen_type`: Screening algorithm used before. (case-sensitive, e.g., "scissor" for Scissor results)
 -   `show_null`: Logical whether to show groups with zero cells (default: FALSE).
 -   `plot_color` Custom color palette (named vector format):
-    -   Required names: "Positive", "Negative", "Neutral"
-    -   Default: c("Neutral"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")
+    -   Required names: "Positive", "Negative", "Neutral", "Other"
+    -   Default: c("Neutral"="#CECECE", "Other"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")
 
 Suppose you have already performed the `scPAS` algorithm screening on your Seurat object, and you want to check the proportion of positive cells across different patients. You can refer to and use the following code:
 
@@ -628,6 +629,69 @@ plot <- ScreenFractionPlot(
 The order of the groups is determined by the proportion of **Positive** cells within each group.
 
 Use `?ScreenFractionPlot` in R to see more details.
+
+
+### 4.3 Venn diagram for screening results
+
+`ggVennDiagram` is used to generate a Venn diagram for the screening results. Suppose you have performed some of the screening algorithms on your Seurat object, and you want to check the overlap of the cells selected by each algorithm. You can refer to and use the following code:
+
+**example**:
+
+```{r venn_diagram_example}
+library(ggVennDiagram)
+
+# * get the cell vectors
+scissor_pos <- colnames(scissor_result$scRNA_data)[
+    which(scissor_result$scRNA_data$scissor == "Positive")
+]
+scab_pos <- colnames(scab_result$scRNA_data)[
+    which(scab_result$scRNA_data$scAB == "Positive")
+]
+scpas_pos <- colnames(scpas_result$scRNA_data)[
+    which(scpas_result$scRNA_data$scPAS == "Positive")
+]
+scpp_pos <- colnames(scissor_result$scRNA_data)[
+    which(scpp_result$scRNA_data$scPP == "Positive")
+]
+all_cell <- colnames(your_seurat_obj) # this obj can be changed to other
+
+# * create a list of cell vectors
+pos_venn = list(
+    scissor = scissor_pos,
+    scpas = scpas_pos,
+    scab = scab_pos,
+    scpp = scpp_pos,
+    all_cells = all_cells
+)
+
+set.seed(123)
+
+venn_plot = ggVennDiagram::ggVennDiagram(
+    x = pos_venn,
+    # * the names shown on the diagram
+    category.names = c(
+        "Scissor",
+        "scPAS",
+        "scAB",
+        "scPP",
+        "All cells"
+    ),
+    # * the colors of each group
+    set_color = c(
+        "#a33333ff",
+        "#37ae00ff", 
+        "#2a2a94ff",
+        "#9c8200ff",
+        "#008383ff"
+    )
+) +
+    ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
+    ggplot2::ggtitle("Screening Venn Diagram")
+```
+
+**helpful documentation**:
+
+[ggVennDiagram - https://gaospecial.github.io/ggVennDiagram/](https://gaospecial.github.io/ggVennDiagram/)
 
 ------------------------------------------------------------------------
 

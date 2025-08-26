@@ -40,5 +40,6 @@ Suggests:
     patchwork,
     reticulate,
     org.Hs.eg.db,
-    zeallot
+    zeallot,
+    ggVennDiagram
 VignetteBuilder: knitr
