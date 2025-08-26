@@ -29,6 +29,7 @@ Remotes:
     Qinran-Zhang/scAB,
     sunduanchen/Scissor,
     aiminXie/scPAS,
+    aertsLab/AUCell,
     WangX-Lab/ScPP
 Depends: 
     dplyr,
