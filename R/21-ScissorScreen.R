@@ -106,7 +106,7 @@ DoScissor = function(
     ...
 ) {
     # Input validation
-    if (length(scissor_alpha) != 1) {
+    if (length(scissor_alpha) != 1 & !is.null(scissor_alpha)) {
         cli::cli_abort(c(
             "x" = "Please specify scissor alpha",
             "i" = "Options: {.val NULL} or {.val [0, 1]}"
@@ -489,11 +489,10 @@ Scissor.v5.optimized <- function(
             },
             error = function(e) {
                 cli::cli_alert_danger(c(
-                    "[{TimeStamp()}]",
-                    crayon::red("Error at alpha={alpha}:"),
+                    "[{TimeStamp()}] ",
+                    crayon::red("Error at alpha={alpha[i]}: "),
                     e$message
                 ))
-                cli::cli_alert_danger(c("[{TimeStamp()}]", conditionMessage(e)))
             }
         )
     }

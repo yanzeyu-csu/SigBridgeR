@@ -1,10 +1,10 @@
 ---
-title: "Full Tutorial"
+title: "Troubleshooting"
 author: "Exceret"
 date: '`r Sys.Date()`'
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Full Tutorial}
+  %\VignetteIndexEntry{Troubleshooting}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,7 +15,6 @@ This vignette provides solutions to common problems you might encounter when usi
 
 ------------------------------------------------------------------------
 
-> [!ERROR]\
 > ## Error in normalize.quantiles(dataset0) : ERROR; return code from pthread_create() is 22
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
@@ -40,4 +39,25 @@ See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor
 
 ------------------------------------------------------------------------
 
-> ##
+> ## Error at alpha=0.05:subscript out of bounds
+> ## Error in `Scissor.v5.optimized()`:
+> ## ! object 'fit0' not found
+
+This is due to a mismatch in the dimensions of the bulk expression data and the phenotype data. Please ensure they share a common sample source.
+
+To check dimension mismatch：
+```{r}
+ncol(your_bulk_data) == nrow(your_phenotype_data) # should be TRUE
+
+(unique(colnames(your_bulk_data)) ==
+  unique(rownames(
+    ncol(your_bulk_data) == nrow(your_phenotype_data)
+  ))) |>
+  all() # should be TRUE
+```
+
+if you still got error, try to reduce the PCA dimension.
+
+```{r}
+
+```
