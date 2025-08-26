@@ -43,7 +43,7 @@ See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor
 > ## Error in `Scissor.v5.optimized()`:
 > ## ! object 'fit0' not found
 
-This is due to a mismatch in the dimensions of the bulk expression data and the phenotype data. Please ensure they share a common sample source.
+This may be due to two reasons: first, a mismatch in the dimensions of the bulk expression data and the phenotype data; second, incorrect column names in the survival phenotype data leading to a failure to match.
 
 To check dimension mismatch：
 ```{r}
@@ -56,8 +56,17 @@ ncol(your_bulk_data) == nrow(your_phenotype_data) # should be TRUE
   all() # should be TRUE
 ```
 
-if you still got error, try to reduce the PCA dimension.
+Survival phenotype column names should be formatted as follows, ensuring correct capitalization and spelling:
 
 ```{r}
-
+head(survival_phenotype) # case-sensitive
+#           time status
+# GSM70130 34.80      0
+# GSM70131 35.67      0
+# GSM70136 43.37      0
+# GSM70138 60.77      0
+# GSM70140 33.80      1
+# GSM70144 58.53      0
 ```
+
+---
