@@ -263,7 +263,7 @@ SCPreProcess.AnnDataR6 <- function(
     }
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
-        counts = sc,
+        counts = sc_matrix,
         project = project,
         meta.data = meta_data,
         min.cells = min_cells,

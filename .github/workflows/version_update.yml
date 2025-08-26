@@ -89,4 +89,5 @@ jobs:
                   fi
 
                   git commit -m "Bump version to $NEW_VERSION [ci skip]"
+                  git tag -a "v$NEW_VERSION"
                   git push

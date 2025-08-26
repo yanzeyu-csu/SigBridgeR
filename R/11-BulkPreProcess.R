@@ -199,7 +199,7 @@ BulkPreProcess <- function(
 
     if (is.null(sample_info)) {
         # Create default sample information
-        cli::cli_warn(
+        cli::cli_alert_info(
             "[{TimeStamp()}] No sample info provided, using default settings."
         )
         sample_info <- data.frame(
