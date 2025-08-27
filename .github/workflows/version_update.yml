@@ -78,8 +78,8 @@ jobs:
 
             - name: Commit all version updates
               run: |
-                  git config --local user.email "15364051195@163.com"
-                  git config --local user.name "Exceret"
+                  git config user.name "GitHub Actions"
+                  git config user.email "actions@github.com"
 
                   git add DESCRIPTION README.md
 
@@ -89,5 +89,7 @@ jobs:
                   fi
 
                   git commit -m "Bump version to $NEW_VERSION [ci skip]"
-                  git tag -a "v$NEW_VERSION"
-                  git push
+                  git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+
+                  git push origin main
+                  git push origin "v$NEW_VERSION"

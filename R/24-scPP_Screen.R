@@ -201,7 +201,9 @@ DoscPP = function(
         }
     )
     if (err_flag) {
-        return(list(scRNA_data = NULL))
+        return(list(
+            scRNA_data = "`scPP` is not applicable to the current data."
+        ))
     }
 
     sc_data@meta.data[, "scPP"] <- data.table::as.data.table(

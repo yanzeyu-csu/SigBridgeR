@@ -545,27 +545,40 @@ Here we provide some visualization methods for the screening results.
 
 **example**:
 
-Suppose you have performed `scissor` algorithm screening on your Seurat object and wish to examine the distribution across different celltypes and patient, you may reference and use the following code:
+Suppose you have performed all algorithm screening on your Seurat object and wish to examine the distribution across different celltypes and patient, you may reference and use the following code:
 
 ```{r umap_exmaple}
 library(patchwork)
 library(zeallot)
 
-c(celltype_umap, patient_umap, scissor_umap) %<-%
+c(
+    celltype_umap,
+    patient_umap,
+    scissor_umap,
+    scab_umap,
+    scpas_umap,
+    scpp_umap
+) %<-%
     purrr::map(
-        c("celltype", "patient", "scissor"),
+        c("celltype", "patient", "scissor", "scAB", "scPAS", "scPP"), # make sure this column names exist
         ~ Seurat::DimPlot(
             your_seurat_obj,
             group.by = .x,
-            label.size = 6,
-            pt.size = 0.6,
             reduction = "umap"
         ) +
             ggplot2::ggtitle(.x)
     )
 
 # * Show
-celltype_umap | patient_umap | scissor_umap
+umaps = celltype_umap +
+    patient_umap +
+    scissor_umap +
+    scab_umap +
+    scpas_umap +
+    scpp_umap +
+    plot_layout(ncol = 2)
+
+umaps
 ```
 
 This will generate three UMAP plots separately.
@@ -582,9 +595,6 @@ c(scPAS_Pvalue_umap, scPAS_NRS_umap) %<-%
         ~ Seurat::FeaturePlot(
             object = your_seurat_obj,
             features = .x,
-            label.size = 6,
-            pt.size = 0.6,
-            label = TRUE
         ) +
             ggplot2::ggtitle(.x) +
             theme(legend.position = "right")

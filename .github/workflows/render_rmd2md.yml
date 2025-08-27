@@ -3,7 +3,7 @@ name: Render Rmd to Md
 on:
     push:
         branches: [main]
-        paths: ["**.Rmd"]
+        paths: ["vignettes/**.Rmd"] # 只监控 vignettes 目录中的 Rmd 文件
 
 permissions:
     contents: write
@@ -31,18 +31,29 @@ jobs:
                       rmarkdown
                       knitr
 
-            - name: Render all Rmd files
+            - name: Render vignettes Rmd files
               run: |
-                  for file in $(find . -name "*.Rmd" -o -name "*.rmd"); do
-                    output_file="${file%.*}.md"
-                    echo "Rendering $file to $output_file"
-                    Rscript -e "rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')"
-                  done
+                  # 检查 vignettes 目录是否存在
+                  if [ -d "vignettes" ]; then
+                    echo "Processing vignettes directory..."
+                    find vignettes -name "*.Rmd" -o -name "*.rmd" | while read file; do
+                      output_file="${file%.*}.md"
+                      echo "Rendering $file to $output_file"
+                      Rscript -e "rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')"
+                    done
+                  else
+                    echo "vignettes directory does not exist, skipping."
+                  fi
 
             - name: Commit results
               run: |
                   git config user.name "GitHub Actions"
                   git config user.email "actions@github.com"
-                  git add *.md
-                  git commit -m "Re-build Rmd files" || echo "No changes to commit"
+
+                  # 只添加 vignettes 目录中的 md 文件
+                  if [ -d "vignettes" ]; then
+                    git add vignettes/*.md 2>/dev/null || echo "No markdown files found in vignettes"
+                  fi
+
+                  git commit -m "Re-build Rmd files in vignettes" || echo "No changes to commit"
                   git push
