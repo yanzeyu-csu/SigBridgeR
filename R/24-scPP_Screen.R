@@ -190,8 +190,7 @@ DoscPP = function(
     tryCatch(
         scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs),
         error = function(e) {
-            cli::cli_alert_danger(c("[{TimeStamp()}]", e$message))
-            cli::cli_alert_danger(c("[{TimeStamp()}]", conditionMessage(e)))
+            cli::cli_alert_danger(c("[{TimeStamp()}] ", e$message))
 
             cli::cli_alert_info(c(
                 "[{TimeStamp()}]",
