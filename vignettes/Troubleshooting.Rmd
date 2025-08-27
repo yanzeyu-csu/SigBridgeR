@@ -40,20 +40,21 @@ See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor
 ------------------------------------------------------------------------
 
 > ## Error at alpha=0.05:subscript out of bounds
+>
 > ## Error in `Scissor.v5.optimized()`:
+>
 > ## ! object 'fit0' not found
 
 This may be due to two reasons: first, a mismatch in the dimensions of the bulk expression data and the phenotype data; second, incorrect column names in the survival phenotype data leading to a failure to match.
 
 To check dimension mismatch：
+
 ```{r}
 ncol(your_bulk_data) == nrow(your_phenotype_data) # should be TRUE
 
-(unique(colnames(your_bulk_data)) ==
-  unique(rownames(
-    ncol(your_bulk_data) == nrow(your_phenotype_data)
-  ))) |>
-  all() # should be TRUE
+all(unique(colnames(your_bulk_data)) == unique(rownames(your_bulk_data))) # should be TRUE
+
+all(order(colnames(your_bulk_data)) == order(rownames(your_phenotype_data))) # should be TRUE
 ```
 
 Survival phenotype column names should be formatted as follows, ensuring correct capitalization and spelling:
@@ -69,4 +70,4 @@ head(survival_phenotype) # case-sensitive
 # GSM70144 58.53      0
 ```
 
----
+------------------------------------------------------------------------
