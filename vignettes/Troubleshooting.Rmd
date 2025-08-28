@@ -57,7 +57,7 @@ all(unique(colnames(your_bulk_data)) == unique(rownames(your_bulk_data))) # shou
 all(order(colnames(your_bulk_data)) == order(rownames(your_phenotype_data))) # should be TRUE
 ```
 
-Survival phenotype column names should be formatted as follows, ensuring correct capitalization and spelling:
+Survival phenotype column names should be formatted as `time` and `status`, ensuring correct capitalization and spelling:
 
 ```{r}
 head(survival_phenotype) # case-sensitive
