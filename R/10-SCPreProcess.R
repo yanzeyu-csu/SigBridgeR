@@ -44,8 +44,8 @@ SCPreProcess.default <- function(sc, ...) {
 
 #' @rdname SCPreProcess
 #' @param meta_data Optional metadata dataframe (rows = cells, columns = attributes)
-#' @param column2only_tumor Metadata column for tumor cell filtering (regex patterns:
-#'        "[Tt]umo.?r", "[Cc]ancer", "[Mm]alignant", "[Nn]eoplasm")
+#' @param column2only_tumor Metadata column used for filtering tumor cells, matching patterns
+#' such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insensitive).
 #' @param project Project name for Seurat object
 #' @param min_cells Minimum cells per gene to retain (features present in at least this many cells)
 #' @param min_features Minimum features per cell to retain (cells with at least this many features)
@@ -85,13 +85,15 @@ SCPreProcess.matrix <- function(
     ...
 ) {
     options(future.globals.maxSize = future_global_maxsize)
+    chk::chk_null_or(meta_data, chk::chk_data)
+    chk::chk_null_or(column2only_tumor, chk::chk_character)
 
     # sc is a count matrix
     if (verbose) {
         cli::cli_alert_info("[{TimeStamp()}] Start from count matrix")
     }
 
-    sc_seurat <- SeuratObject::CreateSeuratObject(
+    sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc,
         project = project,
         meta.data = meta_data,
@@ -102,31 +104,28 @@ SCPreProcess.matrix <- function(
     if (quality_control) {
         if (length(quality_control.pattern) != 1) {
             cli::cli_abort(c(
-                "x" = "{.arg quality_control.pattern} must be specified",
+                "x" = "{.arg quality_control.pattern} must be specified.",
                 "i" = "human: '^MT-', mouse: '^mt-', specify your own or set {.arg quality_control=FALSE}."
             ))
         }
+
+        chk::chk_character(quality_control.pattern)
+
         sc_seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(
             sc_seurat,
             pattern = quality_control.pattern
         )
     }
     if (data_filter) {
-        if (
-            length(data_filter.nFeature_RNA_thresh) != 2 |
-                data_filter.nFeature_RNA_thresh[2] <
-                    data_filter.nFeature_RNA_thresh[1]
-        ) {
-            cli::cli_abort(c(
-                "x" = "{.arg data_filter.nFeature_RNA_thresh}:{.val c({data_filter.nFeature_RNA_thresh[1]}, {data_filter.nFeature_RNA_thresh[2]})} specified incorrectly."
-            ))
-        }
-        if (data_filter.percent.mt < 0 | data_filter.percent.mt > 100) {
-            cli::cli_abort(c(
-                "x" = "{.arg data_filter.percent.mt}:{.val {data_filter.percent.mt}} specified incorrectly.",
-                "i" = "Must be between 0 and 100"
-            ))
-        }
+        chk::chk_length(data_filter.nFeature_RNA_thresh, 2)
+        chk::chk_numeric(data_filter.nFeature_RNA_thresh)
+        chk::chk_lt(
+            data_filter.nFeature_RNA_thresh[1],
+            data_filter.nFeature_RNA_thresh[2]
+        )
+        chk::chk_numeric(data_filter.percent.mt)
+        chk::chk_range(data_filter.percent.mt, c(0, 100))
+
         sc_seurat = subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
@@ -163,8 +162,8 @@ SCPreProcess.matrix <- function(
 
 #' @rdname SCPreProcess
 #' @param meta_data Optional metadata dataframe (rows = cells, columns = attributes)
-#' @param column2only_tumor Metadata column for tumor cell filtering (regex patterns:
-#'        "[Tt]umo.?r", "[Cc]ancer", "[Mm]alignant", "[Nn]eoplasm")
+#' @param column2only_tumor Metadata column used for filtering tumor cells, matching patterns
+#' such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insensitive).
 #' @param project Project name for Seurat object
 #' @param min_cells Minimum cells per gene to retain (features present in at least this many cells)
 #' @param min_features Minimum features per cell to retain (cells with at least this many features)
@@ -250,6 +249,8 @@ SCPreProcess.AnnDataR6 <- function(
     ...
 ) {
     options(future.globals.maxSize = future_global_maxsize)
+    chk::chk_null_or(meta_data, chk::chk_data)
+    chk::chk_null_or(column2only_tumor, chk::chk_character)
 
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
@@ -262,7 +263,7 @@ SCPreProcess.AnnDataR6 <- function(
         t(sc$X)
     }
 
-    sc_seurat <- SeuratObject::CreateSeuratObject(
+    sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc_matrix,
         project = project,
         meta.data = meta_data,
@@ -277,27 +278,24 @@ SCPreProcess.AnnDataR6 <- function(
                 "i" = "human: '^MT-', mouse: '^mt-', specify your own or set {.arg quality_control=FALSE}."
             ))
         }
+
+        chk::chk_character(quality_control.pattern)
+
         sc_seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(
             sc_seurat,
             pattern = quality_control.pattern
         )
     }
     if (data_filter) {
-        if (
-            length(data_filter.nFeature_RNA_thresh) != 2 |
-                data_filter.nFeature_RNA_thresh[2] <
-                    data_filter.nFeature_RNA_thresh[1]
-        ) {
-            cli::cli_abort(c(
-                "x" = "{.arg data_filter.nFeature_RNA_thresh}:{.val c({data_filter.nFeature_RNA_thresh[1]}, {data_filter.nFeature_RNA_thresh[2]})} specified incorrectly."
-            ))
-        }
-        if (data_filter.percent.mt < 0 | data_filter.percent.mt > 100) {
-            cli::cli_abort(c(
-                "x" = "{.arg data_filter.percent.mt}:{.val {data_filter.percent.mt}} specified incorrectly.",
-                "i" = "Must be between 0 and 100"
-            ))
-        }
+        chk::chk_length(data_filter.nFeature_RNA_thresh, 2)
+        chk::chk_numeric(data_filter.nFeature_RNA_thresh)
+        chk::chk_lt(
+            data_filter.nFeature_RNA_thresh[1],
+            data_filter.nFeature_RNA_thresh[2]
+        )
+        chk::chk_numeric(data_filter.percent.mt)
+        chk::chk_range(data_filter.percent.mt, c(0, 100))
+
         sc_seurat = subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
@@ -364,7 +362,7 @@ SCPreProcess.Seurat <- function(
 #' @param verbose Print progress messages
 #' @return Seurat object
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #'
 ProcessSeuratObject <- function(
     obj,
@@ -385,7 +383,7 @@ ProcessSeuratObject <- function(
         ) %>%
         Seurat::ScaleData(verbose = verbose) %>%
         Seurat::RunPCA(
-            features = SeuratObject::VariableFeatures(.),
+            features = Seurat::VariableFeatures(.),
             verbose = verbose
         )
 }
@@ -401,7 +399,7 @@ ProcessSeuratObject <- function(
 #' @param verbose logical, whether to print progress messages
 #' @return Seurat object
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #'
 ClusterAndReduce <- function(
     obj,
@@ -436,7 +434,7 @@ ClusterAndReduce <- function(
 #' @param column2only_tumor Name of the column to filter out tumor cells.
 #' @param verbose Logical. Whether to print messages.
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #'
 #'
 FilterTumorCell <- function(

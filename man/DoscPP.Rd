@@ -96,8 +96,8 @@ surv_res <- DoscPP(
 
 }
 \seealso{
-Other screen method: 
+Other screen_method: 
 \code{\link{DoscPAS}()}
 }
-\concept{screen method}
-\keyword{SigBridgeR_internal}
+\concept{screen_method}
+\keyword{internal}

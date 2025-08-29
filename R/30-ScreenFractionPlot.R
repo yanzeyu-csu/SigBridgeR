@@ -119,15 +119,12 @@ ScreenFractionPlot = function(
     nrow = NULL,
     scales = "fixed"
 ) {
-    # library(dplyr)
-    # library(patchwork)
-
-    if (!inherits(screened_seurat, "Seurat")) {
-        cli::cli_abort(
-            c("x" = "{.var screened_seurat} must be a Seurat object"),
-            class = "TypeError"
-        )
-    }
+    chk::chk_is(screened_seurat, "Seurat")
+    chk::chk_character(group_by)
+    chk::chk_length(group_by, 1)
+    chk::chk_subset(screen_type, c("scissor", "scPAS", "scPP", "scAB"))
+    chk::chk_flag(show_null)
+    chk::chk_null_or(plot_color, chk::chk_vector)
 
     # Check available screen types in the Seurat object
     available_screens <- grep(

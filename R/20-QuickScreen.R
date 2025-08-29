@@ -101,30 +101,20 @@ Screen <- function(
     screen_method = c("Scissor", "scPP", "scPAS", "scAB"),
     ...
 ) {
-    if (length(screen_method) != 1) {
-        cli::cli_abort(c("x" = "Only one {.arg screen_method} is allowed."))
-    }
-
-    phenotype_class = tolower(phenotype_class)
-    if (length(phenotype_class) != 1) {
-        cli::cli_abort(c("x" = "Only one {.arg phenotype_class} is allowed."))
-    } else if (!phenotype_class %in% c("binary", "survival", "continuous")) {
-        cli::cli_abort(c(
-            "x" = "Invalid {.arg phenotype_class = {phenotype_class}}.",
-            "i" = " Must be one of {.val binary}, {.val survival}, or {.val continuous}."
-        ))
-    }
+    chk::chk_subset(phenotype_class, c("binary", "survival", "continuous"))
+    chk::chk_subset(screen_method, c("Scissor", "scPP", "scPAS", "scAB"))
 
     if (is.null(label_type) || length(label_type) != 1) {
-        cli::cli_warn(c(
+        cli::cli_alert_info(c(
             "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
         ))
         label_type = screen_method
     }
 
-    screened_result = tolower(screen_method) %>%
+    screened_result =
         switch(
-            "scissor" = {
+            screen_method,
+            "Scissor" = {
                 family = switch(
                     phenotype_class,
                     "binary" = "binomial",
@@ -141,7 +131,7 @@ Screen <- function(
                     ...
                 )
             },
-            "scpas" = {
+            "scPAS" = {
                 family = switch(
                     phenotype_class,
                     "binary" = "binomial",
@@ -158,7 +148,7 @@ Screen <- function(
                     ...
                 )
             },
-            "scpp" = {
+            "scPP" = {
                 phenotype_class = glue::glue(
                     toupper(substr(phenotype_class, 1, 1)),
                     tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
@@ -173,7 +163,7 @@ Screen <- function(
                     ...
                 )
             },
-            "scab" = {
+            "scAB" = {
                 if (phenotype_class == "continuous") {
                     cli::cli_abort(c(
                         "x" = "{.strong scAB} does not support continuous phenotype."

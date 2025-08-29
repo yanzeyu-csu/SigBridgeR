@@ -1,4 +1,4 @@
-#' Generate Timestamp String
+#' @title Generate Timestamp String
 #'
 #' @description
 #' Creates a formatted character string representing the current system time.
@@ -7,11 +7,13 @@
 #' @return Character string with current time in "YYYY/MM/DD HH:MM:SS" format.
 #'
 #' @examples
+#' \dontrun{
 #' # Current time as formatted string
 #' TimeStamp()
-#' # Returns something like: "2025/08/19 10:30:45"
+#' # Returns something like: "2025/06/15 16:04:00"
+#' }
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #'
 TimeStamp <- function() {
     format(Sys.time(), "%Y/%m/%d %H:%M:%S")

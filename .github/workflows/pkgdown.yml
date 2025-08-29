@@ -23,21 +23,10 @@ jobs:
               with:
                   use-public-rspm: true
 
-            - name: Install R dependencies
-              run: |
-                  Rscript -e '
-                  install.packages(c("remotes", "devtools"))
-
-                  tryCatch({
-                    devtools::install_github("WangX-Lab/ScPP")
-                  }, error = function(e) {
-                    message("Error: ", e$message)
-                  })
-                  '
-
             - uses: r-lib/actions/setup-r-dependencies@v2
               with:
-                  extra-packages: any::pkgdown, local::.
+                  # 在这里添加 github::WangX-Lab/ScPP，使其从 GitHub 安装到正确的库中
+                  extra-packages: any::pkgdown, local::., github::WangX-Lab/ScPP, github::ShixiangWang/IDConverter, github::Qinran-Zhang/scAB, github::sunduanchen/Scissor, github::aiminXie/scPAS
                   needs: website
 
             - name: Build site

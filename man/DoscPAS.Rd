@@ -11,13 +11,14 @@ DoscPAS(
   label_type = "scPAS",
   assay = "RNA",
   imputation = F,
+  imputation_method = c("KNN", "ALRA"),
   nfeature = 3000,
   alpha = 0.01,
-  extra_filter = FALSE,
-  gene_RNAcount_filter = 20,
-  bulk_0_filter_thresh = 0.25,
-  network_class = "SC",
+  network_class = c("SC", "bulk"),
   scPAS_family = c("cox", "gaussian", "binomial"),
+  permutation_times = 2000,
+  FDR.threshold = 0.05,
+  independent = TRUE,
   ...
 )
 }
@@ -34,19 +35,19 @@ DoscPAS(
 
 \item{imputation}{Logical, whether to perform imputation (default: FALSE)}
 
+\item{imputation_method}{Character. Name of alternative method for imputation.}
+
 \item{nfeature}{Number of features to select (default: 3000, indicating that the top 3000 highly variable genes are selected for model training}
 
-\item{alpha}{Significance threshold (default: 0.01)}
+\item{alpha}{Numeric. Significance threshold. Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is in \verb{[0,1]}. A larger alpha lays more emphasis on the l1 norm. (default: 0.01)}
 
-\item{extra_filter}{Logical, whether to perform extra filtering (default: FALSE)}
-
-\item{gene_RNAcount_filter}{Minimum gene expression threshold (default: 20)}
-
-\item{bulk_0_filter_thresh}{Maximum proportion of zeros allowed in bulk data (default: 0.25)}
-
-\item{network_class}{Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data.)}
+\item{network_class}{Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data. The other one is 'bulk'.)}
 
 \item{scPAS_family}{Model family for analysis (options: "cox", "gaussian", "binomial")}
+
+\item{permutation_times}{Number of permutations to perform (default: 2000)}
+
+\item{FDR.threshold}{Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)}
 
 \item{...}{Additional arguments passed to \code{DoscPAS} functions}
 }
@@ -58,8 +59,8 @@ This function performs scPAS screening analysis by integrating bulk and single-c
 It includes data filtering steps and wraps the core scPAS::scPAS function.
 }
 \seealso{
-Other screen method: 
+Other screen_method: 
 \code{\link{DoscPP}()}
 }
-\concept{screen method}
-\keyword{SigBridgeR_internal}
+\concept{screen_method}
+\keyword{internal}

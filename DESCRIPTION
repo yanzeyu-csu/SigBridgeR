@@ -6,42 +6,50 @@ Authors@R:
 Description: SigBridgeR is an integrative toolkit designed to identify phenotype-associated cell subpopulations by combining phenotype(e.g. survival, drug sensitivity), bulk expression and single-cell RNA-seq data. It leverages multiple algorithms (including 'Scissor', 'scPAS', 'scPP', and 'scAB') to robustly link cell features with clinical or functional phenotypes. The package provides a unified pipeline for cross-modal data analysis, enabling the discovery of biologically and clinically relevant cell states in heterogeneous  samples.  
 License: GPL (>= 3)
 Encoding: UTF-8
+URL: https://github.com/WangLabCSU/SigBridgeR
 BugReports: https://github.com/WangLabCSU/SigBridgeR/issues
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
-    cli,
-    dplyr,
-    data.table,
-    tibble,
-    ggplot2,
-    tidyr,
+    AUCell (>= 1.26.0),
+    chk,
+    cli (>= 3.6.3),
     crayon,
-    glue,
-    preprocessCore,
-    purrr,
-    scales,
+    data.table,
     doParallel,
-    Seurat,
+    dplyr,
     edgeR,
     ggforce,
-    magrittr
+    ggplot2,
+    glue,
+    IDConverter,
+    magrittr,
+    Matrix,
+    patchwork,
+    preprocessCore (>= 1.66.0),
+    purrr,
+    scAB,
+    scales,
+    Scissor,
+    scPAS,
+    ScPP,
+    Seurat (>= 5.0.0),
+    tibble,
+    tidyr
 Remotes: 
     ShixiangWang/IDConverter,
     Qinran-Zhang/scAB,
     sunduanchen/Scissor,
     aiminXie/scPAS,
-    aertsLab/AUCell,
     WangX-Lab/ScPP
 Depends: 
-    Matrix
+    R (>= 4.1.0)
 Suggests: 
-    knitr,
-    rmarkdown,
     anndata,
-    patchwork,
-    reticulate,
+    ggVennDiagram,
+    knitr,
     org.Hs.eg.db,
-    zeallot,
-    ggVennDiagram
+    reticulate,
+    rmarkdown,
+    zeallot
 VignetteBuilder: knitr

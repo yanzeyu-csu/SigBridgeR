@@ -43,6 +43,8 @@
 #' @export
 #'
 AddMisc <- function(seurat_obj, ..., cover = TRUE) {
+    chk::chk_is(seurat_obj, "Seurat")
+    chk::chk_flag(cover)
     # Get the key-value pairs from ... arguments
     kv_pairs <- list(...)
 

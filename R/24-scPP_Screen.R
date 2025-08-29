@@ -85,9 +85,9 @@
 #' @importFrom data.table as.data.table fifelse
 #' @importFrom stats quantile
 #'
-#' @family screen method
+#' @family screen_method
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @export
 #'
 DoscPP = function(
@@ -101,6 +101,15 @@ DoscPP = function(
     estimate_cutoff = 0.2,
     probs = 0.2
 ) {
+    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
+    chk::chk_is(sc_data, "Seurat")
+    chk::chk_character(label_type)
+    chk::chk_subset(phenotype_class, c("Binary", "Continuous", "Survival"))
+    chk::chk_length(phenotype_class, 1)
+    chk::chk_number(ref_group)
+    chk::chk_number(Log2FC_cutoff)
+    chk::chk_number(estimate_cutoff)
+    chk::chk_number(probs)
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(
@@ -144,10 +153,6 @@ DoscPP = function(
             bulk_data = matched_bulk,
             survival_data = phenotype
         )
-    } else {
-        cli::cli_abort(c(
-            "x" = "Unknown phenotype type, please check the `phenotype_class` and `phenotype`"
-        ))
     }
 
     l = lapply(gene_list, length)
@@ -175,7 +180,7 @@ DoscPP = function(
     if (pos_null & neg_null) {
         cli::cli_alert_info(c(
             "[{TimeStamp()}]",
-            crayon::green(" scPP screening done.")
+            crayon::yellow(" scPP screening exit.")
         ))
         return(list(scRNA_data = NULL))
     }

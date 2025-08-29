@@ -1,20 +1,20 @@
 ---
-title: "Full Tutorial"
+title: "Quick Start Guide for SigBridgeR"
 author: "Exceret"
 date: '`r Sys.Date()`'
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Full Tutorial}
+  %\VignetteIndexEntry{Quick Start Guide for SigBridgeR}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 # **Quick Start Guide for SigBridgeR**
 
-```r
+```{r,eval=FALSE}
 library(SigBridgeR)
 ```
 
-```r
+```{r,eval=FALSE}
 
 ```

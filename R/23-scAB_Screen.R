@@ -52,7 +52,7 @@
 #' @importFrom cli cli_alert_info
 #' @importFrom crayon green
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @export
 #'
 DoscAB <- function(
@@ -66,13 +66,21 @@ DoscAB <- function(
     maxiter = 2000,
     tred = 2
 ) {
-    # library(dplyr)
+    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
+    chk::chk_is(sc_data, "Seurat")
+    chk::chk_character(label_type)
+    chk::chk_subset(phenotype_class, c("binary", "survival"))
+    chk::chk_length(phenotype, 1)
+    chk::chk_number(alpha)
+    chk::chk_number(alpha_2)
+    chk::chk_integer(maxiter)
+    chk::chk_number(tred)
 
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
-        stop(
-            "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
-        )
+        cli::cli_abort(c(
+            "x" = "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
+        ))
     }
 
     cli::cli_alert_info(c(
@@ -151,9 +159,9 @@ DoscAB <- function(
 #' @return a scAB_data
 #' @importFrom preprocessCore normalize.quantiles
 #'
-#' @family screen method
+#' @family screen_method
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @noRd
 #'
 create_scAB.v5 <- function(

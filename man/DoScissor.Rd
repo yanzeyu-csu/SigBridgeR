@@ -10,10 +10,10 @@ DoScissor(
    sc_data,
    phenotype,
    label_type = "scissor",
-   scissor_alpha = 0.05,
+   scissor_alpha = c(0.05,NULL),
    scissor_cutoff = 0.2,
    scissor_family = c("gaussian", "binomial", "cox"),
-   reliability_test = TRUE,
+   reliability_test = FALSE,
    path2save_scissor_inputs = "Scissor_inputs.RData",
    reliability_test_n = 10,
    nfold = 10,
@@ -97,4 +97,4 @@ res <- DoScissor(
 }
 
 }
-\keyword{SigBridgeR_internal}
+\keyword{internal}

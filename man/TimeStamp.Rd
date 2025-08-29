@@ -14,9 +14,11 @@ Creates a formatted character string representing the current system time.
 The format is "YYYY/MM/DD HH:MM:SS" (year/month/day hour:minute:second).
 }
 \examples{
+\dontrun{
 # Current time as formatted string
 TimeStamp()
-# Returns something like: "2025/08/19 10:30:45"
+# Returns something like: "2025/06/15 16:04:00"
+}
 
 }
-\keyword{SigBridgeR_internal}
+\keyword{internal}

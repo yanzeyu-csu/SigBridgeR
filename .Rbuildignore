@@ -7,3 +7,5 @@ tmp
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+MatchArg*
+.github/*

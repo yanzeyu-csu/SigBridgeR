@@ -12,10 +12,10 @@
 #'    sc_data,
 #'    phenotype,
 #'    label_type = "scissor",
-#'    scissor_alpha = 0.05,
+#'    scissor_alpha = c(0.05,NULL),
 #'    scissor_cutoff = 0.2,
 #'    scissor_family = c("gaussian", "binomial", "cox"),
-#'    reliability_test = TRUE,
+#'    reliability_test = FALSE,
 #'    path2save_scissor_inputs = "Scissor_inputs.RData",
 #'    reliability_test_n = 10,
 #'    nfold = 10,
@@ -87,7 +87,7 @@
 #' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger
 #' @importFrom crayon green red
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @export
 #'
 DoScissor = function(
@@ -106,17 +106,16 @@ DoScissor = function(
     ...
 ) {
     # Input validation
-    if (length(scissor_alpha) != 1 & !is.null(scissor_alpha)) {
-        cli::cli_abort(c(
-            "x" = "Please specify scissor alpha",
-            "i" = "Options: {.val NULL} or {.val [0, 1]}"
-        ))
-    }
-    if (length(scissor_family) != 1) {
-        cli::cli_abort(c(
-            "x" = "Please choose one scissor family, use parameter {.var scissor_family}."
-        ))
-    }
+    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
+    chk::chk_is(sc_data, "Seurat")
+    chk::chk_null_or(scissor_alpha, chk::chk_range) # 0-1
+    chk::chk_number(scissor_cutoff)
+    chk::chk_subset(scissor_family, c("gaussian", "binomial", "cox"))
+    chk::chk_length(scissor_family, 1)
+    chk::chk_null_or(path2load_scissor_cache, chk::chk_file)
+    chk::chk_flag(reliability_test)
+    chk::chk_number(reliability_test_n)
+    chk::chk_number(nfold)
 
     if (scissor_family %in% c("binomial", "cox")) {
         label_type = c(
@@ -164,43 +163,33 @@ DoScissor = function(
 
     # reliability test
     if (reliability_test) {
-        ifelse(
-            # indicate that Y has only two levels, both Pos and Neg cells exist
-            !length(table(infos1$Y)) < 2,
-            {
-                if (is.numeric(scissor_alpha)) {
-                    cli::cli_abort(c(
-                        "x" = "Please specify a value for alpha",
-                        "i" = "Alpha should be a value between 0 and 1",
-                        "i" = "If you have performed scissor screening with a specific alpha, use the same alpha value."
-                    ))
-                }
+        # indicate that Y has only two levels, both Pos and Neg cells exist
+        if (!length(table(infos1$Y)) < 2) {
+            chk::chk_number(scissor_alpha)
 
-                cli::cli_alert_info(c(
-                    "[{TimeStamp()}]",
-                    crayon::green(" Start reliability test")
-                ))
-                reliability_result <- Scissor::reliability.test(
-                    infos1$X,
-                    infos1$Y,
-                    infos1$network,
-                    alpha = scissor_alpha,
-                    family = scissor_family,
-                    cell_num = length(infos1$Scissor_pos) +
-                        length(infos1$Scissor_neg),
-                    n = reliability_test_n,
-                    nfold = nfold
-                )
-                cli::cli_alert_success(
-                    "[{TimeStamp()}] reliability test: Done"
-                )
-            },
-            {
-                cli::cli_abort(c(
-                    "x" = "{crayon::red('Error in reliability test')}: one of the Pos or Neg cells doesn't exist"
-                ))
-            }
-        )
+            cli::cli_alert_info(c(
+                "[{TimeStamp()}]",
+                crayon::green(" Start reliability test")
+            ))
+            reliability_result <- Scissor::reliability.test(
+                infos1$X,
+                infos1$Y,
+                infos1$network,
+                alpha = scissor_alpha,
+                family = scissor_family,
+                cell_num = length(infos1$Scissor_pos) +
+                    length(infos1$Scissor_neg),
+                n = reliability_test_n,
+                nfold = nfold
+            )
+            cli::cli_alert_success(
+                "[{TimeStamp()}] reliability test: Done"
+            )
+        } else {
+            cli::cli_abort(c(
+                "x" = "{crayon::red('Error in reliability test')}: one of the Pos or Neg cells doesn't exist"
+            ))
+        }
     } else {
         reliability_result <- NULL
     }
@@ -217,11 +206,9 @@ DoScissor = function(
 #' Scissor.v5 from `https://doi.org/10.1038/s41587-021-01091-3`and `https://github.com/sunduanchen/Scissor/issues/59`
 #' Another version of Scissor.v5() to optimize memory usage and execution speed in preprocess.
 #'
-#' @family screen method
+#' @family screen_method
 #'
-#' @importFrom Matrix Matrix
-#'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @noRd
 #'
 Scissor.v5.optimized <- function(
@@ -237,8 +224,6 @@ Scissor.v5.optimized <- function(
     workers = 32,
     ...
 ) {
-    # Scissor needs Matrix()
-
     cl <- parallel::makeCluster(min(workers, parallel::detectCores() - 1))
     doParallel::registerDoParallel(cl)
 
@@ -246,180 +231,175 @@ Scissor.v5.optimized <- function(
         c("[{TimeStamp()}]", crayon::green(" Scissor start..."))
     )
 
-    ifelse(
-        is.null(Load_file),
-        {
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                crayon::bold(" Start from raw data...")
+    if (is.null(Load_file)) {
+        cli::cli_alert_info(c(
+            "[{TimeStamp()}]",
+            crayon::bold(" Start from raw data...")
+        ))
+        common = intersect(
+            rownames(bulk_dataset),
+            rownames(sc_dataset)
+        )
+        if (length(common) == 0) {
+            cli::cli_abort(c(
+                "x" = "There is no common genes between the given single-cell and bulk samples. Please check Scissor inputs."
             ))
-            common = intersect(
-                rownames(bulk_dataset),
-                rownames(sc_dataset)
-            )
-            if (length(common) == 0) {
+        }
+
+        if (inherits(sc_dataset, "Seurat")) {
+            sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
+            if ("RNA_snn" %in% names(sc_dataset@graphs)) {
+                network <- as.matrix(sc_dataset@graphs$RNA_snn)
+                cli::cli_alert_info(
+                    "Using {.val RNA_snn} graph for network."
+                )
+            } else if ("integrated_snn" %in% names(sc_dataset@graphs)) {
+                network <- as.matrix(sc_dataset@graphs$integrated_snn)
+                cli::cli_alert_info(
+                    "Using {.val integrated_snn} graph for network."
+                )
+            } else {
                 cli::cli_abort(c(
-                    "x" = "There is no common genes between the given single-cell and bulk samples. Please check Scissor inputs."
+                    "x" = "No `RNA_snn` or `integrated_snn` graph in the given Seurat object. Please check Scissor inputs."
                 ))
             }
-
-            if (inherits(sc_dataset, "Seurat")) {
-                sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
-                if ("RNA_snn" %in% names(sc_dataset@graphs)) {
-                    network <- as.matrix(sc_dataset@graphs$RNA_snn)
-                    cli::cli_alert_info(
-                        "Using {.val RNA_snn} graph for network."
-                    )
-                } else if ("integrated_snn" %in% names(sc_dataset@graphs)) {
-                    network <- as.matrix(sc_dataset@graphs$integrated_snn)
-                    cli::cli_alert_info(
-                        "Using {.val integrated_snn} graph for network."
-                    )
-                } else {
-                    cli::cli_abort(c(
-                        "x" = "No `RNA_snn` or `integrated_snn` graph in the given Seurat object. Please check Scissor inputs."
-                    ))
-                }
-            } else {
-                sc_exprs <- as.matrix(sc_dataset)
-                Seurat_tmp <- Seurat::CreateSeuratObject(
-                    counts = sc_dataset,
+        } else {
+            sc_exprs <- as.matrix(sc_dataset)
+            Seurat_tmp <- Seurat::CreateSeuratObject(
+                counts = sc_dataset,
+                verbose = FALSE
+            ) %>%
+                Seurat::FindVariableFeatures(
+                    selection.method = "vst",
+                    nfeatures = 2000,
                     verbose = FALSE
                 ) %>%
-                    Seurat::FindVariableFeatures(
-                        selection.method = "vst",
-                        nfeatures = 2000,
-                        verbose = FALSE
-                    ) %>%
-                    Seurat::ScaleData(verbose = FALSE) %>%
-                    Seurat::RunPCA(
-                        features = Seurat::VariableFeatures(.),
-                        verbose = FALSE
-                    ) %>%
-                    Seurat::FindNeighbors(dims = 1:10, verbose = FALSE)
-                network <- as.matrix(Seurat_tmp@graphs$RNA_snn)
-            }
-            diag(network) <- 0
-            network[which(network != 0)] <- 1
-            dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ])
-
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Normalizing quantiles of data..."
-            )
-
-            dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0))
-            rownames(dataset1) <- rownames(dataset0)
-            colnames(dataset1) <- colnames(dataset0)
-
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Subsetting data..."
-            )
-            # gene-sample
-            Expression_bulk <- dataset1[, 1:ncol(bulk_dataset)]
-            # gene-cell
-            Expression_cell <- dataset1[,
-                (ncol(bulk_dataset) + 1):ncol(dataset1)
-            ]
-            gc(verbose = FALSE)
-
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Calculating correlation..."
-            )
-            X <- cor(Expression_bulk, Expression_cell)
-            quality_check <- stats::quantile(X)
-
-            cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
-            message(crayon::bold("Five-number summary of correlations:\n"))
-            print(quality_check)
-            cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
-            # median
-            if (quality_check[3] < 0.01) {
-                cli::cli_alert_warning(crayon::yellow(
-                    "The median correlation between the single-cell and bulk samples is relatively low."
-                ))
-            }
-
-            switch(
-                family,
-                "binomial" = {
-                    Y <- as.numeric(phenotype)
-                    z <- table(Y)
-                    if (length(z) != length(tag)) {
-                        stop(
-                            "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
-                            .call = FALSE
-                        )
-                    } else {
-                        cli::cli_alert_info(
-                            "Current phenotype contains {crayon::bold(z[1])} {tag[1]} and {crayon::bold(z[2])} {tag[2]} samples."
-                        )
-                        cli::cli_alert_info(
-                            "[{TimeStamp()}] Perform logistic regression on the given phenotypes(It may take long):"
-                        )
-                    }
-                },
-                "gaussian" = {
-                    Y <- as.numeric(phenotype)
-                    z <- table(Y)
-                    if (length(z) != length(tag)) {
-                        cli::cli_abort(c(
-                            "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
-                            "i" = "length of tags: {.val {length(tag)}}",
-                            "i" = "length of phenotypes: {.val {length(z)}}"
-                        ))
-                    } else {
-                        tmp <- paste(z, tag)
-                        cli::cli_alert_info(
-                            "Current phenotype contains: {.val {length(tmp)}} samples."
-                        )
-                        cli::cli_text("Sample examples:")
-                        cli::cli_bullets(c(
-                            " " = "{.val {head(tmp, 5)}}",
-                            " " = "... ({length(tmp)-6} more samples)",
-                            " " = "{.val {tail(tmp, 1)}}"
-                        ))
-                        cli::cli_alert_info(
-                            "[{TimeStamp()}] Perform linear regression on the given phenotypes:"
-                        )
-                    }
-                },
-                "cox" = {
-                    Y <- as.matrix(phenotype)
-                    if (ncol(Y) != 2) {
-                        stop(
-                            "The size of survival data is wrong. Please check Scissor inputs and selected regression type.",
-                            .call = FALSE
-                        )
-                    } else {
-                        cli::cli_alert_info(
-                            "[{TimeStamp()}] Perform cox regression on the given clinical outcomes:"
-                        )
-                    }
-                }
-            )
-            if (!is.null(Save_file)) {
-                save(
-                    X,
-                    Y,
-                    network,
-                    Expression_bulk,
-                    Expression_cell,
-                    file = Save_file
-                )
-                cli::cli_alert_success(
-                    "Statistics data saved to `{Save_file}`."
-                )
-            }
-        },
-        {
-            # Load data from previous work
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                crayon::bold(" Loading data from `{Load_file}`...")
-            ))
-            load(Load_file)
+                Seurat::ScaleData(verbose = FALSE) %>%
+                Seurat::RunPCA(
+                    features = Seurat::VariableFeatures(.),
+                    verbose = FALSE
+                ) %>%
+                Seurat::FindNeighbors(dims = 1:10, verbose = FALSE)
+            network <- as.matrix(Seurat_tmp@graphs$RNA_snn)
         }
-    )
+        diag(network) <- 0
+        network[which(network != 0)] <- 1
+        dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ])
+
+        cli::cli_alert_info(
+            "[{TimeStamp()}] Normalizing quantiles of data..."
+        )
+
+        dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0))
+        rownames(dataset1) <- rownames(dataset0)
+        colnames(dataset1) <- colnames(dataset0)
+
+        cli::cli_alert_info(
+            "[{TimeStamp()}] Subsetting data..."
+        )
+        # gene-sample
+        Expression_bulk <- dataset1[, 1:ncol(bulk_dataset)]
+        # gene-cell
+        Expression_cell <- dataset1[,
+            (ncol(bulk_dataset) + 1):ncol(dataset1)
+        ]
+        gc(verbose = FALSE)
+
+        cli::cli_alert_info(
+            "[{TimeStamp()}] Calculating correlation..."
+        )
+        X <- cor(Expression_bulk, Expression_cell)
+        quality_check <- stats::quantile(X)
+
+        cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
+        message(crayon::bold("Five-number summary of correlations:\n"))
+        print(quality_check)
+        cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
+        # median
+        if (quality_check[3] < 0.01) {
+            cli::cli_alert_warning(crayon::yellow(
+                "The median correlation between the single-cell and bulk samples is relatively low."
+            ))
+        }
+
+        switch(
+            family,
+            "binomial" = {
+                Y <- as.numeric(phenotype)
+                z <- table(Y)
+                if (length(z) != length(tag)) {
+                    cli::cli_abort(c(
+                        "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type."
+                    ))
+                } else {
+                    cli::cli_alert_info(
+                        "Current phenotype contains {crayon::bold(z[1])} {tag[1]} and {crayon::bold(z[2])} {tag[2]} samples."
+                    )
+                    cli::cli_alert_info(
+                        "[{TimeStamp()}] Perform logistic regression on the given phenotypes(It may take long):"
+                    )
+                }
+            },
+            "gaussian" = {
+                Y <- as.numeric(phenotype)
+                z <- table(Y)
+                if (length(z) != length(tag)) {
+                    cli::cli_abort(c(
+                        "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
+                        "i" = "length of tags: {.val {length(tag)}}",
+                        "i" = "length of phenotypes: {.val {length(z)}}"
+                    ))
+                } else {
+                    tmp <- paste(z, tag)
+                    cli::cli_alert_info(
+                        "Current phenotype contains: {.val {length(tmp)}} samples."
+                    )
+                    cli::cli_text("Sample examples:")
+                    cli::cli_bullets(c(
+                        " " = "{.val {head(tmp, 5)}}",
+                        " " = "... ({length(tmp)-6} more samples)",
+                        " " = "{.val {tail(tmp, 1)}}"
+                    ))
+                    cli::cli_alert_info(
+                        "[{TimeStamp()}] Perform linear regression on the given phenotypes:"
+                    )
+                }
+            },
+            "cox" = {
+                Y <- as.matrix(phenotype)
+                if (ncol(Y) != 2) {
+                    cli::cli_abort(c(
+                        "x" = "The size of survival data is wrong. Please check Scissor inputs and selected regression type."
+                    ))
+                } else {
+                    cli::cli_alert_info(
+                        "[{TimeStamp()}] Perform cox regression on the given clinical outcomes:"
+                    )
+                }
+            }
+        )
+        if (!is.null(Save_file)) {
+            save(
+                X,
+                Y,
+                network,
+                Expression_bulk,
+                Expression_cell,
+                file = Save_file
+            )
+            cli::cli_alert_success(
+                "Statistics data saved to `{Save_file}`."
+            )
+        }
+    } else {
+        # Load data from previous work
+        cli::cli_alert_info(c(
+            "[{TimeStamp()}]",
+            crayon::bold(" Loading data from `{Load_file}`...")
+        ))
+        load(Load_file)
+    }
+
     # garbage collection
     rm(
         Expression_bulk,

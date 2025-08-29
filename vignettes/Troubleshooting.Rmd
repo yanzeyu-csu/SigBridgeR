@@ -19,7 +19,7 @@ This vignette provides solutions to common problems you might encounter when usi
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
 
-```{shell}
+```{shell,eval=FALSE}
 git clone https://github.com/bmbolstad/preprocessCore.git
 cd preprocessCore
 R CMD INSTALL --configure-args="--disable-threading"  .
@@ -27,7 +27,7 @@ R CMD INSTALL --configure-args="--disable-threading"  .
 
 or
 
-```{r}
+```{r,eval=FALSE}
 BiocManager::install(
   "preprocessCore",
   configure.args = "--disable-threading",
@@ -49,7 +49,7 @@ This may be due to two reasons: first, a mismatch in the dimensions of the bulk 
 
 To check dimension mismatch：
 
-```{r}
+```{r,eval=FALSE}
 ncol(your_bulk_data) == nrow(your_phenotype_data) # should be TRUE
 
 all(unique(colnames(your_bulk_data)) == unique(rownames(your_bulk_data))) # should be TRUE
@@ -59,7 +59,7 @@ all(order(colnames(your_bulk_data)) == order(rownames(your_phenotype_data))) # s
 
 Survival phenotype column names should be formatted as `time` and `status`, ensuring correct capitalization and spelling:
 
-```{r}
+```{r,eval=FALSE}
 head(survival_phenotype) # case-sensitive
 #           time status
 # GSM70130 34.80      0

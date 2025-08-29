@@ -1,4 +1,5 @@
 #' @import magrittr
+#' @import AUCell
 NULL
 
 utils::globalVariables(
@@ -10,6 +11,11 @@ utils::globalVariables(
         "percent.mt",
         "Fraction",
         "Total",
-        "..duplicate_cols"
+        "..duplicate_cols",
+        "PC1",
+        "PC2",
+        "condition",
+        "batch",
+        "Feature"
     )
 )

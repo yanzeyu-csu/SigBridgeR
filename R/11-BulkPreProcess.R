@@ -10,10 +10,15 @@
 #' @export
 #'
 SymbolConvert = function(data) {
+    chk::chk_is(data, c("data.frame", "matrix"))
+    row_names = rownames(data)
+    if (is.null(row_names)) {
+        cli::cli_abort(c("x" = "Row names are missing in the data"))
+    }
     options(
         IDConverter.datapath = system.file("extdata", package = "IDConverter")
     )
-    gene_symbols <- IDConverter::convert_hm_genes(rownames(data))
+    gene_symbols <- IDConverter::convert_hm_genes(row_names)
 
     na_count <- sum(is.na(gene_symbols))
     if (na_count > 0) {
@@ -130,6 +135,7 @@ BulkPreProcess <- function(
     show_plot_results = TRUE,
     verbose = TRUE
 ) {
+    chk::chk_is(data, c("data.frame", "matrix"))
     if (verbose) {
         cli::cli_alert_info(c(
             "[{TimeStamp()}]",
@@ -165,7 +171,8 @@ BulkPreProcess <- function(
             },
             error = function(e) {
                 cli::cli_abort(c(
-                    "x" = "Failed to convert expression matrix to numeric format: {e$message}"
+                    "x" = "Failed to convert expression matrix to numeric format:",
+                    e$message
                 ))
             },
             warning = function(w) {
@@ -219,7 +226,7 @@ BulkPreProcess <- function(
 
     if (verbose) {
         cli::cli_alert_success(
-            "[{TimeStamp()}] Data loaded: {n_genes} genes × {n_samples} samples"
+            "[{TimeStamp()}] Data loaded: {n_genes} genes * {n_samples} samples"
         )
     }
 
@@ -509,14 +516,14 @@ BulkPreProcess <- function(
             )
         } else {
             cli::cli_warn(
-                "Gene count: Low ({.val {n_genes_filtered}} genes, recommend ≥15,000)"
+                "Gene count: Low ({.val {n_genes_filtered}} genes, recommend >= 15,000)"
             )
         }
 
         # Sample quality
         if (all(samples_pass_reads[samples_to_keep])) {
             cli::cli_alert_success(
-                "Sample read depth: All samples pass threshold (≥{.val {min_total_reads}})"
+                "Sample read depth: All samples pass threshold (>={.val {min_total_reads}})"
             )
         } else {
             n_low_reads <- sum(!samples_pass_reads[samples_to_keep])
@@ -527,7 +534,7 @@ BulkPreProcess <- function(
 
         if (all(samples_pass_genes[samples_to_keep])) {
             cli::cli_alert_success(
-                "Gene detection: All samples pass threshold (≥{.val {min_genes_detected}})"
+                "Gene detection: All samples pass threshold (>={.val {min_genes_detected}})"
             )
         } else {
             n_low_genes <- sum(!samples_pass_genes[samples_to_keep])
@@ -613,6 +620,7 @@ BulkPreProcess <- function(
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' # Basic usage with a matrix
 #' mat <- matrix(1:12, nrow = 3)
 #' rowVars(mat)
@@ -634,13 +642,13 @@ BulkPreProcess <- function(
 #' # Edge case: single column (variance is 0)
 #' single_col <- matrix(1:3, ncol = 1)
 #' rowVars(single_col)  # Returns NaN due to division by 0
+#' }
 #'
 #' @seealso
 #' \code{\link{var}} for column-wise variance calculation,
 #' \code{\link{rowMeans}} for row means,
 #' \code{\link{apply}} for applying functions across rows or columns
 #'
-#' @author [Your Name]
 #'
 #' @export
 #'

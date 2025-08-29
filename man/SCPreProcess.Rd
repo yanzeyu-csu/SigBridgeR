@@ -99,8 +99,8 @@ SCPreProcess(sc, ...)
 
 \item{meta_data}{Optional metadata dataframe (rows = cells, columns = attributes)}
 
-\item{column2only_tumor}{Metadata column for tumor cell filtering (regex patterns:
-"\link{Tt}umo.?r", "\link{Cc}ancer", "\link{Mm}alignant", "\link{Nn}eoplasm")}
+\item{column2only_tumor}{Metadata column used for filtering tumor cells, matching patterns
+such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insensitive).}
 
 \item{project}{Project name for Seurat object}
 

@@ -44,6 +44,7 @@ When \code{na.rm = FALSE}, the function:
 }
 }
 \examples{
+\dontrun{
 # Basic usage with a matrix
 mat <- matrix(1:12, nrow = 3)
 rowVars(mat)
@@ -65,13 +66,11 @@ rowVars(df)
 # Edge case: single column (variance is 0)
 single_col <- matrix(1:3, ncol = 1)
 rowVars(single_col)  # Returns NaN due to division by 0
+}
 
 }
 \seealso{
 \code{\link{var}} for column-wise variance calculation,
 \code{\link{rowMeans}} for row means,
 \code{\link{apply}} for applying functions across rows or columns
-}
-\author{
-\link{Your Name}
 }

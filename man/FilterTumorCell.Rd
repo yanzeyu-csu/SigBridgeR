@@ -16,4 +16,4 @@ FilterTumorCell(obj, column2only_tumor = NULL, verbose = TRUE)
 \description{
 Filter tumor cells from Seurat object.
 }
-\keyword{SigBridgeR_internal}
+\keyword{internal}

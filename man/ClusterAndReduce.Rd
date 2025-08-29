@@ -21,4 +21,4 @@ Seurat object
 \description{
 FindNeighbors, FindClusters, RunTSNE, RunUMAP
 }
-\keyword{SigBridgeR_internal}
+\keyword{internal}

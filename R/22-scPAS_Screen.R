@@ -11,13 +11,13 @@
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
 #' @param assay Assay to use from sc_data (default: 'RNA')
 #' @param imputation Logical, whether to perform imputation (default: FALSE)
+#' @param imputation_method Character. Name of alternative method for imputation.
 #' @param nfeature Number of features to select (default: 3000, indicating that the top 3000 highly variable genes are selected for model training
-#' @param alpha Significance threshold (default: 0.01)
-#' @param extra_filter Logical, whether to perform extra filtering (default: FALSE)
-#' @param gene_RNAcount_filter Minimum gene expression threshold (default: 20)
-#' @param bulk_0_filter_thresh Maximum proportion of zeros allowed in bulk data (default: 0.25)
-#' @param network_class Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data.)
+#' @param alpha Numeric. Significance threshold. Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is in `[0,1]`. A larger alpha lays more emphasis on the l1 norm. (default: 0.01)
+#' @param network_class Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data. The other one is 'bulk'.)
 #' @param scPAS_family Model family for analysis (options: "cox", "gaussian", "binomial")
+#' @param permutation_times Number of permutations to perform (default: 2000)
+#' @param FDR.threshold Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)
 #' @param ... Additional arguments passed to `DoscPAS` functions
 #'
 #' @return A Seurat object from scPAS analysis
@@ -26,9 +26,9 @@
 #' @importFrom Matrix rowSums as.matrix
 #' @import dplyr
 #'
-#' @family screen method
+#' @family screen_method
 #'
-#' @keywords SigBridgeR_internal
+#' @keywords internal
 #' @export
 #'
 DoscPAS = function(
@@ -38,15 +38,34 @@ DoscPAS = function(
     label_type = "scPAS",
     assay = 'RNA',
     imputation = F,
+    imputation_method = c("KNN", "ALRA"),
     nfeature = 3000,
     alpha = 0.01,
-    extra_filter = FALSE,
-    gene_RNAcount_filter = 20,
-    bulk_0_filter_thresh = 0.25,
-    network_class = 'SC',
+    network_class = c("SC", "bulk"),
     scPAS_family = c("cox", "gaussian", "binomial"),
+    permutation_times = 2000,
+    FDR.threshold = 0.05,
+    independent = TRUE,
     ...
 ) {
+    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
+    chk::chk_is(sc_data, "Seurat")
+    chk::chk_character(label_type)
+    chk::chk_flag(imputation)
+    chk::chk_subset(imputation_method, c("KNN", "ALRA"))
+    chk::chk_length(imputation_method, 1)
+    chk::chk_number(nfeature)
+    chk::chk_number(alpha)
+    chk::chk_subset(network_class, c("SC", "bulk"))
+    if (length(network_class) > 1) {
+        network_class <- network_class[1]
+    }
+    chk::chk_subset(scPAS_family, c("cox", "gaussian", "binomial"))
+    chk::chk_length(scPAS_family, 1)
+    chk::chk_number(permutation_times)
+    chk::chk_number(FDR.threshold)
+    chk::chk_flag(independent)
+
     # robust
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(
@@ -59,36 +78,21 @@ DoscPAS = function(
         crayon::green(" Start scPAS screening.")
     ))
 
-    if (extra_filter) {
-        # *sc filter
-        keep_genes <- rownames(sc_data)[
-            Matrix::rowSums(sc_data@assays$RNA@counts > 1) >=
-                gene_RNA_count_filter
-        ]
-        sc_data <- subset(sc_data, features = keep_genes)
-        # *bulk filter zero data
-        matched_bulk <- matched_bulk %>%
-            Matrix::as.matrix() %>%
-            .[
-                apply(., 1, function(x) {
-                    sum(x == 0) < bulk_0_filter_thresh * ncol(.)
-                }),
-            ]
-    } else {
-        matched_bulk = as.matrix(matched_bulk)
-    }
-
     scPAS_result <- scPAS::scPAS(
-        bulk_dataset = matched_bulk,
+        bulk_dataset = as.matrix(matched_bulk),
         sc_dataset = sc_data,
         assay = 'RNA',
         tag = label_type,
         phenotype = phenotype,
         imputation = imputation,
+        imputation_method = imputation_method,
         nfeature = nfeature,
         alpha = alpha,
         network_class = network_class,
         family = scPAS_family,
+        independent = independent,
+        permutation_times = permutation_times,
+        FDR.threshold = FDR.threshold,
         ...
     ) %>%
         AddMisc(scPAS_type = label_type, cover = FALSE)
