@@ -76,6 +76,11 @@ jobs:
                     echo "No .Rproj file found"
                   fi
 
+            - name: Pull latest changes
+              run: |
+                  git pull origin main --rebase
+                  echo "Pulled latest changes"  
+
             - name: Commit all version updates
               run: |
                   git config user.name "GitHub Actions"
