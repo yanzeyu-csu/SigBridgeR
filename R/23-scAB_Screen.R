@@ -73,7 +73,7 @@ DoscAB <- function(
     chk::chk_length(phenotype_class, 1)
     chk::chk_number(alpha)
     chk::chk_number(alpha_2)
-    chk::chk_integer(maxiter)
+    chk::chk_number(maxiter)
     chk::chk_number(tred)
 
     # robust
