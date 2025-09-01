@@ -1,7 +1,6 @@
 url: https://wanglabcsu.github.io/sigbridger/
 template:
     bootstrap: 5
-    bootswatch: cosmo
 
 title: SigBridgeR
 logo: man/figures/logo_white.png
