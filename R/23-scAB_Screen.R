@@ -70,7 +70,7 @@ DoscAB <- function(
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     chk::chk_subset(phenotype_class, c("binary", "survival"))
-    chk::chk_length(phenotype, 1)
+    chk::chk_length(phenotype_class, 1)
     chk::chk_number(alpha)
     chk::chk_number(alpha_2)
     chk::chk_integer(maxiter)
