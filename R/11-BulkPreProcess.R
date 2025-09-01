@@ -11,7 +11,7 @@
 #'
 SymbolConvert = function(data) {
     chk::chk_is(data, c("data.frame", "matrix"))
-    row_names = rownames(data)
+    row_names = gsub("\\..*$", "", rownames(data))
     if (is.null(row_names)) {
         cli::cli_abort(c("x" = "Row names are missing in the data"))
     }
@@ -543,7 +543,7 @@ BulkPreProcess <- function(
             )
         }
 
-        # Correlation and outliers (if checked)
+        # Correlation and outliers
         if (check) {
             if (exists("min_cor") && min_cor >= min_correlation) {
                 cli::cli_alert_success(

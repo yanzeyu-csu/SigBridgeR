@@ -11,10 +11,9 @@ vignette: >
 
 # **Quick Start Guide for SigBridgeR**
 
+This document is not yet written. You can refer to the Full_tutorial for now.
+
 ```{r,eval=FALSE}
 library(SigBridgeR)
 ```
 
-```{r,eval=FALSE}
-
-```

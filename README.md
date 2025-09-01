@@ -37,15 +37,3 @@ Other information:
 -   What is *RNA-seq*?
     -   [View in Wiki](https://en.wikipedia.org/wiki/RNA-Seq)
 
-SigbridgeR integrates algorithms from the following repositories:
-
--   [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor)
--   [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/)
--   [Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP)
--   [Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
-
-## 📮 Question and Issues
-
-For support or questions:
-
-Maintainer: Exceret

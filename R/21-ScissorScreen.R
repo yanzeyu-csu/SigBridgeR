@@ -133,9 +133,11 @@ DoScissor = function(
             class = "FamilyError"
         )
     }
-    path = dirname(path2save_scissor_inputs)
-    if (!dir.exists(path)) {
-        dir.create(path, recursive = TRUE)
+    if (!is.null(path2save_scissor_inputs)) {
+        path = dirname(path2save_scissor_inputs)
+        if (!dir.exists(path)) {
+            dir.create(path, recursive = TRUE)
+        }
     }
 
     infos1 <- Scissor.v5.optimized(

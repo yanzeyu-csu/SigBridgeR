@@ -52,8 +52,10 @@ DoscPAS = function(
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     chk::chk_flag(imputation)
-    chk::chk_subset(imputation_method, c("KNN", "ALRA"))
-    chk::chk_length(imputation_method, 1)
+    if (imputation) {
+        chk::chk_length(imputation_method, 1)
+        chk::chk_subset(imputation_method, c("KNN", "ALRA"))
+    }
     chk::chk_number(nfeature)
     chk::chk_number(alpha)
     chk::chk_subset(network_class, c("SC", "bulk"))
@@ -67,9 +69,9 @@ DoscPAS = function(
     chk::chk_flag(independent)
 
     # robust
-    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+    if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
         cli::cli_abort(c(
-            "x" = "Please check the rownames of {.var phenotype} and colnames of {.var matched_bulk}, they should be the same"
+            "x" = "No intersection between the rownames of {.var phenotype} and colnames of {.var matched_bulk}."
         ))
     }
 

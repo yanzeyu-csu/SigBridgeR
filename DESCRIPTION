@@ -24,7 +24,6 @@ Imports:
     glue,
     IDConverter,
     magrittr,
-    Matrix,
     patchwork,
     preprocessCore (>= 1.66.0),
     purrr,
@@ -43,7 +42,8 @@ Remotes:
     aiminXie/scPAS,
     WangX-Lab/ScPP
 Depends: 
-    R (>= 4.1.0)
+    R (>= 4.1.0),    
+    Matrix
 Suggests: 
     anndata,
     ggVennDiagram,

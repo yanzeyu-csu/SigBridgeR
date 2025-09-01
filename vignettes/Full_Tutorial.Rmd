@@ -29,9 +29,9 @@ vignette: >
       - [2.1.3 (Optional) Filter Out Tumor Cells](#213-optional-filter-out-tumor-cells)
     - [2.2 Bulk expression data](#22-bulk-expression-data)
       - [2.2.1 Evaluate the quality of your bulk RNA-seq data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
-        - [Quality Control Metrics Reported: {#quality-control-metrics-reported}](#quality-control-metrics-reported-quality-control-metrics-reported)
-        - [Visualization Output: {#visualization-output}](#visualization-output-visualization-output)
-        - [Recommended Parameter Adjustments: {#recommended-parameter-adjustments}](#recommended-parameter-adjustments-recommended-parameter-adjustments)
+        - [Quality Control Metrics Reported: ](#quality-control-metrics-reported)
+        - [Visualization Output:](#visualization-output)
+        - [Recommended Parameter Adjustments:](#recommended-parameter-adjustments)
       - [2.2.2 Gene Symbol Conversion](#222-gene-symbol-conversion)
     - [2.3 Phenotype Data](#23-phenotype-data)
   - [3. Screening Cells Associated with Phenotype](#3-screening-cells-associated-with-phenotype)
@@ -266,7 +266,7 @@ filtered_counts <- BulkPreProcess(
 
 The function returns a filtered count matrix after applying quality control steps. The order of filtering is: first genes, then samples.
 
-##### Quality Control Metrics Reported: {#quality-control-metrics-reported}
+##### Quality Control Metrics Reported: 
 
 -   Data Integrity: Number of missing values detected
 
@@ -282,13 +282,13 @@ The function returns a filtered count matrix after applying quality control step
 
 -   Batch Effects: Proportion of genes significantly affected by batch
 
-##### Visualization Output: {#visualization-output}
+##### Visualization Output:
 
 When `show_plot_results = TRUE`, the function generates:
 
 PCA plot colored by experimental condition
 
-##### Recommended Parameter Adjustments: {#recommended-parameter-adjustments}
+##### Recommended Parameter Adjustments: 
 
 -   For low-depth sequencing data: reduce `min_total_reads` and `min_genes_detected`
 
@@ -296,7 +296,6 @@ PCA plot colored by experimental condition
 
 -   For large datasets: set `check = FALSE` for faster processing
 
-Use `?BulkPreProcess` in R to see more details.
 
 #### 2.2.2 Gene Symbol Conversion
 
@@ -326,7 +325,6 @@ gene_symbols <- mapIds(org.Hs.eg.db,
                       multiVals = "first")
 
 rownames(your_bulk_data) <- gene_symbols
-your_bulk_data <- your_bulk_data[!is.na(rownames(your_bulk_data)), ]
 
 ```
 
@@ -369,7 +367,7 @@ scissor_result = Screen(
   matched_bulk = matched_bulk,
   sc_data = sc_dataset, # A Seurat object after preprocessing
   phenotype = matched_phenotype_data,
-  label_type = "TP53", # The filtering labels are stored in the `@misc` 
+  label_type = "TP53", # The filtering labels are stored in the `@misc`, you can change it to your own label
   phenotype_class = "binary",  
   screen_method = c("Scissor"),
   path2save_scissor_inputs = "Tmp/Scissor_inputs.RData" # Intermediate data
@@ -590,7 +588,7 @@ umaps = celltype_umap +
 umaps
 ```
 
-This will generate three UMAP plots separately.
+This will generate six UMAP plots separately.
 
 Or suppose you have performed `scPAS` screening on your Seurat object and want to visualize the distribution of prediction confidence scores, you may reference and use the following code:
 
@@ -628,7 +626,7 @@ Key parameters for `ScreenFractionPlot`:
 -   `seurat_obj`: A Seurat object after screening.
 -   `group_by`: Used to specify the column of the meta.data in `seurat_obj`. The plot results will be grouped by this parameter.
 -   `screen_type`: Screening algorithm used before. (case-sensitive, e.g., "scissor" for Scissor results)
--   `show_null`: Logical whether to show groups with zero cells (default: FALSE).
+-   `show_null`: Logical, whether to show groups with zero cells (default: FALSE).
 -   `plot_color` Custom color palette (named vector format):
     -   Required names: "Positive", "Negative", "Neutral", "Other"
     -   Default: c("Neutral"="#CECECE", "Other"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")
@@ -639,7 +637,7 @@ Suppose you have already performed the `scPAS` algorithm screening on your Seura
 # based on `ggplot2`
 plot <- ScreenFractionPlot(
    screened_seurat = your_seurat_obj,
-   group_by = "patient", 
+   group_by = "patient", # grouping basis for the x-axis
    screen_type = "scPAS",
    plot_title = "scPAS Screening Results"
 )
@@ -647,7 +645,6 @@ plot <- ScreenFractionPlot(
 
 The order of the groups is determined by the proportion of **Positive** cells within each group.
 
-Use `?ScreenFractionPlot` in R to see more details.
 
 
 ### 4.3 Venn diagram for screening results
@@ -672,6 +669,15 @@ scpas_pos <- colnames(scpas_result$scRNA_data)[
 scpp_pos <- colnames(scissor_result$scRNA_data)[
     which(scpp_result$scRNA_data$scPP == "Positive")
 ]
+# # *Or if you have merged the results, you can use the following code:
+# c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
+#     purrr::map(
+#         c("scissor", "scAB", "scPAS", "scPP"),
+#         ~ colnames(merged_seurat)[
+#             which(merged_seurat[[.x]] == "Positive")
+#         ]
+#     )
+
 all_cell <- colnames(your_seurat_obj) # this obj can be changed to other
 
 # * create a list of cell vectors
@@ -720,7 +726,7 @@ Here we use the example data to demonstrate how to use the functions in `SigBrid
 
 ```{r,example_data,eval=FALSE}
 library(SigBridgeR)
-
+packageVersion("SigBridgeR")
 ```
 
 ------------------------------------------------------------------------
@@ -745,7 +751,6 @@ seurat_obj <- AddMisc(seurat_obj, markers = markers2, cover=FALSE)
 seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
 ```
 
-Use `?AddMisc` in R to see more details.
 
 ### 6.2 Calculate the variance of each row in a matrix
 
@@ -779,4 +784,10 @@ Use `?AddMisc` in R to see more details.
 
 ## 7. References
 
-Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nature Biotechnology (2021). https://doi.org/10.1038/s41587-021-01091-3. Duanchen Sun, Xiangnan Guan, Amy E. Moran, Ling-Yun Wu, David Z. Qian, Pepper Schedin, Mu-Shui Dai, Alexey V. Danilov, Joshi J. Alumkal, Andrew C. Adey, Paul T. Spellman and Zheng Xia
+1. Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nat Biotechnol. 2022 Apr;40(4):527–38. 
+
+2. Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associated subpopulation identifier. Briefings in Bioinformatics. 2024 Nov 22;26(1):bbae655. 
+   
+3. Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical significance by integrating single-cell genomics and bulk sequencing data. Nucleic Acids Research. 2022 Nov 28;50(21):12112–30. 
+
+4. WangX-Lab/ScPP [Internet]. [cited 2025 Aug 31]. Available from: https://github.com/WangX-Lab/ScPP
