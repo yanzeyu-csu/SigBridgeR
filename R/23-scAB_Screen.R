@@ -77,9 +77,9 @@ DoscAB <- function(
     chk::chk_number(tred)
 
     # robust
-    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+    if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
         cli::cli_abort(c(
-            "x" = "Please check the rownames of phenotype and colnames of bulk_dataset, they should be the same"
+            "x" = "No intersection between the rownames of {.var phenotype} and colnames of {.var matched_bulk}."
         ))
     }
 
@@ -97,7 +97,7 @@ DoscAB <- function(
 
     cli::cli_alert_info(c(
         "[{TimeStamp()}]",
-        " Selecting K"
+        " Selecting K..."
     ))
 
     k <- scAB::select_K(scAB_obj)
