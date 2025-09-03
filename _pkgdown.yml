@@ -7,6 +7,12 @@ template:
         bootswatch: sandstone
         pkgdown-nav-height: 100px
         code_font: { google: "JetBrains Mono" }
+        primary: "#2C5F9B"  # 修改主要链接颜色（蓝色系）
+        secondary: "#6c757d" # 修改次要元素颜色
+        success: "#198754"  # 成功状态颜色
+        info: "#0dcaf0"     # 信息状态颜色
+        warning: "#ffc107"  # 警告状态颜色
+        danger: "#dc3545"   # 危险/错误状态颜色
 
 authors:
     Yuxi Yang:
@@ -25,6 +31,7 @@ navbar:
         right: [github]
     components:
         home:
+            text: Home
             icon: fa-home
             href: index.html
         reference:

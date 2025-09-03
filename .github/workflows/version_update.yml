@@ -3,8 +3,8 @@ name: Update R Package Version
 on:
     push:
         branches: [main]
-        paths:
-            - "DESCRIPTION"
+    pull_request:
+        branches: [main]
 
 jobs:
     update-version:
