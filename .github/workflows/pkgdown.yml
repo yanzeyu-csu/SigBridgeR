@@ -10,7 +10,7 @@ on:
 name: pkgdown
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
     pkgdown:

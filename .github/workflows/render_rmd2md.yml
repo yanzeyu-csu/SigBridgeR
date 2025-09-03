@@ -11,15 +11,28 @@ permissions:
 jobs:
     render:
         runs-on: ubuntu-latest
+        concurrency: 
+            group: ${{ github.workflow }}-${{ github.ref }}
+            cancel-in-progress: true
 
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
                   fetch-depth: 0
 
-            - name: Set working directory
-              run: cd $GITHUB_WORKSPACE
+             # 缓存R包依赖
+            - name: Cache R packages
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/R/Library
+                      /usr/local/lib/R/site-library
+                      /usr/lib/R/site-library
+                  key: ${{ runner.os }}-r-packages-${{ hashFiles('**/DESCRIPTION') }}
+                  restore-keys: |
+                      ${{ runner.os }}-r-packages-
 
             - name: Setup R
               uses: r-lib/actions/setup-r@v2
@@ -28,11 +41,11 @@ jobs:
               uses: r-lib/actions/setup-pandoc@v2
 
             - name: Install dependencies
-              uses: r-lib/actions/setup-r-dependencies@v2
-              with:
-                  packages: |
-                      rmarkdown
-                      knitr
+              run: |
+                  # 只有在缓存未命中时才安装包
+                  if [ ! -d "~/R/Library/rmarkdown" ] || [ ! -d "~/R/Library/knitr" ]; then
+                    Rscript -e 'install.packages(c("rmarkdown", "knitr"))'
+                  fi
 
             - name: Render vignettes Rmd files
               run: |
@@ -51,20 +64,28 @@ jobs:
                     exit 0
                   fi
 
-            - name: Pull latest changes
-              run: |
-                  git pull origin main --rebase
-                  echo "Pulled latest changes"
-
-            - name: Commit results
+            - name: Configure Git
               run: |
                   git config user.name "GitHub Actions"
                   git config user.email "actions@github.com"
 
+            - name: Pull latest changes before commit
+              run: |
+                  # 在提交前拉取最新更改，避免冲突
+                  git pull origin main --rebase
+
+            - name: Commit results
+              run: |
                   # 只添加 vignettes 目录中的 md 文件
                   if [ -d "vignettes" ]; then
                     git add vignettes/*.md 2>/dev/null || echo "No markdown files found in vignettes"
                   fi
 
-                  git commit -m "Re-build Rmd files in vignettes" || echo "No changes to commit"
-                  git push
+                  # 检查是否有更改需要提交
+                  if git diff --staged --quiet; then
+                    echo "No changes to commit."
+                  else
+                    git commit -m "Re-build vignettes from Rmd to Md"
+                    git push origin main
+                    echo "Changes pushed to repository."
+                  fi

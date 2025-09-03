@@ -9,6 +9,9 @@ on:
 jobs:
     update-version:
         runs-on: ubuntu-latest
+        concurrency: 
+            group: ${{ github.workflow }}-${{ github.ref }}
+            cancel-in-progress: true
         permissions:
             contents: write
 
@@ -16,14 +19,40 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
                   fetch-depth: 0
+
+            # 缓存R包依赖
+            - name: Cache R packages
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/R/Library
+                      /usr/local/lib/R/site-library
+                      /usr/lib/R/site-library
+                  key: ${{ runner.os }}-r-packages-${{ hashFiles('**/DESCRIPTION') }}
+                  restore-keys: |
+                      ${{ runner.os }}-r-packages-
 
             - name: Setup R
               uses: r-lib/actions/setup-r@v2
 
+            # 只在缓存未命中时安装desc包
             - name: Install required packages
               run: |
-                  Rscript -e 'install.packages("desc")'
+                  if [ ! -d "~/R/Library/desc" ]; then
+                    Rscript -e 'install.packages("desc")'
+                  fi
+
+            - name: Configure Git user
+              run: |
+                  git config user.name "GitHub Actions"
+                  git config user.email "actions@github.com"
+
+            - name: Pull latest changes
+              run: |
+                  git pull origin main --rebase
+                  echo "Pulled latest changes"
 
             - name: Get commit message
               id: commit_msg
@@ -61,7 +90,6 @@ jobs:
 
             - name: Update version badge in README.md
               run: |
-                  # 精确匹配徽章格式
                   sed -i "s/\(badge\/devel%20version-\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$NEW_VERSION/g" README.md
                   echo "Updated README.md version badge to $NEW_VERSION"
 
@@ -69,23 +97,18 @@ jobs:
               run: |
                   RPROJ_FILE=$(find . -maxdepth 1 -name "*.Rproj" | head -1)
                   if [ -f "$RPROJ_FILE" ]; then
-                    # 精确匹配Version行
                     sed -i "s/^Version: [0-9]\+\.[0-9]\+\.[0-9]\+$/Version: $NEW_VERSION/" "$RPROJ_FILE"
                     echo "Updated $RPROJ_FILE version to $NEW_VERSION"
                   else
                     echo "No .Rproj file found"
                   fi
 
-            - name: Pull latest changes
+            - name: Pull latest changes before commit
               run: |
                   git pull origin main --rebase
-                  echo "Pulled latest changes"  
 
             - name: Commit all version updates
               run: |
-                  git config user.name "GitHub Actions"
-                  git config user.email "actions@github.com"
-
                   git add DESCRIPTION README.md
 
                   RPROJ_FILE=$(find . -maxdepth 1 -name "*.Rproj" | head -1)
@@ -93,8 +116,25 @@ jobs:
                     git add "$RPROJ_FILE"
                   fi
 
-                  git commit -m "Bump version to $NEW_VERSION [ci skip]"
-                  git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+                  if git diff --staged --quiet; then
+                    echo "No changes to commit."
+                    exit 0
+                  fi
 
+                  git commit -m "Bump version to $NEW_VERSION [ci skip]"
+                  
+                  if git show-ref --tags "v$NEW_VERSION"; then
+                    echo "Tag v$NEW_VERSION already exists, skipping creation."
+                  else
+                    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+                  fi
+
+            - name: Push changes and tags
+              run: |
                   git push origin main
-                  git push origin "v$NEW_VERSION"
+                  
+                  if git show-ref --tags "v$NEW_VERSION"; then
+                    git push origin "v$NEW_VERSION"
+                  else
+                    echo "No new tag to push."
+                  fi

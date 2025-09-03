@@ -1,14 +1,27 @@
 url: https://wanglabcsu.github.io/sigbridger/
 template:
     bootstrap: 5
+    light-switch: true
+    theme-dark: gruvbox-dark
+    bslib:
+        bootswatch: sandstone
+        pkgdown-nav-height: 100px
+        code_font: { google: "JetBrains Mono" }
+
+authors:
+    Yuxi Yang:
 
 title: SigBridgeR
-logo: man/figures/logo_white.png
+description: >-
+  SigBridgeR: SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
+logo: 
+    light: man/figures/logo_white.png
+    dark:
 
 # 导航栏配置
 navbar:
     structure:
-        left: [home, reference, articles, news]
+        left: [home, reference, articles]
         right: [github]
     components:
         home:
@@ -16,12 +29,21 @@ navbar:
             href: index.html
         reference:
             text: Functions
+            icon: fa-code 
             href: reference/index.html
         articles:
             text: Articles
+            icon: fa-book-open
             menu:
-                - text: Getting Started
+                - text: Get Started
+                  icon: fa-rocket
                   href: articles/getting-started.html
+                - text: Full Tutorial
+                  icon: fa-book
+                  href: articles/Full_Tutorial.html
+                - text: Troubleshooting
+                  icon: fa-bug
+                  href: articles/Troubleshooting.html
         github:
             icon: fa-github
-            href: https://wanglabcsu.github.io/sigbridger/
+            href: https://github.com/wanglabcsu/sigbridger/
