@@ -110,7 +110,11 @@ DoscPP = function(
     chk::chk_number(Log2FC_cutoff)
     chk::chk_number(estimate_cutoff)
     chk::chk_number(probs)
-    # robust
+    # scPP can't tolerate NA
+    chk::chk_not_any_na(matched_bulk)
+    chk::chk_not_any_na(phenotype)
+
+    # robust, scPP is more strict than scissor and scPAS
     if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(
             "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."

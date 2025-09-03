@@ -75,11 +75,14 @@ DoscAB <- function(
     chk::chk_number(alpha_2)
     chk::chk_number(maxiter)
     chk::chk_number(tred)
+    # scAB can't tolerate NA
+    chk::chk_not_any_na(matched_bulk)
+    chk::chk_not_any_na(phenotype)
 
-    # robust
-    if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
+    # robust, scAB is more strict than Scissor and scPAS
+    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
         cli::cli_abort(c(
-            "x" = "No intersection between the rownames of {.var phenotype} and colnames of {.var matched_bulk}."
+            "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
         ))
     }
 

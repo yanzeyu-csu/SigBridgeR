@@ -43,4 +43,4 @@ jobs:
                   clean: false
                   branch: gh-pages
                   # root
-                  folder: /
+                  folder: docs
