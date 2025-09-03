@@ -51,7 +51,8 @@ jobs:
 
             - name: Pull latest changes
               run: |
-                  git pull origin main --rebase
+                  git fetch origin      # 先获取远程更新
+                  git merge origin/main # 将远程更改合并到当前分支
                   echo "Pulled latest changes"
 
             - name: Get commit message
