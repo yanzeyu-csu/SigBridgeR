@@ -9,7 +9,7 @@ on:
 jobs:
     update-version:
         runs-on: ubuntu-latest
-        concurrency: 
+        concurrency:
             group: ${{ github.workflow }}-${{ github.ref }}
             cancel-in-progress: true
         permissions:
@@ -48,12 +48,6 @@ jobs:
               run: |
                   git config user.name "GitHub Actions"
                   git config user.email "actions@github.com"
-
-            - name: Pull latest changes
-              run: |
-                  git fetch origin      # 先获取远程更新
-                  git merge origin/main # 将远程更改合并到当前分支
-                  echo "Pulled latest changes"
 
             - name: Get commit message
               id: commit_msg
@@ -104,9 +98,11 @@ jobs:
                     echo "No .Rproj file found"
                   fi
 
-            - name: Pull latest changes before commit
+            - name: Pull latest changes
               run: |
-                  git pull origin main --rebase
+                  git fetch origin      # 先获取远程更新
+                  git merge origin/main # 将远程更改合并到当前分支
+                  echo "Pulled latest changes"
 
             - name: Commit all version updates
               run: |
@@ -123,7 +119,7 @@ jobs:
                   fi
 
                   git commit -m "Bump version to $NEW_VERSION [ci skip]"
-                  
+
                   if git show-ref --tags "v$NEW_VERSION"; then
                     echo "Tag v$NEW_VERSION already exists, skipping creation."
                   else
@@ -133,7 +129,7 @@ jobs:
             - name: Push changes and tags
               run: |
                   git push origin main
-                  
+
                   if git show-ref --tags "v$NEW_VERSION"; then
                     git push origin "v$NEW_VERSION"
                   else
