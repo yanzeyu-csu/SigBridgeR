@@ -9,13 +9,13 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-# **Full Tutorial for SigBridgeR**
+# Full Tutorial for SigBridgeR
 
 ## 0. Preface
 
 ### 0.1 Contents
 
-- [**Full Tutorial for SigBridgeR**](#full-tutorial-for-sigbridger)
+- [Full Tutorial for SigBridgeR](#full-tutorial-for-sigbridger)
   - [0. Preface](#0-preface)
     - [0.1 Contents](#01-contents)
     - [0.1 Introduction to SigBridgeR](#01-introduction-to-sigbridger)
@@ -29,9 +29,9 @@ vignette: >
       - [2.1.3 (Optional) Filter Out Tumor Cells](#213-optional-filter-out-tumor-cells)
     - [2.2 Bulk expression data](#22-bulk-expression-data)
       - [2.2.1 Evaluate the quality of your bulk RNA-seq data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
-        - [Quality Control Metrics Reported: ](#quality-control-metrics-reported)
-        - [Visualization Output:](#visualization-output)
-        - [Recommended Parameter Adjustments:](#recommended-parameter-adjustments)
+        - [Quality Control Metrics Reported](#quality-control-metrics-reported)
+        - [Visualization Output](#visualization-output)
+        - [Recommended Parameter Adjustments](#recommended-parameter-adjustments)
       - [2.2.2 Gene Symbol Conversion](#222-gene-symbol-conversion)
     - [2.3 Phenotype Data](#23-phenotype-data)
   - [3. Screening Cells Associated with Phenotype](#3-screening-cells-associated-with-phenotype)
@@ -266,7 +266,7 @@ filtered_counts <- BulkPreProcess(
 
 The function returns a filtered count matrix after applying quality control steps. The order of filtering is: first genes, then samples.
 
-##### Quality Control Metrics Reported: 
+##### Quality Control Metrics Reported
 
 -   Data Integrity: Number of missing values detected
 
@@ -282,13 +282,13 @@ The function returns a filtered count matrix after applying quality control step
 
 -   Batch Effects: Proportion of genes significantly affected by batch
 
-##### Visualization Output:
+##### Visualization Output
 
 When `show_plot_results = TRUE`, the function generates:
 
 PCA plot colored by experimental condition
 
-##### Recommended Parameter Adjustments: 
+##### Recommended Parameter Adjustments
 
 -   For low-depth sequencing data: reduce `min_total_reads` and `min_genes_detected`
 
@@ -539,11 +539,11 @@ scissor_result = Screen(
 
 **Cell level Evaluation**:
 
-You can use `Sissor::evaluate.cell()` to obtain some supporting information for each Scissor selected cell. First, prepare a benchmark data set.
+You can use `Sissor::evaluate.cell()` to obtain some supporting information for each Scissor selected cell. First, prepare a benchmark data set yourself.
 
 ```{r,scissor_screening_cell_level_evaluation,eval=FALSE}
 evaluate_summary <- Scissor::evaluate.cell(
-    './data/benchmark_data.RData',
+    'your_benchmark_data.RData', # file path
     scissor_result$scissor_result,
     FDR = 0.05,
     bootstrap_n = 100
@@ -670,7 +670,7 @@ merged_seurat=MergeResult(
 
 ```
 
-This function performs a simple task of consolidating screening results into the Seurat object's `meta.data` slot and returning the updated object. Please note that the intermediate data (e.g., `scissor_result$reliability.test` and `scab_result$scAB_result`) will not be preserved in this process.
+This function simply merges the `meta.data` and `misc` slots of the input Seurat objects. Please note that the intermediate data (e.g., `scissor_result$reliability.test` and `scab_result$scAB_result`) will not be preserved in this process.
 
 ------------------------------------------------------------------------
 
@@ -687,6 +687,8 @@ Suppose you have performed all algorithm screening on your Seurat object and wis
 ```{r,umap_exmaple,eval=FALSE}
 library(patchwork)
 library(zeallot)
+# library(Seurat)
+# library(purrr)
 
 c(
     celltype_umap,
@@ -701,6 +703,7 @@ c(
         ~ Seurat::DimPlot(
             your_seurat_obj,
             group.by = .x,
+            pt.size = 0.05,
             reduction = "umap"
         ) +
             ggplot2::ggtitle(.x)
@@ -725,6 +728,8 @@ Or suppose you have performed `scPAS` screening on your Seurat object and want t
 ```{r,umap_exmaple2,eval=FALSE}
 library(patchwork)
 library(zeallot)
+# library(Seurat)
+# library(purrr)
 
 c(scPAS_Pvalue_umap, scPAS_NRS_umap) %<-%
     purrr::map(
@@ -775,7 +780,18 @@ plot <- ScreenFractionPlot(
 
 The order of the groups is determined by the proportion of **Positive** cells within each group.
 
+**returning structure**:
 
+If a single screen_type is specified 
+
+- `stats`: A data frame containing the proportion of positive cells for each group.
+- `plot`: A ggplot object.
+
+If multiple screen_types are specified
+
+- `stats`: A list containing data frames containing the proportion of positive cells for each group.
+- `plot`: A list containing each ggplot objects.
+- `combined_plot`: A ggplot object containing all the plots.
 
 ### 4.3 Venn diagram for screening results
 
@@ -799,7 +815,7 @@ scpas_pos <- colnames(scpas_result$scRNA_data)[
 scpp_pos <- colnames(scissor_result$scRNA_data)[
     which(scpp_result$scRNA_data$scPP == "Positive")
 ]
-# # *Or if you have merged the results, you can use the following code:
+# # *If you have merged the results, you can use the following code instead:
 # c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
 #     purrr::map(
 #         c("scissor", "scAB", "scPAS", "scPP"),

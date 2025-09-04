@@ -5,7 +5,7 @@
 #' @description
 #' Adds arbitrary data to the `@misc` slot of a Seurat object with automatic key
 #' conflict resolution. If the key already exists, automatically appends a numeric
-#' suffix to ensure unique key naming (e.g., "mykey1", "mykey2").
+#' suffix to ensure unique key naming (e.g., "mykey_1", "mykey_2").
 #'
 #' @usage
 #' AddMisc(
@@ -24,8 +24,8 @@
 #'
 #' @section Key Generation Rules:
 #' 1. If `key` doesn't exist: uses as-is
-#' 2. If `key` exists: appends the next available number (e.g., "key1", "key2")
-#' 3. If numbered keys exist (e.g., "key2"): increments the highest number
+#' 2. If `key` exists: appends the next available number (e.g., "key_1", "key_2")
+#' 3. If numbered keys exist (e.g., "key_2"): increments the highest number
 #'
 #' @examples
 #' \dontrun{
@@ -35,7 +35,7 @@
 #' # Auto-incrementing example
 #' seurat_obj <- AddMisc(seurat_obj, markers = markers1)
 #' seurat_obj <- AddMisc(seurat_obj, markers = markers2, cover=FALSE)
-#' # Stores as "markers1" and "markers2"
+#' # Stores as "markers" and "markers_1"
 #'
 #' }
 #'
@@ -52,25 +52,29 @@ AddMisc <- function(seurat_obj, ..., cover = TRUE) {
         value <- kv_pairs[[key]]
 
         if (key %in% names(seurat_obj@misc) && !cover) {
+            pattern <- glue::glue("^{key}(_\\d+)?$")
             existing_keys <- grep(
-                glue::glue("^{key}\\d*$"),
+                pattern,
                 names(seurat_obj@misc),
                 value = TRUE
             )
             if (length(existing_keys) > 0) {
-                nums <- as.integer(sub(
-                    glue("^{key}(\\d+)$"),
-                    "\\1",
-                    existing_keys
-                ))
-                nums <- nums[!is.na(nums)]
+                nums <- sapply(existing_keys, function(k) {
+                    if (k == key) {
+                        return(0)
+                    }
+                    num_str <- sub(glue::glue("^{key}_(\\d+)$"), "\\1", k)
+                    if (grepl("^\\d+$", num_str)) as.integer(num_str) else 0
+                })
+
+                nums <- max(nums, na.rm = TRUE)
                 key <- if (length(nums) > 0) {
-                    glue::glue("{key}{max(nums) + 1}")
+                    glue::glue("{key}_{nums + 1}")
                 } else {
-                    glue::glue("{key}1")
+                    glue::glue("{key}_1")
                 }
             } else {
-                key <- glue::glue("{key}1")
+                key <- glue::glue("{key}_1")
             }
         }
         seurat_obj@misc[[key]] <- value

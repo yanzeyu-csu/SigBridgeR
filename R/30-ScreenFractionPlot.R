@@ -181,7 +181,7 @@ ScreenFractionPlot = function(
 
         # Get label type from misc
         label_type <- screened_seurat@misc[[grep(
-            single_screen_type,
+            glue::glue("{single_screen_type}_type"),
             names(screened_seurat@misc),
             value = TRUE
         )[1]]]
@@ -192,7 +192,7 @@ ScreenFractionPlot = function(
 
         # Filter null records
         plot_df <- if (!show_null) {
-            stats_df %>% dplyr::filter(Fraction > 0)
+            dplyr::filter(stats_df, Fraction > 0)
         } else {
             stats_df
         }

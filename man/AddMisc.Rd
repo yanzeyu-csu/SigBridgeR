@@ -25,14 +25,14 @@ structure is preserved with no other modifications.
 \description{
 Adds arbitrary data to the \verb{@misc} slot of a Seurat object with automatic key
 conflict resolution. If the key already exists, automatically appends a numeric
-suffix to ensure unique key naming (e.g., "mykey1", "mykey2").
+suffix to ensure unique key naming (e.g., "mykey_1", "mykey_2").
 }
 \section{Key Generation Rules}{
 
 \enumerate{
 \item If \code{key} doesn't exist: uses as-is
-\item If \code{key} exists: appends the next available number (e.g., "key1", "key2")
-\item If numbered keys exist (e.g., "key2"): increments the highest number
+\item If \code{key} exists: appends the next available number (e.g., "key_1", "key_2")
+\item If numbered keys exist (e.g., "key_2"): increments the highest number
 }
 }
 
@@ -44,7 +44,7 @@ seurat_obj <- AddMisc(seurat_obj, "QC_stats" = qc_df)
 # Auto-incrementing example
 seurat_obj <- AddMisc(seurat_obj, markers = markers1)
 seurat_obj <- AddMisc(seurat_obj, markers = markers2, cover=FALSE)
-# Stores as "markers1" and "markers2"
+# Stores as "markers" and "markers_1"
 
 }
 

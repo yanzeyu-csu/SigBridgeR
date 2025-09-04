@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Combines results from multiple single-cell screening analyses (Scissor, scPAS, scPP, or scAB)
-#' by merging their metadata while preserving the original expression data. Performs an inner join
+#' by merging their metadata and miscellaneous information while preserving the original expression data. Performs an inner join
 #' on cell barcodes to ensure only cells present in all inputs are retained.
 #'
 #' @usage
@@ -18,6 +18,7 @@
 #' \itemize{
 #'   \item Expression data from the first input object
 #'   \item Combined metadata from all input objects
+#'   \item Miscellaneous information from all input objects
 #'   \item Only cells present in all input objects (inner join)
 #' }
 #'
@@ -26,12 +27,10 @@
 #' 2. Metadata Extraction: Collects metadata from all objects
 #' 3. Cell Intersection: Retains only cells present in all datasets
 #' 4. Object Merging: Creates new Seurat object with combined metadata
+#' 5. Miscellaneous: Adds miscellaneous information to the merged object
 #'
 #' @examples
 #' \dontrun{
-#' # Merge two Scissor results
-#' merged <- MergeResult(scissor_result1, scissor_result2)
-#'
 #' # Merge mixed analysis types
 #' combined <- MergeResult(scissor_output, scAB_output, scPP_output)
 #'
@@ -97,6 +96,29 @@ MergeResult = function(...) {
     merged_obj <- seurat_objects[[1]]
     merged_obj@meta.data <- merged_meta %>%
         tibble::column_to_rownames("cell_id")
+
+    # merge misc
+    all_keys <- unique(unlist(lapply(seurat_objects, function(obj) {
+        if (!is.null(obj@misc)) names(obj@misc) else character(0)
+    })))
+
+    misc_list <- setNames(vector("list", length(all_keys)), all_keys)
+
+    for (key in all_keys) {
+        values <- lapply(seurat_objects, function(obj) {
+            if (!is.null(obj@misc) && key %in% names(obj@misc)) {
+                obj@misc[[key]]
+            } else {
+                NULL
+            }
+        })
+
+        values <- values[!sapply(values, is.null)]
+
+        misc_list[[key]] <- if (length(values) == 1) values[[1]] else values
+    }
+
+    merged_obj <- AddMisc(merged_obj, misc_list, cover = FALSE)
 
     cli::cli_alert_success(
         "Successfully merged {.val {length(seurat_objects)}} objects."

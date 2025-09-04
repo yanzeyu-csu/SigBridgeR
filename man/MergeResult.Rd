@@ -18,12 +18,13 @@ A merged Seurat object containing:
 \itemize{
 \item Expression data from the first input object
 \item Combined metadata from all input objects
+\item Miscellaneous information from all input objects
 \item Only cells present in all input objects (inner join)
 }
 }
 \description{
 Combines results from multiple single-cell screening analyses (Scissor, scPAS, scPP, or scAB)
-by merging their metadata while preserving the original expression data. Performs an inner join
+by merging their metadata and miscellaneous information while preserving the original expression data. Performs an inner join
 on cell barcodes to ensure only cells present in all inputs are retained.
 }
 \section{Processing Details}{
@@ -33,14 +34,12 @@ on cell barcodes to ensure only cells present in all inputs are retained.
 \item Metadata Extraction: Collects metadata from all objects
 \item Cell Intersection: Retains only cells present in all datasets
 \item Object Merging: Creates new Seurat object with combined metadata
+\item Miscellaneous: Adds miscellaneous information to the merged object
 }
 }
 
 \examples{
 \dontrun{
-# Merge two Scissor results
-merged <- MergeResult(scissor_result1, scissor_result2)
-
 # Merge mixed analysis types
 combined <- MergeResult(scissor_output, scAB_output, scPP_output)
 
