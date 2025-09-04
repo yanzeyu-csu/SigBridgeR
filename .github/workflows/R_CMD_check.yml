@@ -20,6 +20,9 @@ name: R-CMD-check
 jobs:
     R-CMD-check:
         runs-on: ${{ matrix.config.os }}
+        concurrency: 
+            group: ${{ github.workflow }}-${{ github.ref }}
+            cancel-in-progress: true
         name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
         strategy:
             fail-fast: false
@@ -47,6 +50,7 @@ jobs:
 
             - name: Querying dependencies
               uses: r-lib/actions/setup-r-dependencies@v2
+              timeout-minutes: 30  # 增加超时时间
               with:
                   extra-packages: any::rcmdcheck
                   needs: check

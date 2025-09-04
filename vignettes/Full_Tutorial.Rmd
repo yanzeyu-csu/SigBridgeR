@@ -60,7 +60,7 @@ SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is 
 
 Install **SigBridgeR** using one of these methods:
 
-### 1.1 Stable Release from GitHub
+### 1.1 Release from GitHub
 
 ```{r,install_from_github,eval=FALSE}
 if(!requireNamespace("remotes")) {

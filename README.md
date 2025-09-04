@@ -1,6 +1,6 @@
 # **SigBridgeR** <a href="https://wanglabcsu.github.io/SigBridgeR/"><img src="man/figures/logo_white.png" alt="sigbridger website" align="right" height="139"/></a>
 
-[![CRAN Status](https://www.r-pkg.org/badges/version/SigBridgeR)](https://cran.r-project.org/package=SigBridgeR) [![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3) [![](https://img.shields.io/badge/devel%20version-2.0.4-blue.svg)](https://github.com/WangLabCSU/SigBridgeR) [![R CMD check](https://github.com/WangLabCSU/SigBridgeR/workflows/R-CMD-check/badge.svg)](https://github.com/WangLabCSU/SigBridgeR/actions)
+[![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3) [![](https://img.shields.io/badge/devel%20version-2.0.4-blue.svg)](https://github.com/WangLabCSU/SigBridgeR) [![R CMD check](https://github.com/WangLabCSU/SigBridgeR/workflows/R-CMD-check/badge.svg)](https://github.com/WangLabCSU/SigBridgeR/actions)
 
 ------------------------------------------------------------------------
 
@@ -11,10 +11,12 @@ SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data
 ## 🔧 Installation
 
 ```{r,install_from_github,eval=FALSE}
+
 if(!requireNamespace("remotes")) {
   install.packages("remotes")
 }
 remotes::install_github("WangLabCSU/SigBridgeR")
+
 ```
 
 ## 📓 Documentation
