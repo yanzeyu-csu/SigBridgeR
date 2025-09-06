@@ -1,6 +1,5 @@
 url: https://wanglabcsu.github.io/sigbridger/
 template:
-    bootstrap: 5
     bslib:
         bootswatch: sandstone
         pkgdown-nav-height: 100px
@@ -27,7 +26,7 @@ description: >-
   SigBridgeR: SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
 logo: 
     light: man/figures/logo_white.png
-    dark:
+    dark:  man/figures/logo_black.png
 
 # 导航栏配置
 navbar:
