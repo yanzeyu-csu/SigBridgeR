@@ -1,9 +1,6 @@
 # **Quick Start Guide for SigBridgeR**
 
-```r
-library(SigBridgeR)
-```
+This document is not yet written. You can refer to the Full\_tutorial
+for now.
 
-```r
-
-```
+    library(SigBridgeR)
