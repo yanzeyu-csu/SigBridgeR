@@ -40,9 +40,7 @@ See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor
 ------------------------------------------------------------------------
 
 > ## Error at alpha=0.05:subscript out of bounds
->
 > ## Error in `Scissor.v5.optimized()`:
->
 > ## ! object 'fit0' not found
 
 This may be due to two reasons: first, a mismatch in the dimensions of the bulk expression data and the phenotype data; second, incorrect column names in the survival phenotype data leading to a failure to match.

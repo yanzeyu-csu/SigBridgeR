@@ -72,7 +72,8 @@ jobs:
             - name: Pull latest changes before commit
               run: |
                   # 在提交前拉取最新更改，避免冲突
-                  git pull origin main --rebase
+                  git fetch origin 
+                  git merge origin/main
 
             - name: Commit results
               run: |

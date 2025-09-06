@@ -10,13 +10,11 @@ SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data
 
 ## 🔧 Installation
 
-```{r,install_from_github,eval=FALSE}
-
+```{r,install_from_github}
 if(!requireNamespace("remotes")) {
   install.packages("remotes")
 }
 remotes::install_github("WangLabCSU/SigBridgeR")
-
 ```
 
 ## 📓 Documentation

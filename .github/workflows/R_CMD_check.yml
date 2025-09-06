@@ -20,9 +20,6 @@ name: R-CMD-check
 jobs:
     R-CMD-check:
         runs-on: ${{ matrix.config.os }}
-        concurrency: 
-            group: ${{ github.workflow }}-${{ github.ref }}
-            cancel-in-progress: true
         name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
         strategy:
             fail-fast: false
@@ -48,9 +45,26 @@ jobs:
                   http-user-agent: ${{ matrix.config.http-user-agent }}
                   use-public-rspm: true
 
-            - name: Querying dependencies
+            # 对于 macOS，使用替代方法安装依赖
+            - name: Install dependencies (macOS - alternative method)
+              if: matrix.config.os == 'macOS-latest'
+              run: |
+                  # 安装 remotes 包
+                  Rscript -e 'install.packages("remotes")'
+
+                  # 从 DESCRIPTION 文件安装依赖
+                  Rscript -e '
+                  deps <- remotes::dev_package_deps(dependencies = TRUE)
+                  remotes::install_deps(dependencies = TRUE, upgrade = "never")
+                  '
+
+                  # 额外安装检查所需的包
+                  Rscript -e 'install.packages("rcmdcheck")'
+
+            # 对于非 macOS 系统，继续使用标准方法
+            - name: Querying dependencies (non-macOS)
+              if: matrix.config.os != 'macOS-latest'
               uses: r-lib/actions/setup-r-dependencies@v2
-              timeout-minutes: 30  # 增加超时时间
               with:
                   extra-packages: any::rcmdcheck
                   needs: check

@@ -1,18 +1,23 @@
 url: https://wanglabcsu.github.io/sigbridger/
 template:
     bootstrap: 5
-    light-switch: true
-    theme-dark: gruvbox-dark
     bslib:
         bootswatch: sandstone
         pkgdown-nav-height: 100px
         code_font: { google: "JetBrains Mono" }
-        primary: "#2C5F9B"  # 修改主要链接颜色（蓝色系）
-        secondary: "#6c757d" # 修改次要元素颜色
-        success: "#198754"  # 成功状态颜色
-        info: "#0dcaf0"     # 信息状态颜色
-        warning: "#ffc107"  # 警告状态颜色
-        danger: "#dc3545"   # 危险/错误状态颜色
+        primary: "#2C5F9B"
+        secondary: "#6c757d"
+        success: "#198754"
+        info: "#0dcaf0"
+        warning: "#ffc107"
+        danger: "#dc3545"
+        # 添加亮暗主题控制
+        bg: white  # 默认浅色背景
+        fg: black  # 默认深色文字
+        version: 5
+        # 启用亮暗切换功能
+        light-style: sandstone  # 浅色主题使用 sandstone
+        dark-style: gruvbox-dark  # 暗色主题使用 gruvbox-dark
 
 authors:
     Yuxi Yang:
@@ -44,7 +49,7 @@ navbar:
             menu:
                 - text: Get Started
                   icon: fa-rocket
-                  href: articles/getting-started.html
+                  href: articles/Quick_Start.html
                 - text: Full Tutorial
                   icon: fa-book
                   href: articles/Full_Tutorial.html
