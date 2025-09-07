@@ -43,9 +43,6 @@
 #'     \item{imputation}{(logical) Whether to perform imputation, default FALSE}
 #'     \item{nfeature}{(integer) Number of features to select, default 3000}
 #'     \item{alpha}{(numeric) Significance threshold, default 0.01}
-#'     \item{extra_filter}{(logical) Whether to perform extra filtering based on RNA count, default FALSE}
-#'     \item{gene_RNAcount_filter}{(numeric) Only used when `extra_filter=TRUE`, default 20}
-#'     \item{bulk_0_filter_thresh}{(numeric) Only used when `extra_filter=TRUE`,default 0.25}
 #'   }}
 #'   \item{scAB}{\describe{
 #'     \item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
@@ -58,24 +55,23 @@
 #' @return A list containing:
 #' \describe{
 #'   \item{scRNA_data}{Filtered Seurat object with phenotype-associated cells}
-#'   \item{matched_samples}{Vector of samples used in the analysis}
-#'   \item{method_output}{Method-specific output objects}
+#'   \item{Some screen_result}{Important information about the screened result related to the selected method}
 #' }
 #'
 #'
 #' @section Data Matching Requirements:
 #' - `matched_bulk` column names and `phenotype` names/rownames must be identical
 #' - Phenotype values must correspond to bulk samples (not directly to single cells)
-#' - Mismatches will trigger an error before analysis begins
+#' - Mismatches will trigger an error before analysis begins, and there is a built-in pre-run check.
 #'
 #' @section Method Compatibility:
 #'
 #' | **Method** | **Supported Phenotypes**      | **Additional Parameters**      |
 #' |------------|-------------------------------|---------------------------------|
-#' | `Scissor`  | All three types               | `alpha`, `lambda`               |
-#' | `scPP`     | All three types               | `embedding_type`                |
-#' | `scPAS`    | All three types               | `n_components`                  |
-#' | `scAB`     | Binary/Survival               | `bandwidth`                     |
+#' | `Scissor`  | All three types               | `scissor_alpha`, `scissor_cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `nfold`, `reliability_test`, `reliability_test_n` |           |
+#' | `scPP`     | All three types               | `ref_group`, `Log2FC_cutoff`, `estimate_cutoff`, `probs`                |
+#' | `scPAS`    | All three types               | `n_components` ,`assay`, `imputation`,`nfeature`, `alpha`,`network_class`,`permutation_times`,`FDR.threshold`,`independent`               |
+#' | `scAB`     | Binary/Survival               | `alpha`, `alpha_2`, `maxiter`, `tred`            |
 #'
 #'
 #'

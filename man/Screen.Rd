@@ -58,9 +58,6 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 \item{imputation}{(logical) Whether to perform imputation, default FALSE}
 \item{nfeature}{(integer) Number of features to select, default 3000}
 \item{alpha}{(numeric) Significance threshold, default 0.01}
-\item{extra_filter}{(logical) Whether to perform extra filtering based on RNA count, default FALSE}
-\item{gene_RNAcount_filter}{(numeric) Only used when \code{extra_filter=TRUE}, default 20}
-\item{bulk_0_filter_thresh}{(numeric) Only used when \code{extra_filter=TRUE},default 0.25}
 }}
 \item{scAB}{\describe{
 \item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
@@ -74,8 +71,7 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 A list containing:
 \describe{
 \item{scRNA_data}{Filtered Seurat object with phenotype-associated cells}
-\item{matched_samples}{Vector of samples used in the analysis}
-\item{method_output}{Method-specific output objects}
+\item{Some screen_result}{Important information about the screened result related to the selected method}
 }
 }
 \description{
@@ -89,17 +85,17 @@ before analysis.
 \itemize{
 \item \code{matched_bulk} column names and \code{phenotype} names/rownames must be identical
 \item Phenotype values must correspond to bulk samples (not directly to single cells)
-\item Mismatches will trigger an error before analysis begins
+\item Mismatches will trigger an error before analysis begins, and there is a built-in pre-run check.
 }
 }
 
 \section{Method Compatibility}{
 \tabular{lll}{
    \strong{Method} \tab \strong{Supported Phenotypes} \tab \strong{Additional Parameters} \cr
-   \code{Scissor} \tab All three types \tab \code{alpha}, \code{lambda} \cr
-   \code{scPP} \tab All three types \tab \code{embedding_type} \cr
-   \code{scPAS} \tab All three types \tab \code{n_components} \cr
-   \code{scAB} \tab Binary/Survival \tab \code{bandwidth} \cr
+   \code{Scissor} \tab All three types \tab \code{scissor_alpha}, \code{scissor_cutoff}, \code{path2load_scissor_cache}, \code{path2save_scissor_inputs}, \code{nfold}, \code{reliability_test}, \code{reliability_test_n} \cr
+   \code{scPP} \tab All three types \tab \code{ref_group}, \code{Log2FC_cutoff}, \code{estimate_cutoff}, \code{probs} \cr
+   \code{scPAS} \tab All three types \tab \code{n_components} ,\code{assay}, \code{imputation},\code{nfeature}, \code{alpha},\code{network_class},\code{permutation_times},\code{FDR.threshold},\code{independent} \cr
+   \code{scAB} \tab Binary/Survival \tab \code{alpha}, \code{alpha_2}, \code{maxiter}, \code{tred} \cr
 }
 }
 

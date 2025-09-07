@@ -7,11 +7,12 @@
 TimeStamp()
 }
 \value{
-Character string with current time in "YYYY/MM/DD HH:MM:SS" format.
+Character string with current time in "YYYY/mm/DD HH:MM:SS" format.
+If system time is unavailable, returns a fixed timestamp.
 }
 \description{
 Creates a formatted character string representing the current system time.
-The format is "YYYY/MM/DD HH:MM:SS" (year/month/day hour:minute:second).
+The format is "YYYY/mm/DD HH:MM:SS" (year/month/day hour:minute:second).
 }
 \examples{
 \dontrun{

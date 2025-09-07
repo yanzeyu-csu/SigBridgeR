@@ -3,6 +3,7 @@ title: "Full Tutorial"
 author: "Exceret"
 date: '`r Sys.Date()`'
 output: rmarkdown::html_vignette
+knit: knitted
 vignette: >
   %\VignetteIndexEntry{Full Tutorial}
   %\VignetteEngine{knitr::rmarkdown}
@@ -176,7 +177,7 @@ your_seurat <- SCPreProcess(
 ```{r,scpreprocessing_anndata,eval=FALSE}
 reticulate::use_pythonenv("The_path_to_your_python") 
 
-anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other formats
+anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other formats, make sure the matrix is in obj$X.
 
 your_seurat <- SCPreProcess(
   anndata_obj,
@@ -214,7 +215,7 @@ your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
 >
 > -   Code Example:
 >
-> ```{r,eval=FALSE}
+> ```{r,choose_tumor_column,eval=FALSE}
 > # For glioblastoma (GBM)
 > seurat_obj@meta.data$is_tumor <- ifelse(
 >  grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj@meta.data$Celltype, ignore.case = TRUE),
@@ -233,7 +234,7 @@ Key parameters for `BulkPreProcess`:
 
 -   `data`: Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info.
 -   `sample_info`: Sample information data frame (optional), ignored if data is a list.
--   `gene_symbol_conversion`: Whether to convert Ensembl version IDs and TCGA version IDs to genes with [SymbolConvert](#222-gene-symbol-conversion), default TRUE.
+-   `gene_symbol_conversion`: Whether to convert Ensembl version IDs and TCGA version IDs to genes with [SymbolConvert in Section 2.2.2](#222-gene-symbol-conversion), default TRUE.
 -   `check`: Whether to perform detailed quality checks, default TRUE.
 -   `min_count_threshold`: Minimum count threshold for gene filtering, default 10.
 -   `min_gene_expressed`: Minimum number of samples a gene must be expressed in, default 3.
@@ -299,7 +300,7 @@ PCA plot colored by experimental condition
 
 #### 2.2.2 Gene Symbol Conversion
 
-`SymbolConvert` performs a straightforward task: converting common gene identifiers (e.g., Ensembl IDs, Entrez) to standardized gene symbols by using the [IDConverter](https://github.com/ShixiangWang/IDConverter) package.
+`SymbolConvert` performs a straightforward task: converting common gene identifiers (e.g., Ensemble IDs, Entrez) to standardized gene symbols by using the [IDConverter](https://github.com/ShixiangWang/IDConverter) package.
 
 ```{r,symbol_convert_example,eval=FALSE}
 # genes * samples
@@ -486,7 +487,6 @@ Parameters pass to `...` when using `Scissor` method:
 -   `path2load_scissor_cahce`: A character value specifying the path to load intermediate data
 -   `scissor_alpha`: Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is in `[0,1]`. A larger alpha lays more emphasis on the l1 norm.
 -   `scissor_cutoff`: Cutoff for the percentage of the Scissor selected cells in total cells. This parameter is used to restrict the number of the Scissor selected cells. A cutoff less than 50% (default 20%) is recommended depending on the input data.
--   `reliability_test_alpha`: the same as `scissor_alpha`
 -   `reliability_test_n`: Permutation times (default: 10)
 -   `nfold`: The fold number in cross-validation (default: 10)
 
@@ -513,19 +513,20 @@ scissor_result = Screen(
   phenotype_class = "binary", 
   screen_method = c("Scissor"),
   path2load_scissor_cahce = "Tmp/Scissor_inputs.RData" # Intermediate data
-  path2save_scissor_inputs = "Tmp/Scissor_inputs.RData" 
 )
 ```
 
 If only the parameters `scissor_alpha` and `scissor_cutoff` are adjusted, this method can also be applied.
 
 ```{r,scissor_screening_param_adjusted,eval=FALSE}
+# When `scissor_alpha = NULL`, an alpha iteration will continue until phenotype-associated cells are screened out or no cells are screened out even after exceeding the `scissor_cutoff`.
 scissor_result = Screen(
+  sc_data = sc_dataset, 
   label_type = "TP53", 
   phenotype_class = "binary", 
   screen_method = c("Scissor"),
   path2load_scissor_cahce = "Tmp/Scissor_inputs.RData", # Intermediate data
-  scissor_alpha = 0.05, 
+  scissor_alpha = NULL, 
   scissor_cutoff = 0.05 
 )
 
@@ -539,12 +540,12 @@ scissor_result = Screen(
 
 **Cell level Evaluation**:
 
-You can use `Sissor::evaluate.cell()` to obtain some supporting information for each Scissor selected cell. First, prepare a benchmark data set yourself.
+You can use `Sissor::evaluate.cell()` to obtain some supporting information for each Scissor selected cell. First, prepare a benchmark dataset yourself.
 
 ```{r,scissor_screening_cell_level_evaluation,eval=FALSE}
 evaluate_summary <- Scissor::evaluate.cell(
     'your_benchmark_data.RData', # file path
-    scissor_result$scissor_result,
+    scissor_result$scRNA_data, # The Seurat object after screening
     FDR = 0.05,
     bootstrap_n = 100
 )
@@ -567,14 +568,6 @@ Parameters pass to `...` when using `scPAS` method (basically adapted from the `
     -   `nfeature`: Numeric. The Number of features to select as top variable features in `sc_data`. Top variable features will be used to intersect with the features of `matched_bulk`. Default is NULL and all features will be used.
     -   `alpha`: Numeric. Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If `alpha = NULL`, a default searching vector is used. The range of alpha is in `[0,1]`. A larger alpha lays more emphasis on the l1 norm.
     -   `network_class`: The source of feature-feature similarity network. By default this is set to sc and the other one is bulk.
-
--   Parameters passed to `SigBridgeR::DoscPAS`
-
-    These parameters represent customizable options provided by upstream/downstream processing functions when integrating the `scPAS` workflow
-
-    -   `extra_filter`: A logical value. If `TRUE`, the following options for filtering will be applied. Default is `FALSE`.
-    -   `gene_RNAcount_filter`: A numeric value. The threshold for filtering out genes with low RNA counts. Default is `20`.
-    -   `bulk_0_filter_thresh`: A numeric value. The threshold for filtering out samples with low RNA counts. Default is `0.05`.
 
 **usage**:
 
@@ -649,7 +642,7 @@ scpp_result = Screen(
 
 ### 3.5 (Optional) Merge screening results
 
-If you have performed multiple screening methods one the same data, you can use the function `MergeResult` to merge the results of these methods. The Seurat object or a results list from `Screen` is accepted.
+If you have performed multiple screening methods one the same single-cell data, you can use the `MergeResult` to merge the screening results of these methods. The Seurat object or a results list from `Screen` is accepted.
 
 ```{r,merge_screening_results,eval=FALSE}
 merged_seurat=MergeResult(
@@ -670,7 +663,7 @@ merged_seurat=MergeResult(
 
 ```
 
-This function simply merges the `meta.data` and `misc` slots of the input Seurat objects. Please note that the intermediate data (e.g., `scissor_result$reliability.test` and `scab_result$scAB_result`) will not be preserved in this process.
+This function simply merges the `meta.data` and `misc` slots of the input Seurat objects. Please note that the intermediate data (e.g., `scissor_result$reliability.test` or `scab_result$scAB_result`) will not be preserved in this process.
 
 ------------------------------------------------------------------------
 
@@ -699,7 +692,7 @@ c(
     scpp_umap
 ) %<-%
     purrr::map(
-        c("celltype", "patient", "scissor", "scAB", "scPAS", "scPP"), # make sure this column names exist
+        c("celltype", "patient", "scissor", "scAB", "scPAS", "scPP"), # make sure these column names exist
         ~ Seurat::DimPlot(
             your_seurat_obj,
             group.by = .x,
@@ -771,10 +764,21 @@ Suppose you have already performed the `scPAS` algorithm screening on your Seura
 ```{r,stack_bar_plot_example,eval=FALSE}
 # based on `ggplot2`
 plot <- ScreenFractionPlot(
-   screened_seurat = your_seurat_obj,
+   screened_seurat = scpas_result$scRNA_data, 
    group_by = "patient", # grouping basis for the x-axis
    screen_type = "scPAS",
    plot_title = "scPAS Screening Results"
+)
+```
+
+If you have performed multiple screening methods and already merged the results, you can use the following code:
+
+```{r,stack_bar_plot_example_multiple,eval=FALSE}
+plot <- ScreenFractionPlot(
+   screened_seurat = merged_seurat, 
+   group_by = "patient", # grouping basis for the x-axis
+   screen_type = c("scPAS", "scAB", "scPP"), # multiple screening results
+   plot_title = "Screening Results" #  A screen_type prefix will be added to the current plot title
 )
 ```
 
@@ -791,7 +795,7 @@ If multiple screen_types are specified
 
 - `stats`: A list containing data frames containing the proportion of positive cells for each group.
 - `plot`: A list containing each ggplot objects.
-- `combined_plot`: A ggplot object containing all the plots.
+- `combined_plot`: A ggplot object containing all the plots (2*2 grid).
 
 ### 4.3 Venn diagram for screening results
 
@@ -833,13 +837,14 @@ pos_venn = list(
     scab = scab_pos,
     scpp = scpp_pos,
     all_cells = all_cells
+    # * you can add more groups here
 )
 
 set.seed(123)
 
 venn_plot = ggVennDiagram::ggVennDiagram(
     x = pos_venn,
-    # * the names shown on the diagram
+    # * the labels of each group to be shown on the diagram
     category.names = c(
         "Scissor",
         "scPAS",
@@ -873,6 +878,9 @@ Here we use the example data to demonstrate how to use the functions in `SigBrid
 ```{r,example_data,eval=FALSE}
 library(SigBridgeR)
 packageVersion("SigBridgeR")
+
+# * load the example data
+LoadRefData()
 ```
 
 ------------------------------------------------------------------------

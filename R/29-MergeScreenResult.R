@@ -102,7 +102,7 @@ MergeResult = function(...) {
         if (!is.null(obj@misc)) names(obj@misc) else character(0)
     })))
 
-    misc_list <- setNames(vector("list", length(all_keys)), all_keys)
+    misc_list <- stats::setNames(vector("list", length(all_keys)), all_keys)
 
     for (key in all_keys) {
         values <- lapply(seurat_objects, function(obj) {

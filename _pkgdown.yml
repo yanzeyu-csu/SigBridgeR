@@ -15,8 +15,14 @@ template:
         fg: black  # 默认深色文字
         version: 5
         # 启用亮暗切换功能
-        light-style: sandstone  # 浅色主题使用 sandstone
-        dark-style: gruvbox-dark  # 暗色主题使用 gruvbox-dark
+        light:       
+            bootswatch: sandstone
+            bg: white
+            fg: black
+        dark: 
+            bootswatch: darkly  # 暗色主题使用 gruvbox-dark
+            bg: "#222222"
+            fg: "#e5e5e5"
 
 authors:
     Yuxi Yang:
@@ -32,7 +38,7 @@ logo:
 navbar:
     structure:
         left: [home, reference, articles]
-        right: [github]
+        right: [toggle_theme,github]
     components:
         home:
             text: Home
@@ -58,3 +64,8 @@ navbar:
         github:
             icon: fa-github
             href: https://github.com/wanglabcsu/sigbridger/
+
+includes:
+  in_header: |
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>

@@ -10,7 +10,7 @@ SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data
 
 ## 🔧 Installation
 
-```{r,install_from_github}
+```r
 if(!requireNamespace("remotes")) {
   install.packages("remotes")
 }

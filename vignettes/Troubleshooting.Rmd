@@ -3,6 +3,7 @@ title: "Troubleshooting"
 author: "Exceret"
 date: '`r Sys.Date()`'
 output: rmarkdown::html_vignette
+knit: knitted
 vignette: >
   %\VignetteIndexEntry{Troubleshooting}
   %\VignetteEngine{knitr::rmarkdown}
