@@ -16,11 +16,9 @@ template:
         version: 5
         # 启用亮暗切换功能
         light:       
-            bootswatch: sandstone
             bg: white
             fg: black
         dark: 
-            bootswatch: darkly  # 暗色主题使用 gruvbox-dark
             bg: "#222222"
             fg: "#e5e5e5"
 
