@@ -14,13 +14,7 @@ template:
         bg: white  # 默认浅色背景
         fg: black  # 默认深色文字
         version: 5
-        # 启用亮暗切换功能
-        light:       
-            bg: white
-            fg: black
-        dark: 
-            bg: "#222222"
-            fg: "#e5e5e5"
+
 
 authors:
     Yuxi Yang:
