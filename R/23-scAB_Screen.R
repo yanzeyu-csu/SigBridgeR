@@ -80,10 +80,18 @@ DoscAB <- function(
     chk::chk_not_any_na(phenotype)
 
     # robust, scAB is more strict than Scissor and scPAS
-    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
-        cli::cli_abort(c(
-            "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
-        ))
+    if (phenotype_class == "survival") {
+        if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+            cli::cli_abort(c(
+                "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
+            ))
+        }
+    } else {
+        if (!all(names(phenotype) == colnames(matched_bulk))) {
+            cli::cli_abort(c(
+                "x" = "Please check the names of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
+            ))
+        }
     }
 
     cli::cli_alert_info(c(

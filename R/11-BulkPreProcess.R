@@ -218,9 +218,9 @@ BulkPreProcess <- function(
     } else {
         # Validate matching
         if (nrow(sample_info) != n_samples) {
-            cli::cli_abort(
+            cli::cli_abort(c(
                 "x" = "Number of rows in sample_info does not match number of columns in count matrix"
-            )
+            ))
         }
     }
 

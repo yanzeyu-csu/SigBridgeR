@@ -9,3 +9,4 @@ tmp
 ^pkgdown$
 MatchArg*
 .github/*
+.here

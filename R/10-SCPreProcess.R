@@ -20,6 +20,7 @@
 #'
 #' @return A Seurat object containing:
 #' \itemize{
+#'   \item Data filter and quality control
 #'   \item Normalized and scaled expression data
 #'   \item Variable features
 #'   \item PCA/tSNE/UMAP reductions
@@ -141,11 +142,6 @@ SCPreProcess.matrix <- function(
         verbose = verbose
     )
 
-    # Add metadata
-    if ("obs" %in% names(sc)) {
-        sc_seurat <- Seurat::AddMetaData(sc_seurat, sc$obs)
-    }
-
     sc_seurat <- ClusterAndReduce(
         sc_seurat,
         dims = dims,
@@ -154,9 +150,8 @@ SCPreProcess.matrix <- function(
     )
 
     FilterTumorCell(
-        sc_seurat,
-        column2only_tumor = column2only_tumor,
-        verbose = verbose
+        obj = sc_seurat,
+        column2only_tumor = column2only_tumor
     )
 }
 
@@ -255,7 +250,9 @@ SCPreProcess.AnnDataR6 <- function(
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
-    cli::cli_alert_info("[{TimeStamp()}] Start from anndata object")
+    if (verbose) {
+        cli::cli_alert_info("[{TimeStamp()}] Start from anndata object")
+    }
 
     sc_matrix <- if (inherits(sc$X, "sparseMatrix")) {
         Matrix::t(sc$X)
@@ -325,9 +322,8 @@ SCPreProcess.AnnDataR6 <- function(
     )
 
     FilterTumorCell(
-        sc_seurat,
-        column2only_tumor = column2only_tumor,
-        verbose = verbose
+        obj = sc_seurat,
+        column2only_tumor = column2only_tumor
     )
 }
 
@@ -345,8 +341,7 @@ SCPreProcess.Seurat <- function(
 
     FilterTumorCell(
         obj = sc,
-        column2only_tumor = column2only_tumor,
-        verbose = verbose
+        column2only_tumor = column2only_tumor
     )
 }
 
@@ -432,15 +427,13 @@ ClusterAndReduce <- function(
 #'
 #' @param obj Seurat object with a column to filter out tumor cells.
 #' @param column2only_tumor Name of the column to filter out tumor cells.
-#' @param verbose Logical. Whether to print messages.
 #'
 #' @keywords internal
 #'
 #'
 FilterTumorCell <- function(
     obj,
-    column2only_tumor = NULL,
-    verbose = TRUE
+    column2only_tumor = NULL
 ) {
     obj = AddMisc(obj, self_dim = dim(obj), cover = TRUE)
 

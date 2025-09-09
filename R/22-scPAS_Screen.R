@@ -69,10 +69,18 @@ DoscPAS = function(
     chk::chk_flag(independent)
 
     # robust
-    if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
-        cli::cli_abort(c(
-            "x" = "No intersection between the rownames of {.var phenotype} and colnames of {.var matched_bulk}."
-        ))
+    if (scPAS_family == "cox") {
+        if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
+            cli::cli_abort(c(
+                "x" = "No intersection between the rownames of {.var phenotype} and colnames of {.var matched_bulk}."
+            ))
+        }
+    } else {
+        if (is.null(intersect(colnames(matched_bulk), names(phenotype)))) {
+            cli::cli_abort(c(
+                "x" = "No intersection between the names of {.var phenotype} and colnames of {.var matched_bulk}."
+            ))
+        }
     }
 
     cli::cli_alert_info(c(

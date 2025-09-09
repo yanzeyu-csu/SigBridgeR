@@ -135,6 +135,7 @@ such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insens
 \value{
 A Seurat object containing:
 \itemize{
+\item Data filter and quality control
 \item Normalized and scaled expression data
 \item Variable features
 \item PCA/tSNE/UMAP reductions

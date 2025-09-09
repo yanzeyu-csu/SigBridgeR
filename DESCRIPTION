@@ -47,8 +47,10 @@ Depends:
 Suggests: 
     anndata,
     ggVennDiagram,
+    here,
     knitr,
     org.Hs.eg.db,
+    randomcoloR,
     reticulate,
     rmarkdown,
     zeallot

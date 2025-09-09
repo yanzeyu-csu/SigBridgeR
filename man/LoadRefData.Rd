@@ -4,9 +4,15 @@
 \alias{LoadRefData}
 \title{Download and load the reference data}
 \usage{
-LoadRefData(path = tempdir(), cache = TRUE)
+LoadRefData(
+  data_type = c("survival", "binary", "continuous"),
+  path = tempdir(),
+  cache = TRUE
+)
 }
 \arguments{
+\item{data_type}{The type of data to download. Must be one of "survival", "binary", or "continuous".}
+
 \item{path}{Optional path to save the downloaded file.}
 
 \item{cache}{Logical. If TRUE (default), saves the data for future sessions.}

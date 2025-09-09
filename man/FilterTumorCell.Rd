@@ -4,14 +4,12 @@
 \alias{FilterTumorCell}
 \title{Filter tumor cells (internal)}
 \usage{
-FilterTumorCell(obj, column2only_tumor = NULL, verbose = TRUE)
+FilterTumorCell(obj, column2only_tumor = NULL)
 }
 \arguments{
 \item{obj}{Seurat object with a column to filter out tumor cells.}
 
 \item{column2only_tumor}{Name of the column to filter out tumor cells.}
-
-\item{verbose}{Logical. Whether to print messages.}
 }
 \description{
 Filter tumor cells from Seurat object.
