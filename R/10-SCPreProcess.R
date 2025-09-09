@@ -13,7 +13,7 @@
 #' SCPreProcess(sc, ...)
 #'
 #' @param sc Input data, one of:
-#'        - `data.frame/matrix`: Raw count matrix (features x cells)
+#'        - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
 #'        - `AnnDataR6`: Python AnnData object via reticulate
 #'        - `Seurat`: Preprocessed Seurat object
 #' @param ... Method-specific arguments (see below)
@@ -219,6 +219,54 @@ SCPreProcess.data.frame <- function(
         ...
     )
 }
+
+#' @rdname SCPreProcess
+#' @export
+#'
+SCPreProcess.dgCMatrix <- function(
+    sc,
+    meta_data = NULL,
+    column2only_tumor = NULL,
+    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+    min_cells = 400,
+    min_features = 0,
+    quality_control = TRUE,
+    quality_control.pattern = "^MT-",
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200, 6000),
+    data_filter.percent.mt = 20,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = 1:10,
+    verbose = TRUE,
+    future_global_maxsize = 6 * 1024^3,
+    ...
+) {
+    SCPreProcess.matrix(
+        sc = sc,
+        meta_data = meta_data,
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
+        future_global_maxsize = future_global_maxsize,
+        ...
+    )
+}
+
 
 #' @rdname SCPreProcess
 #' @export

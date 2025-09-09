@@ -5,6 +5,7 @@
 \alias{SCPreProcess.default}
 \alias{SCPreProcess.matrix}
 \alias{SCPreProcess.data.frame}
+\alias{SCPreProcess.dgCMatrix}
 \alias{SCPreProcess.AnnDataR6}
 \alias{SCPreProcess.Seurat}
 \title{Single-Cell RNA-seq Preprocessing Pipeline}
@@ -59,6 +60,28 @@ SCPreProcess(sc, ...)
   ...
 )
 
+\method{SCPreProcess}{dgCMatrix}(
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+  min_cells = 400,
+  min_features = 0,
+  quality_control = TRUE,
+  quality_control.pattern = "^MT-",
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200, 6000),
+  data_filter.percent.mt = 20,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = 1:10,
+  verbose = TRUE,
+  future_global_maxsize = 6 * 1024^3,
+  ...
+)
+
 \method{SCPreProcess}{AnnDataR6}(
   sc,
   meta_data = NULL,
@@ -91,7 +114,7 @@ SCPreProcess(sc, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
-- \code{data.frame/matrix}: Raw count matrix (features x cells)
+- \code{data.frame/matrix/dgCMatrix}: Raw count matrix (features x cells)
 - \code{AnnDataR6}: Python AnnData object via reticulate
 - \code{Seurat}: Preprocessed Seurat object}
 
