@@ -109,7 +109,7 @@ DoScissor = function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_null_or(scissor_alpha, chk::chk_range) # 0-1
-    chk::chk_number(scissor_cutoff)
+    chk::chk_range(scissor_cutoff)
     chk::chk_subset(scissor_family, c("gaussian", "binomial", "cox"))
     chk::chk_length(scissor_family, 1)
     chk::chk_null_or(path2load_scissor_cache, chk::chk_file)

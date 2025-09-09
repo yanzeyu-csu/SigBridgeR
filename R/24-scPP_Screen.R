@@ -107,8 +107,8 @@ DoscPP = function(
     chk::chk_subset(phenotype_class, c("Binary", "Continuous", "Survival"))
     chk::chk_length(phenotype_class, 1)
     chk::chk_number(ref_group)
-    chk::chk_number(Log2FC_cutoff)
-    chk::chk_number(estimate_cutoff)
+    chk::chk_range(Log2FC_cutoff)
+    chk::chk_range(estimate_cutoff)
     chk::chk_number(probs)
     # scPP can't tolerate NA
     chk::chk_not_any_na(matched_bulk)

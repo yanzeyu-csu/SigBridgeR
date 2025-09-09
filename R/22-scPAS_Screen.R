@@ -40,7 +40,7 @@ DoscPAS = function(
     imputation = F,
     imputation_method = c("KNN", "ALRA"),
     nfeature = 3000,
-    alpha = 0.01,
+    alpha = c(0.01, NULL),
     network_class = c("SC", "bulk"),
     scPAS_family = c("cox", "gaussian", "binomial"),
     permutation_times = 2000,
@@ -57,7 +57,7 @@ DoscPAS = function(
         chk::chk_subset(imputation_method, c("KNN", "ALRA"))
     }
     chk::chk_number(nfeature)
-    chk::chk_number(alpha)
+    chk::chk_null_or(alpha, chk::chk_range)
     chk::chk_subset(network_class, c("SC", "bulk"))
     if (length(network_class) > 1) {
         network_class <- network_class[1]
