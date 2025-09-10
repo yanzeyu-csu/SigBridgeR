@@ -71,8 +71,6 @@ jobs:
                     echo "type=patch" >> $GITHUB_OUTPUT
                     echo "Bump type: patch" >&2
                 else
-                    echo "type=none" >> $GITHUB_OUTPUT
-                    echo "Bump type: none (no version change)" >&2
                     exit 0
                 fi
 
