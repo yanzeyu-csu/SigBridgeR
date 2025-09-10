@@ -53,6 +53,7 @@ navbar:
                 - text: Troubleshooting
                   icon: fa-bug
                   href: articles/Troubleshooting.html
+            assets: vignettes/example_figures
         github:
             icon: fa-github
             href: https://github.com/wanglabcsu/sigbridger/
