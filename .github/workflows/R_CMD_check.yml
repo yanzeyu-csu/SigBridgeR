@@ -66,9 +66,6 @@ jobs:
 
                   Rscript -e "remotes::install_deps(dependencies = TRUE, upgrade = 'never')"
 
-            - name: Session info
-              run: |
-                  Rscript -e "sessioninfo::session_info()"
 
             - name: Check package
               uses: r-lib/actions/check-r-package@v2
