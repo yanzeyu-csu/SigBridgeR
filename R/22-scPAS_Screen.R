@@ -17,7 +17,7 @@
 #' @param network_class Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data. The other one is 'bulk'.)
 #' @param scPAS_family Model family for analysis (options: "cox", "gaussian", "binomial")
 #' @param permutation_times Number of permutations to perform (default: 2000)
-#' @param FDR.threshold Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)
+#' @param FDR_threshold Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)
 #' @param independent Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)
 #' @param ... Additional arguments passed to `DoscPAS` functions
 #'
@@ -45,7 +45,7 @@ DoscPAS = function(
     network_class = c("SC", "bulk"),
     scPAS_family = c("cox", "gaussian", "binomial"),
     permutation_times = 2000,
-    FDR.threshold = 0.05,
+    FDR_threshold = 0.05,
     independent = TRUE,
     ...
 ) {
@@ -66,7 +66,7 @@ DoscPAS = function(
     chk::chk_subset(scPAS_family, c("cox", "gaussian", "binomial"))
     chk::chk_length(scPAS_family, 1)
     chk::chk_number(permutation_times)
-    chk::chk_number(FDR.threshold)
+    chk::chk_number(FDR_threshold)
     chk::chk_flag(independent)
 
     # robust
@@ -103,7 +103,7 @@ DoscPAS = function(
         family = scPAS_family,
         independent = independent,
         permutation_times = permutation_times,
-        FDR.threshold = FDR.threshold,
+        FDR.threshold = FDR_threshold,
         ...
     ) %>%
         AddMisc(scPAS_type = label_type, cover = FALSE)

@@ -1,6 +1,6 @@
 # **SigBridgeR** <a href="https://wanglabcsu.github.io/SigBridgeR/"><img src="man/figures/logo_white.png" alt="sigbridger website" align="right" height="139"/></a>
 
-[![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3) [![](https://img.shields.io/badge/devel%20version-2.2.3-blue.svg)](https://github.com/WangLabCSU/SigBridgeR) [![R CMD check](https://github.com/WangLabCSU/SigBridgeR/workflows/R-CMD-check/badge.svg)](https://github.com/WangLabCSU/SigBridgeR/actions)
+[![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3) [![](https://img.shields.io/badge/devel%20version-2.2.3-blue.svg)](https://github.com/WangLabCSU/SigBridgeR) [![R CMD check](https://github.com/WangLabCSU/SigBridgeR/workflows/R-CMD-check/badge.svg)](https://github.com/WangLabCSU/SigBridgeR/actions) [![registry status badge](https://wanglabcsu.r-universe.dev/badges/:registry)](https://wanglabcsu.r-universe.dev/)
 
 ------------------------------------------------------------------------
 
@@ -10,11 +10,21 @@ SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data
 
 ## 🔧 Installation
 
-```r
+Usually we recommend installing the latest release from GitHub because of the latest features and bug fixes.
+
+1.  Install the development version from GitHub:
+
+``` r
 if(!requireNamespace("remotes")) {
   install.packages("remotes")
 }
 remotes::install_github("WangLabCSU/SigBridgeR")
+```
+
+2.  Install from r-universe:
+
+``` r
+install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 ```
 
 ## 📓 Documentation
@@ -36,4 +46,3 @@ Other information:
     -   [Veiw in Wiki](https://en.wikipedia.org/wiki/Single-cell_sequencing)
 -   What is *RNA-seq*?
     -   [View in Wiki](https://en.wikipedia.org/wiki/RNA-Seq)
-

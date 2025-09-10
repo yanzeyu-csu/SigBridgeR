@@ -25,24 +25,28 @@
 #' @param ... Additional method-specific parameters:
 #' \describe{
 #'   \item{Scissor}{\describe{
-#'     \item{scissor_alpha}{(numeric) default 0.05}
-#'     \item{scissor_cutoff}{(numeric) default 0.2}
+#'     \item{scissor_alpha}{(numeric or NULL) Significance threshold. When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.05}
+#'     \item{scissor_cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when `scissor_alpha` is NULL, default 0.2}
 #'     \item{path2load_scissor_cache}{(character) default `NULL`}
-#'     \item{path2save_scissor_inputs}{(character) default `"Scissor_inputs.RData"`}
+#'     \item{path2save_scissor_inputs}{(character) A path to save the intermediary data. By using `path2load_scissor_cache`,  the intermediary data can be loaded from the specified path. default `"Scissor_inputs.RData"`}
 #'     \item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
-#'     \item{reliability_test}{(logical) default FALSE}
+#'     \item{reliability_test}{(logical) Whether to perform reliability test, default FALSE}
 #'   }}
 #'   \item{scPP}{\describe{
-#'     \item{ref_group}{(integer) Reference group for binary comparisons, default 1}
+#'     \item{ref_group}{(integer or character) Reference group or baseline for **binary** comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. default: 0}
 #'     \item{Log2FC_cutoff}{(numeric) Minimum log2 fold-change for binary markers, default 0.585}
-#'     \item{estimate_cutoff}{(numeric) Effect size threshold for continuous traits, default 0.2}
+#'     \item{estimate_cutoff}{(numeric) Effect size threshold for **continuous** traits, default 0.2}
 #'     \item{probs}{(numeric) Quantile cutoff for cell classification, default 0.2}
 #'   }}
 #'   \item{scPAS}{\describe{
 #'     \item{assay}{(character) Assay to use from sc_data, default "RNA"}
 #'     \item{imputation}{(logical) Whether to perform imputation, default FALSE}
 #'     \item{nfeature}{(integer) Number of features to select, default 3000}
-#'     \item{alpha}{(numeric) Significance threshold, default 0.01}
+#'     \item{alpha}{(numeric or NULL) Significance threshold, When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.01}
+#'     \item{independent}{(logical) The background distribution of risk scores is constructed independently of each cell. default: TRUE}
+#'     \item{network_class}{(character) Network class to use. default: 'SC', indicating gene-gene similarity networks derived from single-cell data. The other one is 'bulk'.}
+#'     \item{permutation_times}{(integer) Number of permutations, default 2000}
+#'     \item{FDR_threshold}{(numeric) FDR value threshold for identifying phenotype-associated cells default 0.05}
 #'   }}
 #'   \item{scAB}{\describe{
 #'     \item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
@@ -70,7 +74,7 @@
 #' |------------|-------------------------------|---------------------------------|
 #' | `Scissor`  | All three types               | `scissor_alpha`, `scissor_cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `nfold`, `reliability_test`, `reliability_test_n` |           |
 #' | `scPP`     | All three types               | `ref_group`, `Log2FC_cutoff`, `estimate_cutoff`, `probs`                |
-#' | `scPAS`    | All three types               | `n_components` ,`assay`, `imputation`,`nfeature`, `alpha`,`network_class`,`permutation_times`,`FDR.threshold`,`independent`               |
+#' | `scPAS`    | All three types               | `n_components` ,`assay`, `imputation`,`nfeature`, `alpha`,`network_class`,`permutation_times`,`FDR_threshold`,`independent`               |
 #' | `scAB`     | Binary/Survival               | `alpha`, `alpha_2`, `maxiter`, `tred`            |
 #'
 #'
@@ -99,6 +103,7 @@ Screen <- function(
 ) {
     chk::chk_subset(phenotype_class, c("binary", "survival", "continuous"))
     chk::chk_subset(screen_method, c("Scissor", "scPP", "scPAS", "scAB"))
+    chk::chk_is(sc_data, "Seurat")
 
     if (is.null(label_type) || length(label_type) != 1) {
         cli::cli_alert_info(c(

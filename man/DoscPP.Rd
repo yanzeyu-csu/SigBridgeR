@@ -10,7 +10,7 @@ DoscPP(
   phenotype,
   label_type = "scPP",
   phenotype_class = c("Binary", "Continuous", "Survival"),
-  ref_group = 1,
+  ref_group = 0,
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
   probs = 0.2
@@ -34,11 +34,11 @@ DoscPP(
 - \code{"Continuous"}: Quantitative traits (e.g., drug response)
 - \code{"Survival"}: Time-to-event data (requires time/status columns)}
 
-\item{ref_group}{Reference group for binary comparisons (default: 1)}
+\item{ref_group}{Reference group or baseline for \strong{binary} comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. (default: 0)}
 
 \item{Log2FC_cutoff}{Minimum log2 fold-change for binary markers (default: 0.585)}
 
-\item{estimate_cutoff}{Effect size threshold for continuous traits (default: 0.2)}
+\item{estimate_cutoff}{Effect size threshold for \strong{continuous} traits (default: 0.2)}
 
 \item{probs}{Quantile cutoff for cell classification (default: 0.2)}
 }

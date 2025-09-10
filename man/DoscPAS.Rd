@@ -17,7 +17,7 @@ DoscPAS(
   network_class = c("SC", "bulk"),
   scPAS_family = c("cox", "gaussian", "binomial"),
   permutation_times = 2000,
-  FDR.threshold = 0.05,
+  FDR_threshold = 0.05,
   independent = TRUE,
   ...
 )
@@ -47,7 +47,7 @@ DoscPAS(
 
 \item{permutation_times}{Number of permutations to perform (default: 2000)}
 
-\item{FDR.threshold}{Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)}
+\item{FDR_threshold}{Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)}
 
 \item{independent}{Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)}
 
