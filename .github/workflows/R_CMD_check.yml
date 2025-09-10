@@ -80,26 +80,3 @@ jobs:
               uses: r-lib/actions/check-r-package@v2
               with:
                   upload-snapshots: true
-
-            # 2. 构建包
-            - name: Build package
-              if: matrix.config.os == 'ubuntu-latest' # 任选一种 OS 执行一次即可
-              run: |
-                  Rscript -e 'if ("${{ matrix.config.type }}" == "source") {
-                      pkgbuild::build(".", dest_path = ".", binary = FALSE)
-                  } else {
-                      pkgbuild::build(".", dest_path = ".", binary = TRUE)
-                  }'
-                  
-
-            # 3. 上传至 Release（仅一次，避免重复）
-            - name: Upload to Release
-              if: matrix.config.os == 'ubuntu-latest' # 任选一种 OS 执行一次即可
-              uses: softprops/action-gh-release@v2
-              with:
-                  files: |
-                      *.tar.gz
-                      *.zip
-                      *.tgz
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
