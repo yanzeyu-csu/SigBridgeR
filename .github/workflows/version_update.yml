@@ -73,6 +73,7 @@ jobs:
                 else
                     echo "type=none" >> $GITHUB_OUTPUT
                     echo "Bump type: none (no version change)" >&2
+                    exit 0
                 fi
 
             - name: Update version in DESCRIPTION
@@ -85,7 +86,7 @@ jobs:
                     NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[1] <- as.character(as.numeric(parts[1]) + 1); parts[2] <- "0"; parts[3] <- "0"; cat(paste(parts, collapse="."))')
                   elif [ "${{ steps.version_bump.outputs.type }}" = "minor" ]; then
                     NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[2] <- as.character(as.numeric(parts[2]) + 1); parts[3] <- "0"; cat(paste(parts, collapse="."))')
-                  else
+                  elif [ "${{ steps.version_bump.outputs.type }}" = "patch" ]; then
                     NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[3] <- as.character(as.numeric(parts[3]) + 1); cat(paste(parts, collapse="."))')
                   fi
 
