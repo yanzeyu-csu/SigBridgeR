@@ -13,7 +13,7 @@ DoscPAS(
   imputation = F,
   imputation_method = c("KNN", "ALRA"),
   nfeature = 3000,
-  alpha = 0.01,
+  alpha = c(0.01, NULL),
   network_class = c("SC", "bulk"),
   scPAS_family = c("cox", "gaussian", "binomial"),
   permutation_times = 2000,
