@@ -1,3 +1,5 @@
+# ? Global variables
+
 #' @import magrittr
 #' @import AUCell
 NULL
