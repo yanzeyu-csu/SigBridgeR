@@ -44,12 +44,14 @@ jobs:
                   # Install basic packages
                   Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'Rcpp', 'devtools'), repos = 'https://cloud.r-project.org')"
 
+            - name: Install BiocManager dependencies
+              run: |
+                  Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
+
+            - name: Install bioconductor dependencies
+              run: |
                   # Install Bioconductor packages
-                  Rscript -e "
-                  if (!requireNamespace('BiocManager', quietly = TRUE)) 
-                    install.packages('BiocManager', repos = 'https://cloud.r-project.org')
-                  BiocManager::install(c('AUCell', 'edgeR', 'preprocessCore'), ask = FALSE)
-                  "
+                  Rscript -e "BiocManager::install(c('AUCell', 'edgeR', 'preprocessCore'), ask = FALSE, force = TRUE)"
 
             - name: Install github dependencies
               run: |
@@ -61,7 +63,7 @@ jobs:
                     'sunduanchen/Scissor',
                     'aiminXie/scPAS',
                     'WangX-Lab/ScPP'
-                  ))
+                  ), force = TRUE)
                   "
 
             - name: Install project dependencies
