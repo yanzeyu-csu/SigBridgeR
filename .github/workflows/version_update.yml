@@ -78,6 +78,7 @@ jobs:
 
             - name: Update version in DESCRIPTION
               id: update_version
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   CURRENT_VERSION=$(Rscript -e 'cat(as.character(desc::desc_get_version()))')
                   echo "Current version: $CURRENT_VERSION"
@@ -95,11 +96,13 @@ jobs:
                   echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
             - name: Update version badge in README.md
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   sed -i "s/\(badge\/devel%20version-\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$NEW_VERSION/g" README.md
                   echo "Updated README.md version badge to $NEW_VERSION"
 
             - name: Update version in .Rproj file
+              if: steps.version_bump.outputs.type != 'none'              
               run: |
                   RPROJ_FILE=$(find . -maxdepth 1 -name "*.Rproj" | head -1)
                   if [ -f "$RPROJ_FILE" ]; then
@@ -110,12 +113,14 @@ jobs:
                   fi
 
             - name: Pull latest changes
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   git fetch origin      # 先获取远程更新
                   git merge origin/main # 将远程更改合并到当前分支
                   echo "Pulled latest changes"
 
             - name: Commit all version updates
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   git add DESCRIPTION README.md
 
@@ -138,6 +143,7 @@ jobs:
                   fi
 
             - name: Push changes and tags
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   git push origin main
 
