@@ -49,7 +49,7 @@ jobs:
             - name: Install dependencies
               run: |
                   # 安装基本工具包
-                  Rscript -e "install.packages(c('remotes', 'rcmdcheck'), repos = 'https://cloud.r-project.org')"
+                  Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'Rcpp', 'devtools'), repos = 'https://cloud.r-project.org')"
                   
                   # 安装 Bioconductor 包
                   Rscript -e "
@@ -59,7 +59,7 @@ jobs:
                     'AUCell',
                     'edgeR',
                     'preprocessCore'
-                  ))
+                  ),ask = FALSE)
                   "
                   
                   # 安装 GitHub 包
