@@ -51,6 +51,12 @@
         -   [4.3 Venn diagram for screening
             results](#43-venn-diagram-for-screening-results)
     -   [5. Example](#5-example)
+        -   [5.1 Survival-associated cell
+            screening](#51-survival-associated-cell-screening)
+        -   [5.2 Phenotype-associated cell
+            screening](#52-phenotype-associated-cell-screening)
+        -   [5.3 Binarized phenotype associated cell
+            screening](#53-binarized-phenotype-associated-cell-screening)
     -   [6. Other function details](#6-other-function-details)
         -   [6.1 Add miscellaneous information to the Seurat
             object](#61-add-miscellaneous-information-to-the-seurat-object)
@@ -137,7 +143,9 @@ their versions:
       list(pkg = "edgeR"),
       list(pkg = "scales"),
       list(pkg = "doParallel"),
+      list(pkg = "preprocessCore"),
       # suggest
+      list(pkg = "randomcoloR"),
       list(pkg = "reticulate"),
       list(pkg = "patchwork"),
       list(pkg = "org.Hs.eg.db"),
@@ -169,7 +177,8 @@ use.
 
     your_seurat <- SCPreProcess(
       your_matrix,
-      project = "Scissor_Single_Cell", # Parameters used in Seurat preprocessing pipeline
+      meta_data = NULL,
+      project = "Screen_Single_Cell", # Parameters used in Seurat preprocessing pipeline
       min_cells = 400,
       min_features = 0,
       normalization_method = "LogNormalize",
@@ -179,8 +188,63 @@ use.
       dims = 1:10,
       verbose = TRUE,
       future_global_maxsize = 6 * 1024^3,
+      quality_control = TRUE,
+      quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+      data_filter = TRUE,
+      data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
+      data_filter.percent.mt = 20,
+      column2only_tumor = NULL,
       ...
     )
+
+1.  **Build the initial Seurat object**
+
+    -   Imports the count matrix.  
+    -   Applies the first, coarse filters: genes must be detected in
+        &gt;= `min_cells` cells; cells must contain &gt;= `min_features`
+        genes.  
+    -   Attaches optional sample metadata.
+
+2.  **Mitochondrial QC (default: ON)**
+
+    -   A single regular expression (`^MT-` or `^mt-`) is used to
+        compute the percentage of mitochondrial reads per cell.  
+    -   The metric is stored in `object$percent.mt` for later filtering.
+
+3.  **Cell filtering (default: ON)**  
+    Cells are retained only if they satisfy **all** of the following:
+
+    -   `nFeature_RNA` lies between the lower and upper bounds defined
+        by `data_filter.nFeature_RNA_thresh`.  
+    -   `percent.mt` is below the user-defined cut-off
+        (`data_filter.percent.mt`).
+
+4.  **Normalisation, variable-feature selection and scaling**  
+    Encapsulated in `ProcessSeuratObject()`:
+
+    -   Counts are normalised with the chosen method (default:
+        *LogNormalize*).  
+    -   Highly variable features are identified using the requested
+        algorithm (default: *vst*).  
+    -   Expression values of those features are scaled to unit variance.
+
+5.  **Append extra observations**  
+    If the input object contains an `obs` slot, it is merged into
+    `object@meta.data`.
+
+6.  **Dimensionality reduction and clustering**  
+    `ClusterAndReduce()` runs:
+
+    -   PCA -&gt; nearest-neighbour graph -&gt; Louvain clustering
+        (resolution parameterised).  
+    -   UMAP for two-dimensional visualization.  
+    -   Optionally removes very small or low-quality clusters.
+
+7.  **Tumour-cell flagging**  
+    `FilterTumorCell()` creates a binary label (1 = Tumour, 0 = Normal)
+    from the column specified by `column2only_tumor`.  
+    The new label can be used downstream to restrict analyses to
+    malignant cells.
 
 #### 2.1.2 (Option B) Start from AnnDataR6 Object
 
@@ -188,12 +252,14 @@ use.
 the following code:
 
     reticulate::use_pythonenv("The_path_to_your_python") 
+    # reticulate::use_condaenv("conda_env_name")
 
     anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other formats, make sure the matrix is in obj$X.
 
     your_seurat <- SCPreProcess(
       anndata_obj,
-      project = "Scissor_Single_Cell", # Parameters used in Seurat preprocessing pipeline
+      meta_data = NULL,
+      project = "Screen_Single_Cell", # Parameters used in Seurat preprocessing pipeline
       min_cells = 400,
       min_features = 0,
       normalization_method = "LogNormalize",
@@ -203,10 +269,16 @@ the following code:
       dims = 1:10,
       verbose = TRUE,
       future_global_maxsize = 6 * 1024^3,
+      quality_control = TRUE,
+      quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+      data_filter = TRUE,
+      data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
+      data_filter.percent.mt = 20,
+      column2only_tumor = NULL,
       ...
     )
 
-The description of data in `anndata_obj$obs` will be add to
+The description of data (meta.data) in `anndata_obj$obs` will be add to
 `your_seurat@meta.data`.
 
 **helpful documentation:**
@@ -894,7 +966,7 @@ selected by each algorithm. You can refer to and use the following code:
     #         ]
     #     )
 
-    all_cell <- colnames(your_seurat_obj) # this obj can be changed to other
+    all_cells <- colnames(your_seurat_obj) # this obj can be changed to other
 
     # * create a list of cell vectors
     pos_venn = list(
@@ -939,14 +1011,495 @@ https://gaospecial.github.io/ggVennDiagram/](https://gaospecial.github.io/ggVenn
 
 ## 5. Example
 
-Here we use the example data to demonstrate how to use the functions in
-`SigBridgeR` to screen cells associated with phenotype.
+### 5.1 Survival-associated cell screening
+
+Here we use the example data LUAD to demonstrate how to use the
+functions in `SigBridgeR` to screen cells associated with phenotype.
+
+    if (requireNamespace("here", quietly = TRUE)) {
+      setwd(here::here())         
+      knitr::opts_knit$set(root.dir = here::here())  
+    }
 
     library(SigBridgeR)
-    packageVersion("SigBridgeR")
+    library(zeallot)
+    library(Seurat)
 
     # * load the example data
-    LoadRefData()
+    c(mat_exam, bulk, pheno) %<-% LoadRefData(data_type = "survival")
+
+    dim(mat_exam)
+     #[1] 33694  1093
+    dim(bulk) 
+    # [1] 4071  506
+    bulk[1:6,1:6]
+    #         TCGA-69-7978 TCGA-62-8399 TCGA-78-7539 TCGA-73-4658 TCGA-44-6775 TCGA-44-2655
+    # HIF3A         4.2598      11.6239       9.1362       5.0288       4.0573       5.5335
+    # RTN4RL2       8.2023       5.5819       3.5365       7.4156       7.7107       5.3257
+    # HMGCLL1       2.7476       5.8513       3.8334       3.6447       2.9188       4.8820
+    # LRRTM1        0.0000       0.4628       4.7506       6.8005       7.7819       2.2882
+    # GRIN1         6.6074       5.4257       4.9563       7.3510       3.5361       3.3311
+    # LRRTM3        1.7458       2.0092       0.0000       1.4468       0.0000       0.0000
+    nrow(pheno)
+    # [1] 506
+    head(pheno)
+    #               time status
+    # TCGA-69-7978  4.40      0
+    # TCGA-62-8399 88.57      0
+    # TCGA-78-7539 25.99      0
+    # TCGA-73-4658 52.56      1
+    # TCGA-44-6775 23.16      0
+    # TCGA-44-2655 43.50      0
+
+This single-cell data is from humans, so we set the quality control
+matching pattern to `^MT-` and use `SCPreProcess()` to pre-process the
+data.
+
+    seurat = SCPreProcess(
+        sc = mat_exam,
+        quality_control.pattern = "^MT-",
+        dims = 1:20,
+        resolution = 0.1
+    )
+
+`BulkPreProcess()` is to pre-process the bulk expression data and the
+related clinical data.frame (containing bulk sample information) to
+perform PCA. Here, we want to retain the data so that the screening can
+reflect the most accurate situation. You can choose whether to filter or
+retain based on your own needs. See also [2.2 Bulk expression
+data](#22-bulk-expression-data) for more details.
+
+Thus far, we have completed all the data preprocessing. We are now ready
+to formally employ various single-cell phenotypic screening algorithms.
+
+First, we use `scissor` to screen cells associated with survival.
+
+    scissor_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "Scissor",
+        scissor_alpha = 0.05
+    )
+
+    # ℹ [2025/09/08 17:03:20] Scissor start...
+    # ℹ [2025/09/08 17:03:20] Start from raw data...
+    # ℹ Using "RNA_snn" graph for network.
+    # ℹ [2025/09/08 17:03:20] Normalizing quantiles of data...
+    # ℹ [2025/09/08 17:03:20] Subsetting data...
+    # ℹ [2025/09/08 17:03:21] Calculating correlation...
+    # ----------------------------------------------------------------------------------------------------
+    # Five-number summary of correlations:
+
+    #         0%        25%        50%        75%       100% 
+    # -0.2342323  0.0594385  0.1118708  0.1642065  0.5250605 
+    # ----------------------------------------------------------------------------------------------------
+    # ℹ [2025/09/08 17:03:21] Perform cox regression on the given clinical outcomes:
+    # ✔ Statistics data saved to `Scissor_inputs.RData`.
+    # ℹ [2025/09/08 17:03:22] Screening...
+    # [1] "alpha = 0.05"
+    # [1] "Scissor identified 246 Scissor+ cells and 244 Scissor- cells."
+    # [1] "The percentage of selected cell is: 44.831%"
+    # ----------------------------------------------------------------------------------------------------
+
+    table(scissor_result$scRNA_data$scissor)
+    # Negative  Neutral Positive 
+    #      245      599      249 
+
+You will see an additional “Scissor\_inputs.RData” in the working
+directory. This is the intermediate data generated by the Scissor
+algorithm, which we can use to save running time. Meanwhile, we set
+`reliability_test=TRUE`, which will run an additional reliability test.
+
+    scissor_result = Screen(
+        matched_bulk = bulk, # doesn't need to be provided Since the intermediate data is provided
+        sc_data = seurat,
+        phenotype = pheno_ok, # doesn't need to be provided Since the intermediate data is provided
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "Scissor",
+        scissor_alpha = 0.05,
+        path2load_scissor_cache = "Scissor_inputs.RData",
+        reliability_test = TRUE
+    )
+    # ℹ [2025/09/08 16:07:48] Scissor start...
+    # ℹ [2025/09/08 16:07:48] Loading data from `Scissor_inputs.RData`...
+    # ℹ [2025/09/08 16:07:48] Screening...
+    # [1] "alpha = 0.05"
+    # [1] "Scissor identified 249 Scissor+ cells and 245 Scissor- cells."
+    # [1] "The percentage of selected cell is: 45.197%"
+
+    # --------------------------------------------------------------------------------
+    # ℹ [2025/09/08 16:07:54] Start reliability test
+
+    # Attaching package: ‘survival’
+
+    # The following object is masked from ‘package:future’:
+
+    #     cluster
+
+    # [1] "|**************************************************|"
+    # [1] "Perform cross-validation on X with true label"
+    # Finished!
+    # [1] "|**************************************************|"
+    # [1] "Perform cross-validation on X with permutated label"
+    # Finished!
+    # [1] "Test statistic = 0.590"
+    # [1] "Reliability significance test p = 0.000"
+    # ✔ [2025/09/08 16:10:54] reliability test: Done
+
+    scissor_result_reliability_test$reliability_result$statistic
+    # [1] 0.5899587
+
+    scissor_result_reliability_test$reliability_result$p
+    # [1] 0
+
+    scissor_result_reliability_test$reliability_result$c_index_test_real
+    #  [1] 0.6038544 0.5022222 0.6050725 0.6279391 0.5064935 0.6033520 0.6769231 0.6453089 0.4968421 0.6315789
+
+    scissor_result_reliability_test$reliability_result$c_index_test_back %>% unlist() %>% matrix(nrow = 10)
+    #            [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]      [,8]      [,9]     [,10]
+    #  [1,] 0.5594714 0.4943820 0.5379747 0.5583658 0.5527728 0.6146435 0.5130597 0.5701275 0.4691943 0.5177305
+    #  [2,] 0.5735608 0.4726891 0.4146341 0.5020661 0.5354331 0.6840149 0.5540275 0.4990758 0.5324484 0.5497382
+    #  [3,] 0.5960145 0.5157116 0.6191446 0.5091912 0.5659656 0.5870370 0.5090580 0.4247788 0.5734266 0.5539715
+    #  [4,] 0.6210191 0.6563147 0.5581948 0.4675615 0.4688222 0.5308219 0.5100402 0.6709091 0.6155779 0.5607143
+    #  [5,] 0.4623656 0.5716695 0.4920441 0.5403727 0.5555556 0.5911215 0.5738499 0.6189258 0.5871560 0.6084337
+    #  [6,] 0.5868794 0.5127660 0.7416880 0.5366876 0.5417440 0.5633803 0.5161943 0.4830372 0.4732965 0.5740132
+    #  [7,] 0.4975610 0.5751503 0.4801902 0.5588972 0.4940898 0.5723370 0.5788382 0.6171875 0.5884413 0.5445545
+    #  [8,] 0.6331361 0.5970516 0.5473888 0.6274131 0.5159705 0.5000000 0.5299760 0.4905660 0.5277778 0.5027322
+    #  [9,] 0.6390805 0.6548913 0.5049310 0.6299639 0.6385135 0.5964392 0.5381605 0.7462687 0.5185185 0.6585859
+    # [10,] 0.5207373 0.5000000 0.6051780 0.4932127 0.6892430 0.4786517 0.5619266 0.6614583 0.6502242 0.5333333
+
+Next, we use scPAS, scAB and scPP to do the same screening. Generally
+you only need to change the `screen_method`, as long as you have not
+specified any particular parameters.
+
+    scpas_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "scPAS",
+        alpha = 0.05
+    )
+    # ℹ [2025/09/08 17:04:15] Start scPAS screening.
+    # [1] "Step 1:Quantile normalization of bulk data."
+    # [1] "Step 2: Extracting single-cell expression profiles...."
+    # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
+    # Building SNN based on a provided distance matrix
+    # Computing SNN
+    # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
+    # [1] "Perform cox regression on the given clinical outcomes:"
+    # [1] "alpha = 0.05"
+    # [1] "lambda = 0.499586979737535"
+    # [1] "scPAS identified 46 rick+ features and 16 rick- features."
+    # [1] "The percentage of selected feature is: 35.838%"
+
+    # [1] "|**************************************************|"
+    # [1] "Step 5: calculating quantified risk scores...."
+    # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
+    # [1] "Finished."
+    # ✔ [2025/09/08 17:04:24] scPAS screening done.
+
+    table(scpas_result$scRNA_data$scPAS)
+
+    # Neutral 
+    #    1093 
+
+As you can see, due to differences in data and algorithms, not every
+screening algorithm is able to screen out cells. You can adjust the
+corresponding parameters. See also [3.2 (Option B) scPAS
+Screening](#32-option-b-scpas-screening)
+
+    scab_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "scAB"
+    )
+    # ℹ [2025/09/08 17:04:51] Start scAB screening.
+    # ℹ  Using "RNA_snn" graph for network.
+    # ℹ [2025/09/08 17:04:52] Selecting K...
+    # ℹ [2025/09/08 17:06:15] Run NMF with phenotype and cell-cell similarity regularization at K = 3.
+    # ℹ [2025/09/08 17:06:19] Screening cells...
+    # ℹ [2025/09/08 17:06:19] scAB screening done.
+
+    table(scab_result$scRNA_data$scAB)
+    #    Other Positive 
+    #     1006       87 
+
+    scpp_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "scPP"
+    )
+    # ℹ [2025/09/08 17:00:28] Start scPP screening.
+    # ℹ [2025/09/08 17:00:28] Finding markers...
+    # Warning in coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
+    #   Loglik converged before variable  1 ; coefficient may be infinite. 
+    # ℹ [2025/09/08 17:00:52] Screening...
+    # Genes in the gene sets NOT available in the dataset: 
+    #   gene_pos:   13 (6% of 230)
+    #   gene_neg:   54 (12% of 446)
+    # There are no genes significantly upregulated in Phenotype- compared to Phenotype+.
+    # ✔ [2025/09/08 17:00:54] scPP screening done.
+
+    table(scpp_result$scRNA_data$scPP)
+    # Negative  Neutral Positive 
+    #       57      992       44 
+
+After these algorithms have been run, the four sets of data can be
+merged.
+
+    screen_result = MergeResult(
+        scissor_result,
+        scpas_result,
+        scab_result,
+        scpp_result
+    )
+    # ✔ Successfully merged 4 objects.
+
+    class(screen_result)
+    # [1] "Seurat"
+    # attr(,"package")
+    # [1] "SeuratObject"
+
+    colnames(screen_result@meta.data)
+    #  [1] "orig.ident"      "nCount_RNA"      "nFeature_RNA"    "percent.mt"      "RNA_snn_res.0.1" "seurat_clusters" "scissor"         "scPAS_RS"        "scPAS_NRS"       "scPAS_Pvalue"   
+    # [11] "scPAS_FDR"       "scPAS"           "scAB"            "scAB_Subset1"    "Subset1_loading" "scAB_Subset2"    "Subset2_loading" "scAB_Subset3"    "Subset3_loading" "scPP"           
+
+Finally, we can visualize the screening results. Let’s start with a Venn
+diagram to see the situation.
+
+    library(ggVennDiagram)
+    library(zeallot)
+
+    c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
+        purrr::map(
+            c("scissor", "scAB", "scPAS", "scPP"),
+            ~ colnames(screen_result)[
+                which(screen_result[[.x]] == "Positive")
+            ]
+        )
+
+    all_cells <- colnames(screen_result) 
+
+    # * create a list of cell vectors
+    pos_venn = list(
+        scissor = scissor_pos,
+        scpas = scpas_pos,
+        scab = scab_pos,
+        scpp = scpp_pos,
+        all_cells = all_cells
+    )
+
+    set.seed(123)
+
+    venn = ggVennDiagram::ggVennDiagram(
+        x = pos_venn,
+        # * the labels of each group to be shown on the diagram
+        category.names = c(
+            "Scissor",
+            "scPAS",
+            "scAB",
+            "scPP",
+            "All cells"
+        ),
+        # * the colors of each group
+        set_color = c(
+            "#a33333ff",
+            "#37ae00ff", 
+            "#2a2a94ff",
+            "#9c8200ff",
+            "#008383ff"
+        )
+    ) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
+        ggplot2::ggtitle("Screening Venn Diagram")
+
+    ggplot2::ggsave("vignettes/example_figures/venn.png",plot=venn, width = 10, height = 10)
+
+    knitr::include_graphics("vignettes/example_figures/venn.png")
+
+A bar chart showing proportions can also be used to examine the
+screening results. Since the example data does not have sample metadata,
+we have created a fictional `Sample` column.
+
+    set.seed(123)
+    # *fictional sample column
+    screen_result$Sample <- sample(paste0("Sample", 1:10), ncol(screen_result), replace = TRUE)
+
+    table(screen_result$Sample)
+    #  Sample1 Sample10  Sample2  Sample3  Sample4  Sample5  Sample6  Sample7  Sample8  Sample9 
+    #       98      117       96      119       95      100      101      131      115      121 
+
+    fraction_list = ScreenFractionPlot(
+        screened_seurat = screen_result,
+        group_by = "Sample",
+        screen_type = c("scissor", "scPP", "scAB"), # scPAS is not included due to no positive cells
+        show_null = FALSE,
+        plot_color = NULL,
+        show_plot = TRUE
+    )
+    # Creating plots for 3 screen types...
+
+    knitr::include_graphics("vignettes/example_figures/fraction.png")
+
+The `fraction_list` contains the statistical data and charts for each
+screening algorithm.
+
+    fraction_list
+        ├── stats
+        │   ├── scissor
+        │   ├── scAB
+        │   └── scPP
+        ├── plots
+        │   ├── scissor
+        │   ├── scAB
+        │   └── scPP   
+        └── combined_plot # show 3 plots in one plot
+
+UMAP is the most commonly used type of plot in academic literature.
+
+    library(patchwork)
+    library(zeallot)
+
+    sample_umap = Seurat::DimPlot(
+      screen_result,
+      group.by = "Sample",
+      pt.size = 0.2,
+      reduction = "umap"
+    ) +
+      ggplot2::ggtitle("Sample")
+
+
+    c(
+      scissor_umap,
+      scab_umap,
+      scpas_umap,
+      scpp_umap
+    ) %<-%
+      purrr::map(
+        c("scissor", "scAB", "scPAS", "scPP"), # make sure these column names exist
+        ~ Seurat::DimPlot(
+          screen_result,
+          group.by = .x,
+          pt.size = 0.2,
+          reduction = "umap",
+          cols = c(
+            "Neutral" = "#CECECE",
+            "Other" = "#CECECE",
+            "Positive" = "#ff3333",
+            "Negative" = "#386c9b"
+          )
+        ) +
+          ggplot2::ggtitle(.x)
+      )
+
+    # * Show
+    umaps = sample_umap +
+      scissor_umap +
+      scab_umap +
+      scpas_umap +
+      scpp_umap +
+      plot_layout(ncol = 2)
+
+    umaps
+
+    knitr::include_graphics("vignettes/example_figures/umaps.png")
+
+### 5.2 Continuous phenotype associated cell screening
+
+Generally speaking, the process is the same as described in [5.1
+Survival-associated cell
+screening](#51-survival-associated-cell-screening). Here, only the
+preprocessing of continuous phenotypic data is introduced.
+
+    library(SigBridgeR)
+    library(zeallot)
+    library(Seurat)
+    setwd(here::here())
+
+    # * load the example data
+    c(mat_exam, bulk, pheno) %<-% LoadRefData(data_type = "continuous")
+
+    dim(mat_exam)
+     #[1] 33694  1093
+    dim(bulk) 
+    # [1] 4106  289
+    bulk[1:6,1:6]
+    #        TCGA-AZ-6599-01 TCGA-AA-3655-01 TCGA-A6-6137-01 TCGA-CK-4952-01 TCGA-A6-5657-01 TCGA-AD-6963-01
+    # HIF3A           2.3437          2.0858          6.0759          1.9506          5.4777          4.4634
+    # CAMK4           4.9331          2.3709          4.1387          1.1557          4.1746          3.2363
+    # RNF112          2.4817          2.4947          3.5941          2.3486          4.9185          1.4621
+    # SPN             5.6704          6.8577          8.0598          5.0049          7.6076          7.3960
+    # LRRTM1          1.6031          0.9465          1.9142          0.0000          3.2523          0.0000
+    # GRIN1           6.4944          4.3225          2.8073          7.3460          4.5000          3.1816
+
+    # * A named vector
+    head(pheno)
+    # TCGA-AZ-6599-01 TCGA-AA-3655-01 TCGA-A6-6137-01 TCGA-CK-4952-01 TCGA-A6-5657-01 TCGA-AD-6963-01 
+    #             178              65              91             206              63              67 
+
+If your phenotype is a `data.frame`, try this to convert it to a
+`named vector`:
+
+    pheno = setNames(your_data.frame$continuous_numeric, your_data.frame$sample)
+
+### 5.3 Binarized phenotype associated cell screening
+
+This process is also the same as described in [5.1 Survival-associated
+cell screening](#51-survival-associated-cell-screening). Here, only the
+preprocessing of binary phenotypic data is introduced.
+
+    library(SigBridgeR)
+    library(zeallot)
+    library(Seurat)
+    setwd(here::here())
+
+    # * load the example data
+    c(mat_exam, bulk, pheno) %<-% LoadRefData(data_type = "binary")
+
+    dim(mat_exam)
+     #[1] 33694  1093
+    dim(bulk) 
+    # [1] 4106  434
+    bulk[1:6,1:6]
+    #        TCGA-CA-5256-01 TCGA-AZ-6599-01 TCGA-AA-3655-01 TCGA-A6-6137-01 TCGA-CK-4952-01 TCGA-A6-5657-01
+    # HIF3A           3.7172          2.3437          2.0858          6.0759          1.9506          5.4777
+    # CAMK4           3.0698          4.9331          2.3709          4.1387          1.1557          4.1746
+    # RNF112          1.3702          2.4817          2.4947          3.5941          2.3486          4.9185
+    # SPN             5.5207          5.6704          6.8577          8.0598          5.0049          7.6076
+    # LRRTM1          3.2408          1.6031          0.9465          1.9142          0.0000          3.2523
+    # GRIN1           3.0698          6.4944          4.3225          2.8073          7.3460          4.5000
+
+    # * A named vector
+    head(pheno)
+    # TCGA-CA-5256-01 TCGA-AZ-6599-01 TCGA-AA-3655-01 TCGA-A6-6137-01 TCGA-CK-4952-01 TCGA-A6-5657-01 
+    #               1               1               1               1               1               1 
+
+If your phenotype is a `data.frame`, your binary variable is stored in
+the “data” column, categorized as ‘Tumor’ and ‘Normal’, we will assign
+‘Tumor’ a value of 1 and ‘Normal’ a value of 0. In this way, cells
+screened as **Positive** will be associated with ‘Tumor’. Try this to
+convert it to a `named vector`:
+
+    pheno = mutate(
+        pheno,
+        data = case_when(
+            data == "Tumor" ~ 1,
+            data == "Normal" ~ 0
+        )
+    )
+    pheno = setNames(pheno$data, pheno$Sample)
 
 ------------------------------------------------------------------------
 
@@ -1019,5 +1572,8 @@ various screening algorithms are based on during execution.
     sequencing data. Nucleic Acids Research. 2022 Nov
     28;50(21):12112–30.
 
-4.  WangX-Lab/ScPP \[Internet\]. \[cited 2025 Aug 31\]. Available from:
-    <https://github.com/WangX-Lab/ScPP>
+4.  WangX-Lab/ScPP
+    *I**n**t**e**r**n**e**t*
+    .
+    *c**i**t**e**d*2025*A**u**g*31
+    . Available from: <https://github.com/WangX-Lab/ScPP>
