@@ -29,7 +29,8 @@ jobs:
             - name: Install Rtools (Windows)
               if: matrix.config.os == 'windows-latest'
               run: |
-                  writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
+                  # Set up Rtools path for R
+                  echo "PATH=${RTOOLS40_HOME}\\usr\\bin;${PATH}" >> ${HOME}/.Renviron
               shell: bash
 
             - name: Install system dependencies (Linux)
@@ -40,13 +41,17 @@ jobs:
 
             - name: Install dependencies
               run: |
+                  # Install basic packages
                   Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'Rcpp', 'devtools'), repos = 'https://cloud.r-project.org')"
-                  
+
+                  # Install Bioconductor packages
                   Rscript -e "
                   if (!requireNamespace('BiocManager', quietly = TRUE)) 
                     install.packages('BiocManager', repos = 'https://cloud.r-project.org')
                   BiocManager::install(c('AUCell', 'edgeR', 'preprocessCore'), ask = FALSE)
                   "
+
+                  # Install GitHub packages
                   Rscript -e "
                   remotes::install_github(c(
                     'ShixiangWang/IDConverter',
@@ -56,6 +61,8 @@ jobs:
                     'WangX-Lab/ScPP'
                   ))
                   "
+
+                  # Install project dependencies
                   Rscript -e "remotes::install_deps(dependencies = TRUE, upgrade = 'never')"
 
             - name: Check package
