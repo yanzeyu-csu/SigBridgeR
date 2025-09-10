@@ -39,7 +39,7 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
-            - name: Install dependencies
+            - name: Install basic dependencies
               run: |
                   # Install basic packages
                   Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'Rcpp', 'devtools'), repos = 'https://cloud.r-project.org')"
@@ -51,6 +51,8 @@ jobs:
                   BiocManager::install(c('AUCell', 'edgeR', 'preprocessCore'), ask = FALSE)
                   "
 
+            - name: Install github dependencies
+              run: |
                   # Install GitHub packages
                   Rscript -e "
                   remotes::install_github(c(
@@ -62,6 +64,8 @@ jobs:
                   ))
                   "
 
+            - name: Install project dependencies
+              run: |
                   # Install project dependencies
                   Rscript -e "remotes::install_deps(dependencies = TRUE, upgrade = 'never')"
 
