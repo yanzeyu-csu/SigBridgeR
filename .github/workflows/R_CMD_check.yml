@@ -1,11 +1,3 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-#
-# See https://github.com/r-lib/actions/tree/master/examples#readme for
-# additional example workflows available for the R community.
-
 # ======================================================== #
 # Determines when the action is triggered                  #
 # ======================================================== #
@@ -42,6 +34,12 @@ jobs:
                   r-version: ${{ matrix.config.r }}
                   use-public-rspm: true
 
+            - name: Install Rtools (Windows only)
+              if: matrix.config.os == 'windows-latest'
+              uses: r-lib/actions/setup-rtools@v2
+              with:
+                  version: '4.0'
+
             - name: Install system dependencies (Linux)
               if: runner.os == 'Linux'
               run: |
@@ -50,12 +48,21 @@ jobs:
 
             - name: Install dependencies
               run: |
-                  Rscript -e "install.packages('remotes', repos = 'https://cloud.r-project.org')"
-
-                  Rscript -e "if (!requireNamespace('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
-
-                  Rscript -e "BiocManager::install(c('AUCell', 'edgeR'))"
-
+                  # 安装基本工具包
+                  Rscript -e "install.packages(c('remotes', 'rcmdcheck'), repos = 'https://cloud.r-project.org')"
+                  
+                  # 安装 Bioconductor 包
+                  Rscript -e "
+                  if (!requireNamespace('BiocManager', quietly = TRUE)) 
+                    install.packages('BiocManager', repos = 'https://cloud.r-project.org')
+                  BiocManager::install(c(
+                    'AUCell',
+                    'edgeR',
+                    'preprocessCore'
+                  ))
+                  "
+                  
+                  # 安装 GitHub 包
                   Rscript -e "
                   remotes::install_github('ShixiangWang/IDConverter')
                   remotes::install_github('Qinran-Zhang/scAB')
@@ -63,11 +70,9 @@ jobs:
                   remotes::install_github('aiminXie/scPAS')
                   remotes::install_github('WangX-Lab/ScPP')
                   "
-
-                  Rscript -e "install.packages('rcmdcheck')"
-
+                  
+                  # 安装项目依赖
                   Rscript -e "remotes::install_deps(dependencies = TRUE, upgrade = 'never')"
-
 
             - name: Check package
               uses: r-lib/actions/check-r-package@v2
