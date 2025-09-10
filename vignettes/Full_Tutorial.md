@@ -1558,10 +1558,19 @@ various screening algorithms are based on during execution.
 
 ## 7. References
 
-    1.  Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nat Biotechnol. 2022 Apr;40(4):527–38.
-
-    2.  Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associated subpopulation identifier. Briefings in Bioinformatics. 2024 Nov 22;26(1):bbae655.
-
-    3.  Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical significance by integrating single-cell genomics and bulk sequencing data. Nucleic Acids Research. 2022 Nov 28;50(21):12112–30.
-
-    4.  WangX-Lab/ScPP [Internet]. [cited 2025 Aug 31]. Available from: https://github.com/WangX-Lab/ScPP
+> 1.  Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et
+>     al. Identifying phenotype-associated subpopulations by integrating
+>     bulk and single-cell sequencing data. Nat Biotechnol. 2022
+>     Apr;40(4):527–38.
+>
+> 2.  Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell
+>     phenotype-associated subpopulation identifier. Briefings in
+>     Bioinformatics. 2024 Nov 22;26(1):bbae655.
+>
+> 3.  Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states
+>     with clinical significance by integrating single-cell genomics and
+>     bulk sequencing data. Nucleic Acids Research. 2022 Nov
+>     28;50(21):12112–30.
+>
+> 4.  WangX-Lab/ScPP \[Internet\]. \[cited 2025 Aug 31\]. Available
+>     from: <https://github.com/WangX-Lab/ScPP>
