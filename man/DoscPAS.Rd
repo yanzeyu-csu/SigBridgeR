@@ -29,13 +29,13 @@ DoscPAS(
 
 \item{phenotype}{Phenotype data frame with sample annotations}
 
-\item{label_type}{Character specifying phenotype label type (e.g., "SBS1", "time"), stored in \code{scRNA_data@misc}}
+\item{label_type}{Character specifying phenotype label type (e.g., "SBS1", "time"), stored in \code{scRNA_data@misc}.  (default: "scPAS")}
 
 \item{assay}{Assay to use from sc_data (default: 'RNA')}
 
 \item{imputation}{Logical, whether to perform imputation (default: FALSE)}
 
-\item{imputation_method}{Character. Name of alternative method for imputation.}
+\item{imputation_method}{Character. Name of alternative method for imputation. (options: "KNN", "ALRA")}
 
 \item{nfeature}{Number of features to select (default: 3000, indicating that the top 3000 highly variable genes are selected for model training}
 
@@ -48,6 +48,8 @@ DoscPAS(
 \item{permutation_times}{Number of permutations to perform (default: 2000)}
 
 \item{FDR.threshold}{Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)}
+
+\item{independent}{Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)}
 
 \item{...}{Additional arguments passed to \code{DoscPAS} functions}
 }

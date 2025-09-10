@@ -10,3 +10,10 @@ tmp
 MatchArg*
 .github/*
 .here
+.Rhistory
+.qs
+.Rprofile
+.rds
+^example_data$
+vignettes/example_data
+^Tmp
