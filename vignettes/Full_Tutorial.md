@@ -12,7 +12,7 @@
     -   [1. Installation](#1-installation)
         -   [1.1 Stable Release from
             GitHub](#11-stable-release-from-github)
-        -   [1.2 Check Dependencies](#12-check-dependencies)
+        -   [1.8 Check Dependencies](#18-check-dependencies)
     -   [2. Loading and preprocessing
         data](#2-loading-and-preprocessing-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
@@ -20,8 +20,8 @@
                 Matrix](#211-option-a-start-from-raw-matrix)
             -   [2.1.2 (Option B) Start from AnnDataR6
                 Object](#212-option-b-start-from-anndatar6-object)
-            -   [2.1.3 (Optional) Filter Out Tumor
-                Cells](#213-optional-filter-out-tumor-cells)
+            -   [2.1.8 (Optional) Filter Out Tumor
+                Cells](#218-optional-filter-out-tumor-cells)
         -   [2.2 Bulk expression data](#22-bulk-expression-data)
             -   [2.2.1 Evaluate the quality of your bulk RNA-seq
                 data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
@@ -41,8 +41,8 @@
             Screening](#32-option-b-scpas-screening)
         -   [3.3 (Option C) scAB Screening](#33-option-c-scab-screening)
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
-        -   [3.5 (Optional) Merge screening
-            results](#35-optional-merge-screening-results)
+        -   [3.8 (Optional) Merge screening
+            results](#38-optional-merge-screening-results)
     -   [4. Visualization](#4-visualization)
         -   [4.1 UMAP for screening
             results](#41-umap-for-screening-results)
@@ -84,12 +84,19 @@ Install **SigBridgeR** using one of these methods:
 
 ### 1.1 Release from GitHub
 
+Usually we recommend installing the latest release from GitHub because
+of the latest features and bug fixes.
+
     if(!requireNamespace("remotes")) {
       install.packages("remotes")
     }
     remotes::install_github("WangLabCSU/SigBridgeR")
 
-### 1.2 Check Dependencies
+### 1.2 Release from r-universe
+
+    install.packages("SigBridgeR", repos = "https://wanglab.r-universe.dev")
+
+### 1.8 Check Dependencies
 
 You can use this function to quickly verify installed dependencies and
 their versions:
@@ -285,7 +292,7 @@ The description of data (meta.data) in `anndata_obj$obs` will be add to
 
 -   [AnnData for R](https://github.com/dynverse/anndata)
 
-#### 2.1.3 (Optional) Filter Out Tumor Cells
+#### 2.1.8 (Optional) Filter Out Tumor Cells
 
 If you aim to filter out phenotype-associated cells in all tumor cells.
 With a preprocessed Seurat object (containing results from ),
@@ -762,7 +769,7 @@ Parameters pass to `...` when using `scPP` method :
 
 -   `scRNA_data`: A Seurat object after screening
 
-### 3.5 (Optional) Merge screening results
+### 3.8 (Optional) Merge screening results
 
 If you have performed multiple screening methods one the same
 single-cell data, you can use the `MergeResult` to merge the screening

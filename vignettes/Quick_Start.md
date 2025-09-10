@@ -5,6 +5,10 @@
     }
     remotes::install_github("WangLabCSU/SigBridgeR")
 
+
+    # # Or install from r-universe:
+    # install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
+
     library(SigBridgeR)
 
 We will start with a simple example.
