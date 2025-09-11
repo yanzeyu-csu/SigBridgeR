@@ -278,7 +278,7 @@ DoscPP = function(
 #' the original version.
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' # Dense matrix example
 #' set.seed(123)
 #' mat_dense <- matrix(rnorm(100), nrow = 10)
