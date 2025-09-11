@@ -1686,8 +1686,5 @@ various screening algorithms are based on during execution.
 >     bulk sequencing data. Nucleic Acids Research. 2022 Nov
 >     28;50(21):12112–30.
 >
-> 4.  WangX-Lab/ScPP
->     *I**n**t**e**r**n**e**t*
->     .
->     *c**i**t**e**d*2025*A**u**g*31
->     . Available from: <https://github.com/WangX-Lab/ScPP>
+> 4.  WangX-Lab/ScPP Internet. cited 2025 Aug 31. Available from:
+>     <https://github.com/WangX-Lab/ScPP>
