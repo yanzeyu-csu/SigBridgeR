@@ -1218,8 +1218,115 @@ specified any particular parameters.
 
 As you can see, due to differences in data and algorithms, not every
 screening algorithm is able to screen out cells. You can adjust the
-corresponding parameters. See also [3.2 (Option B) scPAS
-Screening](#32-option-b-scpas-screening)
+corresponding parameters, e.g. change the `alpha` to `NULL`, this will
+make scPAS iterate alpha until the result is significant. See also [3.2
+(Option B) scPAS Screening](#32-option-b-scpas-screening)
+
+    scpas_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "scPAS",
+        alpha = NULL
+    )
+    # ℹ [2025/09/11 09:44:42] Start scPAS screening.
+    # [1] "Step 1:Quantile normalization of bulk data."
+    # [1] "Step 2: Extracting single-cell expression profiles...."
+    # Warning: The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
+    # ℹ Please use the `layer` argument instead.
+    # ℹ The deprecated feature was likely used in the scPAS package.
+    #   Please report the issue to the authors.
+    # This warning is displayed once every 8 hours.
+    # Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
+    # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
+    # Building SNN based on a provided distance matrix
+    # Computing SNN
+    # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
+    # [1] "Perform cox regression on the given clinical outcomes:"
+    # [1] "alpha = 0.001"
+    # [1] "lambda = 3.22620698162906"
+    # [1] "scPAS identified 129 rick+ features and 36 rick- features."
+    # [1] "The percentage of selected feature is: 95.376%"
+
+    # [1] "alpha = 0.005"
+    # [1] "lambda = 1.97047399269694"
+    # [1] "scPAS identified 94 rick+ features and 33 rick- features."
+    # [1] "The percentage of selected feature is: 73.410%"
+
+    # [1] "alpha = 0.01"
+    # [1] "lambda = 1.42941018794126"
+    # [1] "scPAS identified 80 rick+ features and 27 rick- features."
+    # [1] "The percentage of selected feature is: 61.850%"
+
+    # [1] "alpha = 0.05"
+    # [1] "lambda = 0.499586979737535"
+    # [1] "scPAS identified 46 rick+ features and 16 rick- features."
+    # [1] "The percentage of selected feature is: 35.838%"
+
+    # [1] "alpha = 0.1"
+    # [1] "lambda = 0.274148046759175"
+    # [1] "scPAS identified 32 rick+ features and 14 rick- features."
+    # [1] "The percentage of selected feature is: 26.590%"
+
+    # [1] "alpha = 0.2"
+    # [1] "lambda = 0.150438571440263"
+    # [1] "scPAS identified 21 rick+ features and 14 rick- features."
+    # [1] "The percentage of selected feature is: 20.231%"
+
+    # [1] "alpha = 0.3"
+    # [1] "lambda = 0.132580625268887"
+    # [1] "scPAS identified 16 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 13.873%"
+
+    # [1] "alpha = 0.4"
+    # [1] "lambda = 0.0994354689516653"
+    # [1] "scPAS identified 16 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 13.873%"
+
+    # [1] "alpha = 0.5"
+    # [1] "lambda = 0.0795483751613323"
+    # [1] "scPAS identified 15 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 13.295%"
+
+    # [1] "alpha = 0.6"
+    # [1] "lambda = 0.0727535362804505"
+    # [1] "scPAS identified 14 rick+ features and 5 rick- features."
+    # [1] "The percentage of selected feature is: 10.983%"
+
+    # [1] "alpha = 0.7"
+    # [1] "lambda = 0.0623601739546719"
+    # [1] "scPAS identified 14 rick+ features and 5 rick- features."
+    # [1] "The percentage of selected feature is: 10.983%"
+
+    # [1] "alpha = 0.8"
+    # [1] "lambda = 0.0545651522103379"
+    # [1] "scPAS identified 14 rick+ features and 4 rick- features."
+    # [1] "The percentage of selected feature is: 10.405%"
+
+    # [1] "alpha = 0.9"
+    # [1] "lambda = 0.0485023575203004"
+    # [1] "scPAS identified 14 rick+ features and 4 rick- features."
+    # [1] "The percentage of selected feature is: 10.405%"
+
+    # [1] "|**************************************************|"
+    # [1] "Step 5: calculating quantified risk scores...."
+    # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
+    # [1] "Finished."
+    # ✔ [2025/09/11 09:46:02] scPAS screening done.
+
+Unfortunatly, scPAS is not able to screen out any positive cells in this
+dataset. This means that scPAS may be not suitable for this dataset. You
+can try to adjust other parameters to screen out the positive cells (and
+no, it’s totally not because the author was too lazy to tune them
+`_(¦3」∠)_` ), and we are always happy to see others test our package.
+
+    table(scpas_result$scRNA_data$scPAS)
+    # Neutral 
+    #    1093 
+
+Now we use scAB and scPP to screen cells.
 
     scab_result = Screen(
         matched_bulk = bulk,
@@ -1579,5 +1686,8 @@ various screening algorithms are based on during execution.
 >     bulk sequencing data. Nucleic Acids Research. 2022 Nov
 >     28;50(21):12112–30.
 >
-> 4.  WangX-Lab/ScPP \[Internet\]. \[cited 2025 Aug 31\]. Available
->     from: <https://github.com/WangX-Lab/ScPP>
+> 4.  WangX-Lab/ScPP
+>     *I**n**t**e**r**n**e**t*
+>     .
+>     *c**i**t**e**d*2025*A**u**g*31
+>     . Available from: <https://github.com/WangX-Lab/ScPP>
