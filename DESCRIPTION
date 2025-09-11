@@ -27,6 +27,7 @@ Imports:
     patchwork,
     preprocessCore (>= 1.66.0),
     purrr,
+    rlang,
     scAB,
     scales,
     Scissor,

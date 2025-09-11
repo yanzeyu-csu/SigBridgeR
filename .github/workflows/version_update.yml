@@ -52,29 +52,34 @@ jobs:
             - name: Get commit message
               id: commit_msg
               run: |
-                  echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+                  if command -v jq &> /dev/null; then
+                    msg=$(git log -1 --pretty=%B | jq -sR . | sed 's/^"//;s/"$//')
+                  else
+                    msg=$(git log -1 --pretty=%B | sed 's/"/\\"/g' | tr '\n' ' ')
+                  fi
+                  echo "msg=$msg" >> $GITHUB_OUTPUT
 
             - name: Determine version bump type
               id: version_bump
               run: |
-                # 将commit message转换为小写以便不区分大小写匹配
-                commit_msg=$(echo "${{ steps.commit_msg.outputs.msg }}" | tr '[:upper:]' '[:lower:]')
-                
-                # 使用更精确的单词边界匹配，避免部分匹配
-                if echo "$commit_msg" | grep -q "\<major\>\|\<breaking\>\|feat!"; then
-                    echo "type=major" >> $GITHUB_OUTPUT
-                    echo "Bump type: major" >&2
-                elif echo "$commit_msg" | grep -q "\<feat\>\|\<feature\>\|\<minor\>"; then
-                    echo "type=minor" >> $GITHUB_OUTPUT
-                    echo "Bump type: minor" >&2
-                elif echo "$commit_msg" | grep -q "\<patch\>\|\<fix\>\|\<bug\>"; then
-                    echo "type=patch" >> $GITHUB_OUTPUT
-                    echo "Bump type: patch" >&2
-                else
-                    echo "type=none" >> $GITHUB_OUTPUT
-                    echo "Bump type: none (no version change)" >&2
-                    exit 0
-                fi
+                  # 将commit message转换为小写以便不区分大小写匹配
+                  commit_msg=$(echo "${{ steps.commit_msg.outputs.msg }}" | tr '[:upper:]' '[:lower:]')
+
+                  # 使用更精确的单词边界匹配，避免部分匹配
+                  if echo "$commit_msg" | grep -q "\<major\>\|\<breaking\>\|feat!"; then
+                      echo "type=major" >> $GITHUB_OUTPUT
+                      echo "Bump type: major" >&2
+                  elif echo "$commit_msg" | grep -q "\<feat\>\|\<feature\>\|\<minor\>"; then
+                      echo "type=minor" >> $GITHUB_OUTPUT
+                      echo "Bump type: minor" >&2
+                  elif echo "$commit_msg" | grep -q "\<patch\>\|\<fix\>\|\<bug\>"; then
+                      echo "type=patch" >> $GITHUB_OUTPUT
+                      echo "Bump type: patch" >&2
+                  else
+                      echo "type=none" >> $GITHUB_OUTPUT
+                      echo "Bump type: none (no version change)" >&2
+                      exit 0
+                  fi
 
             - name: Update version in DESCRIPTION
               id: update_version
@@ -102,7 +107,7 @@ jobs:
                   echo "Updated README.md version badge to $NEW_VERSION"
 
             - name: Update version in .Rproj file
-              if: steps.version_bump.outputs.type != 'none'              
+              if: steps.version_bump.outputs.type != 'none'
               run: |
                   RPROJ_FILE=$(find . -maxdepth 1 -name "*.Rproj" | head -1)
                   if [ -f "$RPROJ_FILE" ]; then
