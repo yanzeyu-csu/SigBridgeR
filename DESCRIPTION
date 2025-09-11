@@ -38,6 +38,12 @@ Imports:
 Depends: 
     R (>= 4.1.0),    
     Matrix
+Remotes: 
+    ShixiangWang/IDConverter,
+    Qinran-Zhang/scAB,
+    sunduanchen/Scissor,
+    aiminXie/scPAS,
+    WangX-Lab/ScPP
 Suggests: 
     anndata,
     ggVennDiagram,
