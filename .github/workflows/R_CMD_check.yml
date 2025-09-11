@@ -1,5 +1,21 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# See https://github.com/r-lib/actions/tree/master/examples#readme for
+# additional example workflows available for the R community.
+
+# ======================================================== #
+# Determines when the action is triggered                  #
+# ======================================================== #
+
 on: [push, pull_request]
 name: R-CMD-check
+
+# ======================================================== #
+# Determine actions to take                                #
+# ======================================================== #
 
 jobs:
     R-CMD-check:
@@ -16,62 +32,49 @@ jobs:
             GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
             R_KEEP_PKG_SOURCE: yes
         steps:
-            - uses: actions/checkout@v4
+            - name: Checking out the repository
+              uses: actions/checkout@v4
 
-            - uses: r-lib/actions/setup-pandoc@v2
+            - name: Setting up pandoc
+              uses: r-lib/actions/setup-pandoc@v2
 
-            - name: Set up R
+            - name: Setting up R ${{ matrix.config.r }} on ${{ matrix.config.os }}
               uses: r-lib/actions/setup-r@v2
               with:
                   r-version: ${{ matrix.config.r }}
+                  http-user-agent: ${{ matrix.config.http-user-agent }}
                   use-public-rspm: true
 
-            - name: Install Rtools (Windows)
-              if: matrix.config.os == 'windows-latest'
+            # 对于 macOS，使用替代方法安装依赖
+            - name: Install dependencies (macOS - alternative method)
+              if: matrix.config.os == 'macOS-latest'
               run: |
-                  # Set up Rtools path for R
-                  echo "PATH=${RTOOLS40_HOME}\\usr\\bin;${PATH}" >> ${HOME}/.Renviron
-              shell: bash
+                  # 安装 remotes 包
+                  Rscript -e 'install.packages("remotes")'
 
-            - name: Install system dependencies (Linux)
-              if: runner.os == 'Linux'
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+                  # 从 DESCRIPTION 文件安装依赖
+                  Rscript -e '
+                  deps <- remotes::dev_package_deps(dependencies = TRUE)
+                  remotes::install_deps(dependencies = TRUE, upgrade = "never")
+                  '
 
-            - name: Install basic dependencies
-              run: |
-                  # Install basic packages
-                  Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'Rcpp', 'devtools'), repos = 'https://cloud.r-project.org')"
+                  Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
+                  
+                  Rscript -e 'BiocManager::install(c("AUCell", "edgeR"))'
 
-            - name: Install BiocManager dependencies
-              run: |
-                  Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
+                  Rscript -e 'remotes::install_github("WangX-Lab/ScPP")'  
+                  # 额外安装检查所需的包
+                  Rscript -e 'install.packages("rcmdcheck")'
 
-            - name: Install bioconductor dependencies
-              run: |
-                  # Install Bioconductor packages
-                  Rscript -e "BiocManager::install(c('AUCell', 'edgeR', 'preprocessCore'), ask = FALSE, force = TRUE)"
+            # 对于非 macOS 系统，继续使用标准方法
+            - name: Querying dependencies (non-macOS)
+              if: matrix.config.os != 'macOS-latest'
+              uses: r-lib/actions/setup-r-dependencies@v2
+              with:
+                  extra-packages: any::rcmdcheck
+                  needs: check
 
-            - name: Install github dependencies
-              run: |
-                  # Install GitHub packages
-                  Rscript -e "
-                  remotes::install_github(c(
-                    'ShixiangWang/IDConverter',
-                    'Qinran-Zhang/scAB',
-                    'sunduanchen/Scissor',
-                    'aiminXie/scPAS',
-                    'WangX-Lab/ScPP'
-                  ), force = TRUE)
-                  "
-
-            - name: Install project dependencies
-              run: |
-                  # Install project dependencies
-                  Rscript -e "remotes::install_deps(dependencies = TRUE, upgrade = 'never')"
-
-            - name: Check package
+            - name: Checking package
               uses: r-lib/actions/check-r-package@v2
               with:
                   upload-snapshots: true
