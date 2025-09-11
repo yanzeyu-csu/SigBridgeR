@@ -79,10 +79,10 @@ A list containing:
 Identifies phenotype-associated cell subpopulations in single-cell data using
 regularized regression on matched bulk expression profiles.
 }
-\section{Reference}{
+\section{LICENSE}{
 
-Sun S et al. (2022). "Scissor identifies phenotype-associated cell subsets
-in single-cell genomics." Nat Methods 19(5):600-608. \doi{10.1038/s41592-022-01452-1}
+Licensed under the GNU General Public License version 3 (GPL-3.0).
+A copy of the license is available at \url{https://www.gnu.org/licenses/gpl-3.0.en.html}.
 }
 
 \examples{
@@ -96,5 +96,8 @@ res <- DoScissor(
 )
 }
 
+}
+\references{
+Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nat Biotechnol. 2022 Apr;40(4):527–38.
 }
 \keyword{internal}

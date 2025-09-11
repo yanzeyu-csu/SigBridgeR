@@ -69,8 +69,7 @@ It supports binary, continuous, and survival phenotype types.
 
 \section{Reference}{
 
-Wang X Lab (2023). "scPP: Single-cell Phenotype Prediction".
-GitHub: \url{https://github.com/WangX-Lab/ScPP}
+WangX-Lab/ScPP [Internet]. [cited 2025 Aug 31]. Available from: https://github.com/WangX-Lab/ScPP
 }
 
 \examples{

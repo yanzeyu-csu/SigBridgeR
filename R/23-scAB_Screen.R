@@ -28,9 +28,12 @@
 #'   \item{scAB_result}{scAB screening result}
 #' }
 #'
-#' @section Reference:
-#' Zhang Q, Jin S, Zou X (2022). "scAB detects multiresolution cell states with
-#' clinical significance by integrating single-cell genomics and bulk sequencing data."
+#' @references
+#' Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical significance by integrating single-cell genomics and bulk sequencing data. Nucleic Acids Research. 2022 Nov 28;50(21):12112–30.
+#'
+#' @section LICENSE:
+#' Licensed under the GNU General Public License version 3 (GPL-3.0).
+#' A copy of the license is available at <https://www.gnu.org/licenses/gpl-3.0.en.html>.
 #'
 #' @examples
 #' \dontrun{

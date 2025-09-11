@@ -60,6 +60,15 @@ A Seurat object from scPAS analysis
 This function performs scPAS screening analysis by integrating bulk and single-cell RNA-seq data.
 It includes data filtering steps and wraps the core scPAS::scPAS function.
 }
+\section{LICENSE}{
+
+Licensed under the GNU General Public License version 3 (GPL-3.0).
+A copy of the license is available at \url{https://www.gnu.org/licenses/gpl-3.0.en.html}.
+}
+
+\references{
+Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associated subpopulation identifier. Briefings in Bioinformatics. 2024 Nov 22;26(1):bbae655.
+}
 \seealso{
 Other screen_method: 
 \code{\link{DoscPP}()}

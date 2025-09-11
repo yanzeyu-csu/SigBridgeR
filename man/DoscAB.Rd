@@ -54,10 +54,10 @@ in single-cell RNA-seq data by integrating matched bulk expression and phenotype
 information. Uses non-negative matrix factorization (NMF) with dual regularization
 for phenotype association and cell-cell similarity.
 }
-\section{Reference}{
+\section{LICENSE}{
 
-Zhang Q, Jin S, Zou X (2022). "scAB detects multiresolution cell states with
-clinical significance by integrating single-cell genomics and bulk sequencing data."
+Licensed under the GNU General Public License version 3 (GPL-3.0).
+A copy of the license is available at \url{https://www.gnu.org/licenses/gpl-3.0.en.html}.
 }
 
 \examples{
@@ -76,5 +76,8 @@ result <- DoscAB(
 )
 }
 
+}
+\references{
+Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical significance by integrating single-cell genomics and bulk sequencing data. Nucleic Acids Research. 2022 Nov 28;50(21):12112–30.
 }
 \keyword{internal}
