@@ -1316,6 +1316,10 @@ Finally, we can visualize the screening results. Let's start with a Venn diagram
 library(ggVennDiagram)
 library(zeallot)
 
+# color palette
+set.seed(123)
+my_colors = randomcoloR::distinctColorPalette(length(unique(screen_result$seurat_clusters)),runTsne = TRUE)
+
 c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
     purrr::map(
         c("scissor", "scAB", "scPAS", "scPP"),
@@ -1367,6 +1371,8 @@ ggplot2::ggsave("vignettes/example_figures/venn.png",plot=venn, width = 10, heig
 knitr::include_graphics("vignettes/example_figures/venn.png")
 ```
 
+[![venn](example_figures/venn.png){fig-align="center" width="400"}]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn.png))
+
 A bar chart showing proportions can also be used to examine the screening results. Since the example data does not have sample metadata, we have created a fictional `Sample` column.
 
 ```{r,example_data_bar,eval=FALSE}
@@ -1393,6 +1399,8 @@ fraction_list = ScreenFractionPlot(
 knitr::include_graphics("vignettes/example_figures/fraction.png")
 ```
 
+[![fraction](example_figures/fraction.png){fig-align="center" width="600"}]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction.png))
+
 The `fraction_list` contains the statistical data and charts for each screening algorithm.
 
 ```{text,example_data_fraction_list,eval=FALSE}
@@ -1418,7 +1426,8 @@ sample_umap = Seurat::DimPlot(
   screen_result,
   group.by = "Sample",
   pt.size = 0.2,
-  reduction = "umap"
+  reduction = "umap",
+  cols = my_colors
 ) +
   ggplot2::ggtitle("Sample")
 
@@ -1461,6 +1470,8 @@ umaps
 ```{r,example_data_umap_plot}
 knitr::include_graphics("vignettes/example_figures/umaps.png")
 ```
+
+[![umaps](example_figures/umaps.png){fig-align="center" width="600"}]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps.png))
 
 ### 5.2 Continuous phenotype associated cell screening
 

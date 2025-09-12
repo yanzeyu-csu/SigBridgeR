@@ -22,6 +22,7 @@ remotes::install_github("WangLabCSU/SigBridgeR")
 # install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 
 library(SigBridgeR)
+library(Seurat)
 ```
 
 We will start with a simple example.
@@ -81,7 +82,7 @@ scissor_res <- Screen(
   screen_method = "Scissor",
   scissor_alpha = 0.05
 )
-```  
+```
 
 Other screening methods are also available.
 
@@ -118,6 +119,8 @@ fraction = ScreenFractionPlot(
 ```{r,visualize_fraction_plot}
 knitr::include_graphics("vignettes/example_figures/fraction_q.png")
 ```
+
+[![fraction_q](example_figures/fraction_q.png){fig-align="center" width="600"}](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction_q.png)
 
 ```{r,visualize_venn,eval=FALSE}
 c(scissor_pos, scpas_pos) %<-%
@@ -161,6 +164,8 @@ venn_plot = ggVennDiagram::ggVennDiagram(
 ```{r,visualize_venn_plot}
 knitr::include_graphics("vignettes/example_figures/venn_q.png")
 ```
+
+[![venn_q](example_figures/venn_q.png){fig-align="center" width="400"}]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn_q.png))
 
 ```{r,visualize_umap,eval=FALSE}
 library(patchwork)
@@ -214,3 +219,5 @@ umaps
 ```{r,visualize_umap_plot}
 knitr::include_graphics("vignettes/example_figures/umaps_q.png")
 ```
+
+[![umaps_q](example_figures/umaps_q.png "umaps_q"){fig-alt="umaps_q" fig-align="center" width="400"}](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)

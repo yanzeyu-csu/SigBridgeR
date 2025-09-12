@@ -324,7 +324,7 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
         cli::cli_abort(
             c(
                 "Detected {.val {length(bad_genes)}} gene(s) with zero variance:",
-                " " = "{.val {bad_genes}}"
+                "i" = "{.val {bad_genes}}"
             ),
             class = "zero_variance_error",
             call = call
