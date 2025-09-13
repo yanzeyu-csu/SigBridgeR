@@ -21,6 +21,7 @@ vignette: >
         -   [0.1 Introduction to SigBridgeR](#01-introduction-to-sigbridger)
     -   [1. Installation](#1-installation)
         -   [1.1 Stable Release from GitHub](#11-stable-release-from-github)
+        -   [1.2 Release from r-universe](#12-release-from-r-universe)
         -   [1.8 Check Dependencies](#18-check-dependencies)
     -   [2. Loading and preprocessing data](#2-loading-and-preprocessing-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
@@ -151,10 +152,11 @@ CheckPkgs(list(
 
 ## 2. Loading and preprocessing data
 
-First load the package:
+First load the packaged:
 
 ```{r,load_package,eval=FALSE}
 library(SigBridgeR)
+library(Seurat)
 ```
 
 ### 2.1 Single-cell RNA-seq Data
@@ -290,6 +292,8 @@ your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
 > ```
 
 ### 2.2 Bulk expression data
+
+Here are some methods for processing bulk RNA-seq gene expression data matrices.
 
 #### 2.2.1 Evaluate the quality of your bulk RNA-seq data
 
