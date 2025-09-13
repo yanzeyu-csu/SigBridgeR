@@ -10,6 +10,7 @@
     # install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 
     library(SigBridgeR)
+    library(Seurat)
 
 We will start with a simple example.
 
@@ -92,6 +93,9 @@ Finally, we visualize the screening results.
 
     knitr::include_graphics("vignettes/example_figures/fraction_q.png")
 
+[<img src="example_figures/fraction_q.png" data-fig-align="center"
+width="600" alt="fraction_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction_q.png)
+
     c(scissor_pos, scpas_pos) %<-%
       purrr::map(
         c("scissor", "scPAS"),
@@ -129,6 +133,9 @@ Finally, we visualize the screening results.
       ggplot2::ggtitle("Screening Venn Diagram")
 
     knitr::include_graphics("vignettes/example_figures/venn_q.png")
+
+[<img src="example_figures/venn_q.png" data-fig-align="center"
+width="400" alt="venn_q" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn_q.png))
 
     library(patchwork)
     library(randomcoloR)
@@ -178,3 +185,7 @@ Finally, we visualize the screening results.
     umaps
 
     knitr::include_graphics("vignettes/example_figures/umaps_q.png")
+
+[<img src="example_figures/umaps_q.png" title="umaps_q"
+data-fig-alt="umaps_q" data-fig-align="center" width="400"
+alt="umaps_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)

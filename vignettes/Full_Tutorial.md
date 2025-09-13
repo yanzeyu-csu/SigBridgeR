@@ -12,6 +12,7 @@
     -   [1. Installation](#1-installation)
         -   [1.1 Stable Release from
             GitHub](#11-stable-release-from-github)
+        -   [1.2 Release from r-universe](#12-release-from-r-universe)
         -   [1.8 Check Dependencies](#18-check-dependencies)
     -   [2. Loading and preprocessing
         data](#2-loading-and-preprocessing-data)
@@ -165,9 +166,10 @@ their versions:
 
 ## 2. Loading and preprocessing data
 
-First load the package:
+First load the packaged:
 
     library(SigBridgeR)
+    library(Seurat)
 
 ### 2.1 Single-cell RNA-seq Data
 
@@ -320,6 +322,9 @@ column:
 >     )
 
 ### 2.2 Bulk expression data
+
+Here are some methods for processing bulk RNA-seq gene expression data
+matrices.
 
 #### 2.2.1 Evaluate the quality of your bulk RNA-seq data
 
@@ -1396,6 +1401,10 @@ diagram to see the situation.
     library(ggVennDiagram)
     library(zeallot)
 
+    # color palette
+    set.seed(123)
+    my_colors = randomcoloR::distinctColorPalette(length(unique(screen_result$seurat_clusters)),runTsne = TRUE)
+
     c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
         purrr::map(
             c("scissor", "scAB", "scPAS", "scPP"),
@@ -1443,6 +1452,9 @@ diagram to see the situation.
 
     knitr::include_graphics("vignettes/example_figures/venn.png")
 
+[<img src="example_figures/venn.png" data-fig-align="center" width="400"
+alt="venn" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn.png))
+
 A bar chart showing proportions can also be used to examine the
 screening results. Since the example data does not have sample metadata,
 we have created a fictional `Sample` column.
@@ -1467,6 +1479,9 @@ we have created a fictional `Sample` column.
 
     knitr::include_graphics("vignettes/example_figures/fraction.png")
 
+[<img src="example_figures/fraction.png" data-fig-align="center"
+width="600" alt="fraction" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction.png))
+
 The `fraction_list` contains the statistical data and charts for each
 screening algorithm.
 
@@ -1490,7 +1505,8 @@ UMAP is the most commonly used type of plot in academic literature.
       screen_result,
       group.by = "Sample",
       pt.size = 0.2,
-      reduction = "umap"
+      reduction = "umap",
+      cols = my_colors
     ) +
       ggplot2::ggtitle("Sample")
 
@@ -1529,6 +1545,9 @@ UMAP is the most commonly used type of plot in academic literature.
     umaps
 
     knitr::include_graphics("vignettes/example_figures/umaps.png")
+
+[<img src="example_figures/umaps.png" data-fig-align="center" width="600"
+alt="umaps" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps.png))
 
 ### 5.2 Continuous phenotype associated cell screening
 
