@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-# Full Tutorial for SigBridgeR {#full-tutorial-for-sigbridger}
+# Full Tutorial for SigBridgeR
 
 ## 0. Preface
 
@@ -45,6 +45,7 @@ vignette: >
         -   [4.1 UMAP for screening results](#41-umap-for-screening-results)
         -   [4.2 Stack bar plot for screening results](#42-stack-bar-plot-for-screening-results)
         -   [4.3 Venn diagram for screening results](#43-venn-diagram-for-screening-results)
+        -   [4.4 Upset plot for screening results](#44-upset-plot-for-screening-results)
     -   [5. Example](#5-example)
         -   [5.1 Survival-associated cell screening](#51-survival-associated-cell-screening)
         -   [5.2 Phenotype-associated cell screening](#52-phenotype-associated-cell-screening)
@@ -52,6 +53,7 @@ vignette: >
     -   [6. Other function details](#6-other-function-details)
         -   [6.1 Add miscellaneous information to the Seurat object](#61-add-miscellaneous-information-to-the-seurat-object)
         -   [6.2 Calculate the variance of each row in a matrix](#62-calculate-the-variance-of-each-row-in-a-matrix)
+        -   [6.3 Detect Rows with Zero Variance in Matrices](#63-detect-rows-with-zero-variance-in-matrices)
     -   [7. References](#7-references)
 
 ### 0.1 Introduction to SigBridgeR
@@ -165,7 +167,7 @@ You can use function `SCPreProcess` to preprocess your single-cell RNA-seq data.
 
 #### 2.1.1 (Option A) Start from Raw Matrix
 
-When starting from a raw count matrix, `SCPreProcess` will automatically perform Seurat preprocess (including `NormalizeData, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunTSNE, RunUMAP`). `SCPreProcess` returns a fully preprocessed Seurat object for downstream use.
+When starting from a raw count matrix (data.frame, matrix or dgCMatrix), `SCPreProcess` will automatically perform Seurat preprocess (including `NormalizeData, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunTSNE, RunUMAP`). `SCPreProcess` returns a fully preprocessed Seurat object for downstream use.
 
 ```{r,scpreprocessing_raw_matrix,eval=FALSE}
 your_seurat <- SCPreProcess(
@@ -336,7 +338,7 @@ filtered_counts <- BulkPreProcess(
 
 The function returns a filtered count matrix after applying quality control steps. The order of filtering is: first genes, then samples.
 
-##### Quality Control Metrics Reported {#quality-control-metrics-reported}
+##### Quality Control Metrics Reported 
 
 -   Data Integrity: Number of missing values detected
 
@@ -352,13 +354,13 @@ The function returns a filtered count matrix after applying quality control step
 
 -   Batch Effects: Proportion of genes significantly affected by batch
 
-##### Visualization Output {#visualization-output}
+##### Visualization Output 
 
 When `show_plot_results = TRUE`, the function generates:
 
 PCA plot colored by experimental condition
 
-##### Recommended Parameter Adjustments {#recommended-parameter-adjustments}
+##### Recommended Parameter Adjustments 
 
 -   For low-depth sequencing data: reduce `min_total_reads` and `min_genes_detected`
 
@@ -736,7 +738,7 @@ This function simply merges the `meta.data` and `misc` slots of the input Seurat
 
 ## 4. Visualization
 
-Here we provide some visualization methods for the screening results.
+Here we provide some visualization methods for the screening results. Considering that many people have different needs for data visualization, `SigBridgR` hardly provides visualization (except for Fraction plot). We only provide the source code for reference.
 
 ### 4.1 UMAP for screening results
 
@@ -932,13 +934,29 @@ venn_plot = ggVennDiagram::ggVennDiagram(
     ggplot2::ggtitle("Screening Venn Diagram")
 ```
 
-**helpful documentation**:
+**helpful link**:
 
 [ggVennDiagram - https://gaospecial.github.io/ggVennDiagram/](https://gaospecial.github.io/ggVennDiagram/)
 
+### 4.4 Upset plot for screening results
+
+If too many screening meyhods are selected, the number of intersections among cells screened by different methods will also increase. In this case, using an upset plot is more intuitive and neat than a Venn diagram.
+
+`ggupset` is used for visualizing upset plot.
+
+```{r,upset_plot_example,eval=FALSE}
+library(ggupset)
+
+
+```
+
+**helpful link**:
+
+[ggupset - https://github.com/const-ae/ggupset](https://github.com/const-ae/ggupset)
+
 ------------------------------------------------------------------------
 
-## 5. Example {#example}
+## 5. Example 
 
 ### 5.1 Survival-associated cell screening
 
@@ -1610,6 +1628,56 @@ seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
  single_col <- matrix(1:3, ncol = 1)
  rowVars(single_col)  # Returns NaN due to division by 0
 ```
+
+### 6.3 Detect Rows with Zero Variance in Matrices
+
+-   `Check0VarRows`: Detect Rows with Zero Variance in Matrices
+
+The `Check0VarRows` function identifies rows with zero variance (constant values) or exclusively `NA` values in numeric matrices, including sparse matrices of class `dgCMatrix`. It throws an informative error if such rows are detected, listing their names. This is particularly useful for preprocessing steps in statistical analyses (e.g., PCA, regression) where constant rows may cause computational issues or misinterpretations.
+
+#### Parameters
+
+-   **`mat`** (Required)\
+    A numeric matrix or sparse matrix of class `dgCMatrix` (from the `Matrix` package). Rows represent features (e.g., genes), and columns represent observations. Must have row names to identify problematic rows in error messages.
+
+-   **`call`** (Optional, Advanced)\
+    The environment from which the function was called. Used internally for error reporting. Defaults to `rlang::caller_env()`. Most users can ignore this parameter.
+
+#### Details
+
+**Algorithm:**
+
+-   For **dense matrices**, uses `rowVars` ([Section 6.2](#62-calculate-the-variance-of-each-row-in-a-matrix)) implementation to compute row variances with efficient NA handling.\
+
+-   For **sparse matrices (`dgCMatrix`)**, leverages a mathematical identity to compute variance without dense intermediate matrices:\
+    $$
+    \text{Var}(x) = \frac{\sum x^2 - \frac{(\sum x)^2}{n}}{n-1}
+    $$
+
+    Rows with \<=1 non-zero observation are treated as zero-variance to avoid numerical instability.
+
+```{r,check_0_var_rows_example,eval=FALSE}
+# Example 1: Dense matrix with no zero-variance rows
+set.seed(123)
+mat_dense <- matrix(rnorm(100), nrow = 10)
+rownames(mat_dense) <- paste0("Gene", 1:10)
+Check0VarRows(mat_dense)  # No error
+
+# Example 2: Dense matrix with zero-variance row
+mat_dense[1, ] <- rep(5, 10)  # First row is constant
+Check0VarRows(mat_dense)      # Error: "Detected 1 gene(s) with zero variance: Gene1"
+
+# Example 3: Sparse matrix (dgCMatrix)
+library(Matrix)
+mat_sparse <- as(matrix(rpois(100, 0.5), nrow = 10), "dgCMatrix")
+rownames(mat_sparse) <- paste0("Gene", 1:10)
+Check0VarRows(mat_sparse)  # Error if any row has zero variance
+```
+
+#### Notes
+
+-   **Row Names Requirement:** Ensure the input matrix has row names. Without them, the error message will show indices instead of names.
+-   **NA Handling:** Rows with all `NA` values are treated as zero-variance and will trigger an error.
 
 ------------------------------------------------------------------------
 

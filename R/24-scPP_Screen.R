@@ -247,7 +247,7 @@ DoscPP = function(
         crayon::green(" scPP screening done.")
     ))
 
-    return(list(scRNA_data = sc_data))
+    return(list(scRNA_data = sc_data, gene_list = gene_list))
 }
 
 

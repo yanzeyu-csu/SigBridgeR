@@ -25,8 +25,8 @@
 #' @param ... Additional method-specific parameters:
 #' \describe{
 #'   \item{Scissor}{\describe{
-#'     \item{scissor_alpha}{(numeric or NULL) Significance threshold. When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.05}
-#'     \item{scissor_cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when `scissor_alpha` is NULL, default 0.2}
+#'     \item{alpha}{(numeric or NULL) Significance threshold. When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.05}
+#'     \item{cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when `alpha` is NULL, default 0.2}
 #'     \item{path2load_scissor_cache}{(character) default `NULL`}
 #'     \item{path2save_scissor_inputs}{(character) A path to save the intermediary data. By using `path2load_scissor_cache`,  the intermediary data can be loaded from the specified path. default `"Scissor_inputs.RData"`}
 #'     \item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
@@ -72,7 +72,7 @@
 #'
 #' | **Method** | **Supported Phenotypes**      | **Additional Parameters**      |
 #' |------------|-------------------------------|---------------------------------|
-#' | `Scissor`  | All three types               | `scissor_alpha`, `scissor_cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `nfold`, `reliability_test`, `reliability_test_n` |           |
+#' | `Scissor`  | All three types               | `alpha`, `cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `nfold`, `reliability_test`, `reliability_test_n` |           |
 #' | `scPP`     | All three types               | `ref_group`, `Log2FC_cutoff`, `estimate_cutoff`, `probs`                |
 #' | `scPAS`    | All three types               | `n_components` ,`assay`, `imputation`,`nfeature`, `alpha`,`network_class`,`permutation_times`,`FDR_threshold`,`independent`               |
 #' | `scAB`     | Binary/Survival               | `alpha`, `alpha_2`, `maxiter`, `tred`            |

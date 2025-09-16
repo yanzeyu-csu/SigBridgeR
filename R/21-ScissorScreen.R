@@ -12,8 +12,8 @@
 #'    sc_data,
 #'    phenotype,
 #'    label_type = "scissor",
-#'    scissor_alpha = c(0.05,NULL),
-#'    scissor_cutoff = 0.2,
+#'    alpha = c(0.05,NULL),
+#'    cutoff = 0.2,
 #'    scissor_family = c("gaussian", "binomial", "cox"),
 #'    reliability_test = FALSE,
 #'    path2save_scissor_inputs = "Scissor_inputs.RData",
@@ -31,8 +31,8 @@
 #'        - Vector: named with sample IDs
 #'        - Data frame: with row names matching bulk columns
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
-#' @param scissor_alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.
-#' @param scissor_cutoff  (default: 0.2).
+#' @param alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.
+#' @param cutoff  (default: 0.2).
 #'        Higher values increase specificity.
 #' @param scissor_family Model family for outcome type:
 #'        - "gaussian": Continuous outcomes
@@ -99,8 +99,8 @@ DoScissor = function(
     sc_data,
     phenotype,
     label_type = "scissor",
-    scissor_alpha = c(0.05, NULL),
-    scissor_cutoff = 0.2,
+    alpha = c(0.05, NULL),
+    cutoff = 0.2,
     scissor_family = c("gaussian", "binomial", "cox"),
     reliability_test = FALSE,
     path2save_scissor_inputs = "Scissor_inputs.RData",
@@ -111,8 +111,8 @@ DoScissor = function(
     # Input validation
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
-    chk::chk_null_or(scissor_alpha, chk::chk_range) # 0-1
-    chk::chk_range(scissor_cutoff)
+    chk::chk_null_or(alpha, chk::chk_range) # 0-1
+    chk::chk_range(cutoff)
     chk::chk_subset(scissor_family, c("gaussian", "binomial", "cox"))
     chk::chk_length(scissor_family, 1)
     chk::chk_null_or(path2load_scissor_cache, chk::chk_file)
@@ -121,13 +121,13 @@ DoScissor = function(
     chk::chk_number(nfold)
 
     if (scissor_family %in% c("binomial", "cox")) {
-        label_type = c(
+        label_type_scissor = c(
             glue::glue("{label_type}_Negative"),
             glue::glue("{label_type}_Positive")
         )
     } else if (scissor_family == "gaussian") {
         n = length(table(phenotype))
-        label_type = glue::glue("{label_type}_{seq_len(n)}")
+        label_type_scissor = glue::glue("{label_type}_{seq_len(n)}")
     } else if (length(scissor_family) != 1) {
         cli::cli_abort(
             c(
@@ -147,9 +147,9 @@ DoScissor = function(
         bulk_dataset = matched_bulk,
         sc_dataset = sc_data,
         phenotype = phenotype,
-        tag = label_type,
-        alpha = scissor_alpha,
-        cutoff = scissor_cutoff,
+        tag = label_type_scissor,
+        alpha = alpha,
+        cutoff = cutoff,
         family = scissor_family,
         Save_file = path2save_scissor_inputs,
         Load_file = path2load_scissor_cache,
@@ -170,7 +170,7 @@ DoScissor = function(
     if (reliability_test) {
         # indicate that Y has only two levels, both Pos and Neg cells exist
         if (!length(table(infos1$Y)) < 2) {
-            chk::chk_number(scissor_alpha)
+            chk::chk_number(alpha)
 
             cli::cli_alert_info(c(
                 "[{TimeStamp()}]",
@@ -180,7 +180,7 @@ DoScissor = function(
                 infos1$X,
                 infos1$Y,
                 infos1$network,
-                alpha = scissor_alpha,
+                alpha = alpha,
                 family = scissor_family,
                 cell_num = length(infos1$Scissor_pos) +
                     length(infos1$Scissor_neg),

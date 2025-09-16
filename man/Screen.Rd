@@ -40,8 +40,8 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 \item{...}{Additional method-specific parameters:
 \describe{
 \item{Scissor}{\describe{
-\item{scissor_alpha}{(numeric or NULL) Significance threshold. When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.05}
-\item{scissor_cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when \code{scissor_alpha} is NULL, default 0.2}
+\item{alpha}{(numeric or NULL) Significance threshold. When NULL, alpha will keep increasing iteratively until the corresponding cells are screened out, default 0.05}
+\item{cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when \code{alpha} is NULL, default 0.2}
 \item{path2load_scissor_cache}{(character) default \code{NULL}}
 \item{path2save_scissor_inputs}{(character) A path to save the intermediary data. By using \code{path2load_scissor_cache},  the intermediary data can be loaded from the specified path. default \code{"Scissor_inputs.RData"}}
 \item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
@@ -96,7 +96,7 @@ before analysis.
 \section{Method Compatibility}{
 \tabular{lll}{
    \strong{Method} \tab \strong{Supported Phenotypes} \tab \strong{Additional Parameters} \cr
-   \code{Scissor} \tab All three types \tab \code{scissor_alpha}, \code{scissor_cutoff}, \code{path2load_scissor_cache}, \code{path2save_scissor_inputs}, \code{nfold}, \code{reliability_test}, \code{reliability_test_n} \cr
+   \code{Scissor} \tab All three types \tab \code{alpha}, \code{cutoff}, \code{path2load_scissor_cache}, \code{path2save_scissor_inputs}, \code{nfold}, \code{reliability_test}, \code{reliability_test_n} \cr
    \code{scPP} \tab All three types \tab \code{ref_group}, \code{Log2FC_cutoff}, \code{estimate_cutoff}, \code{probs} \cr
    \code{scPAS} \tab All three types \tab \code{n_components} ,\code{assay}, \code{imputation},\code{nfeature}, \code{alpha},\code{network_class},\code{permutation_times},\code{FDR_threshold},\code{independent} \cr
    \code{scAB} \tab Binary/Survival \tab \code{alpha}, \code{alpha_2}, \code{maxiter}, \code{tred} \cr

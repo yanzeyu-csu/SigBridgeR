@@ -118,7 +118,7 @@ MergeResult = function(...) {
         misc_list[[key]] <- if (length(values) == 1) values[[1]] else values
     }
 
-    merged_obj <- AddMisc(merged_obj, misc_list, cover = FALSE)
+    merged_obj <- AddMisc(merged_obj, misc_list, cover = TRUE)
 
     cli::cli_alert_success(
         "Successfully merged {.val {length(seurat_objects)}} objects."

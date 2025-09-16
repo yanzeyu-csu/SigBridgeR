@@ -46,7 +46,16 @@ AddMisc <- function(seurat_obj, ..., cover = TRUE) {
     chk::chk_is(seurat_obj, "Seurat")
     chk::chk_flag(cover)
     # Get the key-value pairs from ... arguments
-    kv_pairs <- list(...)
+    dots <- list(...)
+    kv_pairs <- if (length(dots) == 0) {
+        list()
+    } else if (
+        length(dots) == 1 && is.list(dots[[1]]) && is.null(names(dots))
+    ) {
+        dots[[1]]
+    } else {
+        unlist(dots, recursive = FALSE, use.names = TRUE)
+    }
 
     for (key in names(kv_pairs)) {
         value <- kv_pairs[[key]]
