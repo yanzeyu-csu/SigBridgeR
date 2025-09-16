@@ -94,3 +94,16 @@ environment or clean up the environment.
     .rs.api.restartSession()
 
     rm(list = ls(all.names = TRUE))
+
+------------------------------------------------------------------------
+
+> ### Error:
+>
+> ### ! Detected n gene(s) with zero variance:
+>
+> ### ℹ “gene name(s)”
+
+This is due to the presence of genes with zero variance in the bulk
+expression data when you are using `scPP` and `binary` phenotype. This
+indicates that the expression levels of one (or several) genes are
+nearly identical across different samples. You should check your data.
