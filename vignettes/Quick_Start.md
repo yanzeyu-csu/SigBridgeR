@@ -45,11 +45,15 @@ data.frame.
     # TCGA-44-2655 43.50      0
 
 The single-cell RNA expression matrix needs to be processed into a
-Seurat object.
+Seurat object. We set scale\_features to all genes in order to maximize
+the flexibility of downstream analyses and capture a broader range of
+biological signals, so as to avoid insignificant results caused by too
+small a dataset.
 
     seurat_obj <- SCPreProcess(
       mat_exam,
       quality_control.pattern = "^MT-",
+      scale_features = rownames(mat_exam),
       dims = 1:20
     )
 
@@ -85,6 +89,10 @@ Since the screening is performed on the same data, we merge them.
 
 Finally, we visualize the screening results.
 
+-   stacked bar plot:
+
+<!-- -->
+
     fraction = ScreenFractionPlot(
       merged_seurat,
       group_by = "seurat_clusters",
@@ -95,6 +103,10 @@ Finally, we visualize the screening results.
 
 [<img src="example_figures/fraction_q.png" data-fig-align="center"
 width="600" alt="fraction_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction_q.png)
+
+-   Venn diagram:
+
+<!-- -->
 
     c(scissor_pos, scpas_pos) %<-%
       purrr::map(
@@ -136,6 +148,24 @@ width="600" alt="fraction_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/m
 
 [<img src="example_figures/venn_q.png" data-fig-align="center"
 width="400" alt="venn_q" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn_q.png))
+
+-   Set plot:
+
+<!-- -->
+
+    upset <- ScreenUpset(
+      merged_seurat,
+      screen_type = c("scissor", "scPAS")
+    )
+
+    knitr::include_graphics("vignettes/example_figures/upset_q.png")
+
+[<img src="example_figures/upset_q.png" data-fig-align="center"
+width="400" alt="upset_q" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/upset_q.png))
+
+-   2D UMAP:
+
+<!-- -->
 
     library(patchwork)
     library(randomcoloR)

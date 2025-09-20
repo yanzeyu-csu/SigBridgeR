@@ -51,6 +51,8 @@
             results](#42-stack-bar-plot-for-screening-results)
         -   [4.3 Venn diagram for screening
             results](#43-venn-diagram-for-screening-results)
+        -   [4.4 Upset plot for screening
+            results](#44-upset-plot-for-screening-results)
     -   [5. Example](#5-example)
         -   [5.1 Survival-associated cell
             screening](#51-survival-associated-cell-screening)
@@ -63,6 +65,8 @@
             object](#61-add-miscellaneous-information-to-the-seurat-object)
         -   [6.2 Calculate the variance of each row in a
             matrix](#62-calculate-the-variance-of-each-row-in-a-matrix)
+        -   [6.3 Detect Rows with Zero Variance in
+            Matrices](#63-detect-rows-with-zero-variance-in-matrices)
     -   [7. References](#7-references)
 
 ### 0.1 Introduction to SigBridgeR
@@ -147,6 +151,7 @@ their versions:
       list(pkg = "data.table", version = "1.14.1"),
       list(pkg = "ggforce"),
       list(pkg = "ggplot2"),
+      list(pkg = "ggupset"),
       list(pkg = "purrr"),
       list(pkg = "edgeR"),
       list(pkg = "scales"),
@@ -178,8 +183,8 @@ RNA-seq data. Here are some options:
 
 #### 2.1.1 (Option A) Start from Raw Matrix
 
-When starting from a raw count matrix, `SCPreProcess` will automatically
-perform Seurat preprocess (including
+When starting from a raw count matrix (data.frame, matrix or dgCMatrix),
+`SCPreProcess` will automatically perform Seurat preprocess (including
 `NormalizeData, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors, FindClusters, RunTSNE, RunUMAP`).
 `SCPreProcess` returns a fully preprocessed Seurat object for downstream
 use.
@@ -192,6 +197,7 @@ use.
       min_features = 0,
       normalization_method = "LogNormalize",
       scale_factor = 10000,
+      scale_features = NULL,
       selection_method = "vst",
       resolution = 0.6,
       dims = 1:10,
@@ -273,12 +279,13 @@ the following code:
       min_features = 0,
       normalization_method = "LogNormalize",
       scale_factor = 10000,
+      scale_features = NULL,
       selection_method = "vst",
       resolution = 0.6,
       dims = 1:10,
       verbose = TRUE,
       future_global_maxsize = 6 * 1024^3,
-      quality_control = TRUE,
+      quality_control = TRUE, 
       quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
       data_filter = TRUE,
       data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
@@ -607,15 +614,15 @@ Parameters pass to `...` when using `Scissor` method:
     save intermediate data, default: `Scissor_inputs.RData`
 -   `path2load_scissor_cahce`: A character value specifying the path to
     load intermediate data
--   `scissor_alpha`: Parameter used to balance the effect of the l1 norm
-    and the network-based penalties. It can be a number or a searching
-    vector. If alpha = NULL, a default searching vector is used. The
-    range of alpha is in `[0,1]`. A larger alpha lays more emphasis on
-    the l1 norm.
--   `scissor_cutoff`: Cutoff for the percentage of the Scissor selected
-    cells in total cells. This parameter is used to restrict the number
-    of the Scissor selected cells. A cutoff less than 50% (default 20%)
-    is recommended depending on the input data.
+-   `alpha`: Parameter used to balance the effect of the l1 norm and the
+    network-based penalties. It can be a number or a searching vector.
+    If alpha = NULL, a default searching vector is used. The range of
+    alpha is in `[0,1]`. A larger alpha lays more emphasis on the l1
+    norm.
+-   `cutoff`: Cutoff for the percentage of the Scissor selected cells in
+    total cells. This parameter is used to restrict the number of the
+    Scissor selected cells. A cutoff less than 50% (default 20%) is
+    recommended depending on the input data.
 -   `reliability_test_n`: Permutation times (default: 10)
 -   `nfold`: The fold number in cross-validation (default: 10)
 
@@ -642,18 +649,18 @@ feature of the `scissor`.
       path2load_scissor_cahce = "Tmp/Scissor_inputs.RData" # Intermediate data
     )
 
-If only the parameters `scissor_alpha` and `scissor_cutoff` are
-adjusted, this method can also be applied.
+If only the parameters `alpha` and `cutoff` are adjusted, this method
+can also be applied.
 
-    # When `scissor_alpha = NULL`, an alpha iteration will continue until phenotype-associated cells are screened out or no cells are screened out even after exceeding the `scissor_cutoff`.
+    # When `alpha = NULL`, an alpha iteration will continue until phenotype-associated cells are screened out or no cells are screened out even after exceeding the `cutoff`.
     scissor_result = Screen(
       sc_data = sc_dataset, 
       label_type = "TP53", 
       phenotype_class = "binary", 
       screen_method = c("Scissor"),
       path2load_scissor_cahce = "Tmp/Scissor_inputs.RData", # Intermediate data
-      scissor_alpha = NULL, 
-      scissor_cutoff = 0.05 
+      alpha = NULL, 
+      cutoff = 0.05 
     )
 
 **Returning structure**: A list containing:
@@ -807,6 +814,10 @@ be preserved in this process.
 ## 4. Visualization
 
 Here we provide some visualization methods for the screening results.
+Considering that many people have different needs for data
+visualization, `SigBridgR` hardly provides visualization (except for
+fraction plot and upset plot, because we provide some statistic results
+for them). We only provide the source code for reference.
 
 ### 4.1 UMAP for screening results
 
@@ -1014,10 +1025,51 @@ selected by each algorithm. You can refer to and use the following code:
         ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
         ggplot2::ggtitle("Screening Venn Diagram")
 
-**helpful documentation**:
+**helpful link**:
 
 [ggVennDiagram -
 https://gaospecial.github.io/ggVennDiagram/](https://gaospecial.github.io/ggVennDiagram/)
+
+### 4.4 Upset plot for screening results
+
+If too many screening meyhods are selected, the number of intersections
+among cells screened by different methods will also increase. In this
+case, using an upset plot is more intuitive and neat than a Venn
+diagram.
+
+`ggupset` is used for visualizing upset plot.
+
+Key parameters for `ScreenUpset`:
+
+-   `screened_seurat`: A Seurat object after screening.
+-   `screen_type`: Screening algorithm used before. (case-sensitive,
+    e.g., “scissor” for Scissor results)
+-   `n_intersections` : Number of intersections to display in the plot.
+    Default: 20.
+-   `x_lab` : Label for the x-axis. Default: “Screen Set Intersections”.
+-   `y_lab` : Label for the y-axis. Default: “Number of Cells”.
+-   `title` : Plot title. Default: “Cell Counts Across Screen Set
+    Intersections”.
+-   `bar_color` : Color for the bars in the plot. Default: “\#4E79A7”.
+-   `combmatrix_point_color` : Color for points in the combination
+    matrix. Default: “black”.
+-   `...` : Additional arguments passed to `ggplot2::theme()` for
+    customizing the plot appearance.
+
+<!-- -->
+
+    upset <- ScreenUpset(screened_seurat = merged_seurat)
+
+**returning structure**:
+
+-   `plot`: A ggplot object.
+-   `stats`: A data frame containing the numbers of positive cells for
+    each group.
+
+**helpful link**:
+
+[ggupset -
+https://github.com/const-ae/ggupset](https://github.com/const-ae/ggupset)
 
 ------------------------------------------------------------------------
 
@@ -1063,15 +1115,21 @@ functions in `SigBridgeR` to screen cells associated with phenotype.
     # TCGA-44-6775 23.16      0
     # TCGA-44-2655 43.50      0
 
-This single-cell data is from humans, so we set the quality control
-matching pattern to `^MT-` and use `SCPreProcess()` to pre-process the
-data.
+This single-cell RNA data is from humans. We set the `quality_control`
+and `data_filter` to FALSE, and we set `scale_features` to all genes in
+order to maximize the flexibility of downstream analyses and capture a
+broader range of biological signals, so as to avoid insignificant
+results caused by too small a dataset.
+
+Now we use `SCPreProcess()` to pre-process the data.
 
     seurat = SCPreProcess(
-        sc = mat_exam,
-        quality_control.pattern = "^MT-",
-        dims = 1:20,
-        resolution = 0.1
+      sc = mat_exam,
+      quality_control = FALSE,
+      data_filter = FALSE,
+      scale_features = rownames(mat_exam),
+      dims = 1:20,
+      resolution = 0.1
     )
 
 `BulkPreProcess()` is to pre-process the bulk expression data and the
@@ -1093,7 +1151,7 @@ First, we use `scissor` to screen cells associated with survival.
         label_type = "survival",
         phenotype_class = "survival",
         screen_method = "Scissor",
-        scissor_alpha = 0.05
+        alpha = 0.05
     )
 
     # ℹ [2025/09/08 17:03:20] Scissor start...
@@ -1118,11 +1176,11 @@ First, we use `scissor` to screen cells associated with survival.
 
     table(scissor_result$scRNA_data$scissor)
     # Negative  Neutral Positive 
-    #      245      599      249 
+    #      244      603      246 
 
 You will see an additional “Scissor\_inputs.RData” in the working
 directory. This is the intermediate data generated by the Scissor
-algorithm, which we can use to save running time. Meanwhile, we set
+method, which we can use to save running time. Meanwhile, we set
 `reliability_test=TRUE`, which will run an additional reliability test.
 
     scissor_result = Screen(
@@ -1132,7 +1190,7 @@ algorithm, which we can use to save running time. Meanwhile, we set
         label_type = "survival",
         phenotype_class = "survival",
         screen_method = "Scissor",
-        scissor_alpha = 0.05,
+        alpha = 0.05,
         path2load_scissor_cache = "Scissor_inputs.RData",
         reliability_test = TRUE
     )
@@ -1162,16 +1220,16 @@ algorithm, which we can use to save running time. Meanwhile, we set
     # [1] "Reliability significance test p = 0.000"
     # ✔ [2025/09/08 16:10:54] reliability test: Done
 
-    scissor_result_reliability_test$reliability_result$statistic
+    scissor_result$reliability_result$statistic
     # [1] 0.5899587
 
-    scissor_result_reliability_test$reliability_result$p
+    scissor_result$reliability_result$p
     # [1] 0
 
-    scissor_result_reliability_test$reliability_result$c_index_test_real
+    scissor_result$reliability_result$c_index_test_real
     #  [1] 0.6038544 0.5022222 0.6050725 0.6279391 0.5064935 0.6033520 0.6769231 0.6453089 0.4968421 0.6315789
 
-    scissor_result_reliability_test$reliability_result$c_index_test_back %>% unlist() %>% matrix(nrow = 10)
+    scissor_result$reliability_result$c_index_test_back %>% unlist() %>% matrix(nrow = 10)
     #            [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]      [,8]      [,9]     [,10]
     #  [1,] 0.5594714 0.4943820 0.5379747 0.5583658 0.5527728 0.6146435 0.5130597 0.5701275 0.4691943 0.5177305
     #  [2,] 0.5735608 0.4726891 0.4146341 0.5020661 0.5354331 0.6840149 0.5540275 0.4990758 0.5324484 0.5497382
@@ -1224,8 +1282,9 @@ specified any particular parameters.
 As you can see, due to differences in data and algorithms, not every
 screening algorithm is able to screen out cells. You can adjust the
 corresponding parameters, e.g. change the `alpha` to `NULL`, this will
-make scPAS iterate alpha until the result is significant. See also [3.2
-(Option B) scPAS Screening](#32-option-b-scpas-screening)
+make scPAS iterate alpha until the result is significant (or judged as
+having no significant cell subpopulations). See also [3.2 (Option B)
+scPAS Screening](#32-option-b-scpas-screening)
 
     scpas_result = Screen(
         matched_bulk = bulk,
@@ -1376,7 +1435,7 @@ Now we use scAB and scPP to screen cells.
     #       57      992       44 
 
 After these algorithms have been run, the four sets of data can be
-merged.
+merged since screening methods performed on the same data.
 
     screen_result = MergeResult(
         scissor_result,
@@ -1448,12 +1507,42 @@ diagram to see the situation.
         ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
         ggplot2::ggtitle("Screening Venn Diagram")
 
+    venn
+
     ggplot2::ggsave("vignettes/example_figures/venn.png",plot=venn, width = 10, height = 10)
 
     knitr::include_graphics("vignettes/example_figures/venn.png")
 
 [<img src="example_figures/venn.png" data-fig-align="center" width="400"
 alt="venn" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn.png))
+
+When there are too many sets, the visualization effect of the Venn
+diagram is not very good. We can use a set plot instead. Only positive
+cells are shown in the set plot.
+
+    upset <- ScreenUpset(screened_seurat = screen_result,screen_type = c("scissor", "scPAS", "scAB", "scPP"))
+
+    # * show the upset plot
+    upset$plot
+
+    # * show the cell numbers of each set
+    head(upset$stats)
+    # # A tibble: 6 × 3
+    #   intersection    sets         count
+    #   <chr>           <named list> <dbl>
+    # 1 scissor         <chr [1]>      246
+    # 2 scPAS           <chr [1]>        0
+    # 3 scAB            <chr [1]>       87
+    # 4 scPP            <chr [1]>       49
+    # 5 scissor & scPAS <chr [2]>        0
+    # 6 scissor & scAB  <chr [2]>       11
+
+    ggplot2::ggsave("vignettes/example_figures/upset.png",plot=upset$plot, width = 10, height = 10)
+
+    knitr::include_graphics("vignettes/example_figures/upset.png")
+
+[<img src="example_figures/upset.png" data-fig-align="center" width="600"
+alt="upset" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/upset.png))
 
 A bar chart showing proportions can also be used to examine the
 screening results. Since the example data does not have sample metadata,
@@ -1686,6 +1775,74 @@ various screening algorithms are based on during execution.
      # Edge case: single column (variance is 0)
      single_col <- matrix(1:3, ncol = 1)
      rowVars(single_col)  # Returns NaN due to division by 0
+
+### 6.3 Detect Rows with Zero Variance in Matrices
+
+-   `Check0VarRows`: Detect Rows with Zero Variance in Matrices
+
+The `Check0VarRows` function identifies rows with zero variance
+(constant values) or exclusively `NA` values in numeric matrices,
+including sparse matrices of class `dgCMatrix`. It throws an informative
+error if such rows are detected, listing their names. This is
+particularly useful for preprocessing steps in statistical analyses
+(e.g., PCA, regression) where constant rows may cause computational
+issues or misinterpretations.
+
+#### Parameters
+
+-   **`mat`** (Required)  
+    A numeric matrix or sparse matrix of class `dgCMatrix` (from the
+    `Matrix` package). Rows represent features (e.g., genes), and
+    columns represent observations. Must have row names to identify
+    problematic rows in error messages.
+
+-   **`call`** (Optional, Advanced)  
+    The environment from which the function was called. Used internally
+    for error reporting. Defaults to `rlang::caller_env()`. Most users
+    can ignore this parameter.
+
+#### Details
+
+**Algorithm:**
+
+-   For **dense matrices**, uses `rowVars` ([Section
+    6.2](#62-calculate-the-variance-of-each-row-in-a-matrix))
+    implementation to compute row variances with efficient NA
+    handling.  
+
+-   For **sparse matrices (`dgCMatrix`)**, leverages a mathematical
+    identity to compute variance without dense intermediate matrices:  
+    $$
+    \text{Var}(x) = \frac{\sum x^2 - \frac{(\sum x)^2}{n}}{n-1}
+    $$
+
+    Rows with &lt;=1 non-zero observation are treated as zero-variance
+    to avoid numerical instability.
+
+<!-- -->
+
+    # Example 1: Dense matrix with no zero-variance rows
+    set.seed(123)
+    mat_dense <- matrix(rnorm(100), nrow = 10)
+    rownames(mat_dense) <- paste0("Gene", 1:10)
+    Check0VarRows(mat_dense)  # No error
+
+    # Example 2: Dense matrix with zero-variance row
+    mat_dense[1, ] <- rep(5, 10)  # First row is constant
+    Check0VarRows(mat_dense)      # Error: "Detected 1 gene(s) with zero variance: Gene1"
+
+    # Example 3: Sparse matrix (dgCMatrix)
+    library(Matrix)
+    mat_sparse <- as(matrix(rpois(100, 0.5), nrow = 10), "dgCMatrix")
+    rownames(mat_sparse) <- paste0("Gene", 1:10)
+    Check0VarRows(mat_sparse)  # Error if any row has zero variance
+
+#### Notes
+
+-   **Row Names Requirement:** Ensure the input matrix has row names.
+    Without them, the error message will show indices instead of names.
+-   **NA Handling:** Rows with all `NA` values are treated as
+    zero-variance and will trigger an error.
 
 ------------------------------------------------------------------------
 
