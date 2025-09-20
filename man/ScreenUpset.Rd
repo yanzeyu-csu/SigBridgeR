@@ -24,6 +24,8 @@ Must contain columns with screening types marked as "Positive".}
 \item{screen_type}{Character vector of screening types to analyze.
 Default: c("scissor", "scAB", "scPAS", "scPP").}
 
+\item{show_plot}{Whether to show the upset plot. Default: TRUE.}
+
 \item{n_intersections}{Number of intersections to display in the plot. Default: 20.}
 
 \item{x_lab}{Label for the x-axis. Default: "Screen Set Intersections".}
