@@ -20,7 +20,7 @@ SCPreProcess(sc, ...)
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
-  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+  project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
   min_cells = 400,
   min_features = 0,
   quality_control = TRUE,
@@ -30,6 +30,7 @@ SCPreProcess(sc, ...)
   data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
+  scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = 1:10,
@@ -42,7 +43,7 @@ SCPreProcess(sc, ...)
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
-  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+  project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
   min_cells = 400,
   min_features = 0,
   quality_control = TRUE,
@@ -52,6 +53,7 @@ SCPreProcess(sc, ...)
   data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
+  scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = 1:10,
@@ -64,7 +66,7 @@ SCPreProcess(sc, ...)
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
-  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+  project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
   min_cells = 400,
   min_features = 0,
   quality_control = TRUE,
@@ -74,6 +76,7 @@ SCPreProcess(sc, ...)
   data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
+  scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = 1:10,
@@ -86,7 +89,7 @@ SCPreProcess(sc, ...)
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
-  project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+  project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
   min_cells = 400,
   min_features = 0,
   quality_control = TRUE,
@@ -96,6 +99,7 @@ SCPreProcess(sc, ...)
   data_filter.percent.mt = 20,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
+  scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = 1:10,
@@ -144,6 +148,8 @@ such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insens
 \item{normalization_method}{Normalization method ("LogNormalize", "CLR", or "RC")}
 
 \item{scale_factor}{Scaling factor for normalization}
+
+\item{scale_features}{Scale features to unit variance}
 
 \item{selection_method}{Variable feature selection method ("vst", "mvp", or "disp")}
 

@@ -122,9 +122,17 @@ ScreenFractionPlot = function(
     chk::chk_is(screened_seurat, "Seurat")
     chk::chk_character(group_by)
     chk::chk_length(group_by, 1)
-    chk::chk_subset(screen_type, c("scissor", "scPAS", "scPP", "scAB"))
     chk::chk_flag(show_null)
     chk::chk_null_or(plot_color, chk::chk_vector)
+    all_screen_types = colnames(screened_seurat@meta.data)
+    if (
+        !all(purrr::map_vec(
+            screen_type,
+            ~ . %in% all_screen_types
+        ))
+    ) {
+        cli::cli_abort(c("x" = "Screen type(s) not found in metadata."))
+    }
 
     # Check available screen types in the Seurat object
     available_screens <- grep(

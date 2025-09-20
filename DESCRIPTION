@@ -21,6 +21,7 @@ Imports:
     edgeR,
     ggforce,
     ggplot2,
+    ggupset,
     glue,
     IDConverter,
     magrittr,

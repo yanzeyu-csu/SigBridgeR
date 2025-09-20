@@ -48,7 +48,13 @@ A list containing:
 \item{scRNA_data}{Seurat object with added metadata:
 \describe{
 \item{ScPP}{"Positive"/"Negative"/"Neutral" classification}
-\item{label_type}{Outcome label used}
+}
+}
+\item{gene_list}{List of genes used for screening}
+\item{AUC}{A data.frame with area under the ROC curve:
+\describe{
+\item{AUCup}{AUC for positive}
+\item{AUCdown}{AUC for negative}
 }
 }
 }

@@ -39,7 +39,13 @@
 #'   \item{scRNA_data}{Seurat object with added metadata:
 #'     \describe{
 #'       \item{ScPP}{"Positive"/"Negative"/"Neutral" classification}
-#'       \item{label_type}{Outcome label used}
+#'     }
+#'   }
+#'   \item{gene_list}{List of genes used for screening}
+#'   \item{AUC}{A data.frame with area under the ROC curve:
+#'     \describe{
+#'         \item{AUCup}{AUC for positive}
+#'         \item{AUCdown}{AUC for negative}
 #'     }
 #'   }
 #' }
@@ -189,12 +195,14 @@ DoscPP = function(
             neg_null = TRUE
         }
     }
-    if (pos_null & neg_null) {
+    if (pos_null && neg_null) {
         cli::cli_alert_info(c(
             "[{TimeStamp()}]",
             crayon::yellow(" scPP screening exit.")
         ))
-        return(list(scRNA_data = NULL))
+        return(list(
+            scRNA_data = "`scPP` is not applicable to the current data."
+        ))
     }
 
     cli::cli_alert_info(c(
@@ -203,7 +211,6 @@ DoscPP = function(
     ))
 
     # *Start screen
-    err_flag = FALSE
     tryCatch(
         scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs),
         error = function(e) {
@@ -213,31 +220,19 @@ DoscPP = function(
                 "[{TimeStamp()}]",
                 crayon::yellow(" scPP screening exit.")
             ))
-
-            err_flag = TRUE
         }
     )
-    if (err_flag) {
+    if (exists("scPP_result")) {
         return(list(
             scRNA_data = "`scPP` is not applicable to the current data."
         ))
     }
 
-    sc_data@meta.data[, "scPP"] <- data.table::as.data.table(
-        scPP_result$metadata
-    )[,
-        .(
-            scPP = data.table::fifelse(
-                ScPP == "Phenotype+",
-                "Positive",
-                data.table::fifelse(
-                    ScPP == "Phenotype-",
-                    "Negative",
-                    "Neutral"
-                )
-            )
-        )
-    ]$scPP
+    sc_data@meta.data$scPP <- case_when(
+        scPP_result$metadata$ScPP == "Phenotype+" ~ "Positive",
+        scPP_result$metadata$ScPP == "Phenotype-" ~ "Negative",
+        TRUE ~ "Neutral"
+    )
 
     sc_data <- sc_data %>%
         AddMisc(scPP_type = label_type, cover = FALSE)
@@ -247,7 +242,16 @@ DoscPP = function(
         crayon::green(" scPP screening done.")
     ))
 
-    return(list(scRNA_data = sc_data, gene_list = gene_list))
+    return(
+        list(
+            scRNA_data = sc_data,
+            gene_list = list(
+                genes_pos = scPP_result$Genes_pos,
+                genes_neg = scPP_result$Genes_neg
+            ),
+            AUC = select(scPP_result$metadata, "AUCup", "AUCdown")
+        )
+    )
 }
 
 

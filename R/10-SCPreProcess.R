@@ -57,6 +57,7 @@ SCPreProcess.default <- function(sc, ...) {
 #' @param data_filter.percent.mt Maximum mitochondrial percentage allowed (0-100)
 #' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
 #' @param scale_factor Scaling factor for normalization
+#' @param scale_features Scale features to unit variance
 #' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
 #' @param resolution Cluster resolution (higher for more clusters)
 #' @param dims PCA dimensions to use
@@ -68,7 +69,7 @@ SCPreProcess.matrix <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -78,6 +79,7 @@ SCPreProcess.matrix <- function(
     data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
+    scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = 1:10,
@@ -138,6 +140,7 @@ SCPreProcess.matrix <- function(
         obj = sc_seurat,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
+        scale_features = scale_features,
         selection_method = selection_method,
         verbose = verbose
     )
@@ -169,6 +172,7 @@ SCPreProcess.matrix <- function(
 #' @param data_filter.percent.mt Maximum mitochondrial percentage allowed (0-100)
 #' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
 #' @param scale_factor Scaling factor for normalization
+#' @param scale_features Scale features to unit variance
 #' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
 #' @param resolution Cluster resolution (higher for more clusters)
 #' @param dims PCA dimensions to use
@@ -180,7 +184,7 @@ SCPreProcess.data.frame <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -190,6 +194,7 @@ SCPreProcess.data.frame <- function(
     data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
+    scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = 1:10,
@@ -211,6 +216,7 @@ SCPreProcess.data.frame <- function(
         data_filter.percent.mt = data_filter.percent.mt,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
+        scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
@@ -227,7 +233,7 @@ SCPreProcess.dgCMatrix <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -237,6 +243,7 @@ SCPreProcess.dgCMatrix <- function(
     data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
+    scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = 1:10,
@@ -258,6 +265,7 @@ SCPreProcess.dgCMatrix <- function(
         data_filter.percent.mt = data_filter.percent.mt,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
+        scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
@@ -274,7 +282,7 @@ SCPreProcess.AnnDataR6 <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("[{TimeStamp()}]_Single_Cell_Screening_Project"),
+    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -284,6 +292,7 @@ SCPreProcess.AnnDataR6 <- function(
     data_filter.percent.mt = 20,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
+    scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = 1:10,
@@ -302,11 +311,7 @@ SCPreProcess.AnnDataR6 <- function(
         cli::cli_alert_info("[{TimeStamp()}] Start from anndata object")
     }
 
-    sc_matrix <- if (inherits(sc$X, "sparseMatrix")) {
-        Matrix::t(sc$X)
-    } else {
-        t(sc$X)
-    }
+    sc_matrix <- t(sc$X)
 
     sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc_matrix,
@@ -353,6 +358,7 @@ SCPreProcess.AnnDataR6 <- function(
         obj = sc_seurat,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
+        scale_features = scale_features,
         selection_method = selection_method,
         verbose = verbose
     )
@@ -401,6 +407,7 @@ SCPreProcess.Seurat <- function(
 #' @param obj Seurat object
 #' @param normalization_method Normalization method ("LogNormalize", "CLR", or "RC")
 #' @param scale_factor Scaling factor for normalization
+#' @param scale_features Features to scale
 #' @param selection_method Variable feature selection method ("vst", "mvp", or "disp")
 #' @param verbose Print progress messages
 #' @return Seurat object
@@ -411,6 +418,7 @@ ProcessSeuratObject <- function(
     obj,
     normalization_method = "LogNormalize",
     scale_factor = 10000,
+    scale_features = NULL,
     selection_method = "vst",
     verbose = TRUE
 ) {
@@ -424,7 +432,7 @@ ProcessSeuratObject <- function(
             selection.method = selection_method,
             verbose = verbose
         ) %>%
-        Seurat::ScaleData(verbose = verbose) %>%
+        Seurat::ScaleData(verbose = verbose, features = scale_features) %>%
         Seurat::RunPCA(
             features = Seurat::VariableFeatures(.),
             verbose = verbose
@@ -486,32 +494,28 @@ FilterTumorCell <- function(
     obj = AddMisc(obj, self_dim = dim(obj), cover = TRUE)
 
     if (!is.null(column2only_tumor)) {
-        ifelse(
-            !column2only_tumor %in% colnames(obj@meta.data),
-            {
-                cli::cli_alert_danger(crayon::red(
-                    "Column '{column2only_tumor}' not found, skip tumor cell filtering"
-                ))
-                return(obj)
-            },
-            {
-                labels <- obj[[column2only_tumor]][[1]]
-                tumor_cells <- grepl(
-                    "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm",
-                    labels
+        if (!column2only_tumor %in% colnames(obj@meta.data)) {
+            cli::cli_alert_danger(crayon::red(
+                "Column '{column2only_tumor}' not found, skip tumor cell filtering"
+            ))
+            return(obj)
+        } else {
+            labels <- obj[[column2only_tumor]][[1]]
+            tumor_cells <- grepl(
+                "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm",
+                labels
+            )
+
+            tumor_seurat <- obj[, tumor_cells] %>%
+                AddMisc(
+                    raw_dim = dim(obj),
+                    self_dim = dim(.),
+                    column2only_tumor = column2only_tumor,
+                    cover = TRUE
                 )
 
-                tumor_seurat <- obj[, tumor_cells] %>%
-                    AddMisc(
-                        raw_dim = dim(obj),
-                        self_dim = dim(.),
-                        column2only_tumor = column2only_tumor,
-                        cover = TRUE
-                    )
-
-                return(list(tumor_seurat = tumor_seurat, raw_seurat = obj))
-            }
-        )
+            return(list(tumor_seurat = tumor_seurat, raw_seurat = obj))
+        }
     } else {
         return(obj)
     }

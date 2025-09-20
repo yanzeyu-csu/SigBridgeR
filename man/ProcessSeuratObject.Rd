@@ -8,6 +8,7 @@ ProcessSeuratObject(
   obj,
   normalization_method = "LogNormalize",
   scale_factor = 10000,
+  scale_features = NULL,
   selection_method = "vst",
   verbose = TRUE
 )
@@ -18,6 +19,8 @@ ProcessSeuratObject(
 \item{normalization_method}{Normalization method ("LogNormalize", "CLR", or "RC")}
 
 \item{scale_factor}{Scaling factor for normalization}
+
+\item{scale_features}{Features to scale}
 
 \item{selection_method}{Variable feature selection method ("vst", "mvp", or "disp")}
 

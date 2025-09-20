@@ -117,19 +117,24 @@ DoscPAS = function(
         AddMisc(scPAS_type = label_type, cover = FALSE)
 
     # *rename level
-    scPAS_result@meta.data = scPAS_result@meta.data %>%
-        dplyr::mutate(
-            `scPAS` = dplyr::case_when(
-                scPAS == "scPAS+" ~ "Positive",
-                scPAS == "scPAS-" ~ "Negative",
-                TRUE ~ "Neutral"
-            )
+    scPAS_result@meta.data = dplyr::mutate(
+        scPAS_result@meta.data,
+        `scPAS` = dplyr::case_when(
+            scPAS == "scPAS+" ~ "Positive",
+            scPAS == "scPAS-" ~ "Negative",
+            TRUE ~ "Neutral"
         )
+    )
+
+    detailed_info <- dplyr::select(
+        scPAS_result@meta.data,
+        dplyr::contains("scPAS_")
+    )
 
     cli::cli_alert_success(c(
         "[{TimeStamp()}]",
         crayon::green(" scPAS screening done.")
     ))
 
-    return(list(scRNA_data = scPAS_result))
+    return(list(scRNA_data = scPAS_result, stats = detailed_info))
 }

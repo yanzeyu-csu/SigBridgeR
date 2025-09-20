@@ -18,6 +18,7 @@ utils::globalVariables(
         "PC2",
         "condition",
         "batch",
-        "Feature"
+        "Feature",
+        "sets"
     )
 )
