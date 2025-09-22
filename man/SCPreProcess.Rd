@@ -35,7 +35,6 @@ SCPreProcess(sc, ...)
   resolution = 0.6,
   dims = 1:10,
   verbose = TRUE,
-  future_global_maxsize = 6 * 1024^3,
   ...
 )
 
@@ -58,7 +57,6 @@ SCPreProcess(sc, ...)
   resolution = 0.6,
   dims = 1:10,
   verbose = TRUE,
-  future_global_maxsize = 6 * 1024^3,
   ...
 )
 
@@ -81,7 +79,6 @@ SCPreProcess(sc, ...)
   resolution = 0.6,
   dims = 1:10,
   verbose = TRUE,
-  future_global_maxsize = 6 * 1024^3,
   ...
 )
 
@@ -104,17 +101,10 @@ SCPreProcess(sc, ...)
   resolution = 0.6,
   dims = 1:10,
   verbose = TRUE,
-  future_global_maxsize = 6 * 1024^3,
   ...
 )
 
-\method{SCPreProcess}{Seurat}(
-  sc,
-  column2only_tumor = NULL,
-  verbose = TRUE,
-  future_global_maxsize = 6 * 1024^3,
-  ...
-)
+\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
@@ -158,8 +148,6 @@ such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insens
 \item{dims}{PCA dimensions to use}
 
 \item{verbose}{Print progress messages}
-
-\item{future_global_maxsize}{Memory limit for parallelization (bytes)}
 }
 \value{
 A Seurat object containing:

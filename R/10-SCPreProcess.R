@@ -62,7 +62,6 @@ SCPreProcess.default <- function(sc, ...) {
 #' @param resolution Cluster resolution (higher for more clusters)
 #' @param dims PCA dimensions to use
 #' @param verbose Print progress messages
-#' @param future_global_maxsize Memory limit for parallelization (bytes)
 #' @export
 #'
 SCPreProcess.matrix <- function(
@@ -84,10 +83,8 @@ SCPreProcess.matrix <- function(
     resolution = 0.6,
     dims = 1:10,
     verbose = TRUE,
-    future_global_maxsize = 6 * 1024^3,
     ...
 ) {
-    options(future.globals.maxSize = future_global_maxsize)
     chk::chk_null_or(meta_data, chk::chk_data)
     chk::chk_null_or(column2only_tumor, chk::chk_character)
 
@@ -177,7 +174,6 @@ SCPreProcess.matrix <- function(
 #' @param resolution Cluster resolution (higher for more clusters)
 #' @param dims PCA dimensions to use
 #' @param verbose Print progress messages
-#' @param future_global_maxsize Memory limit for parallelization (bytes)
 #' @export
 #'
 SCPreProcess.data.frame <- function(
@@ -199,7 +195,6 @@ SCPreProcess.data.frame <- function(
     resolution = 0.6,
     dims = 1:10,
     verbose = TRUE,
-    future_global_maxsize = 6 * 1024^3,
     ...
 ) {
     SCPreProcess.matrix(
@@ -221,7 +216,6 @@ SCPreProcess.data.frame <- function(
         resolution = resolution,
         dims = dims,
         verbose = verbose,
-        future_global_maxsize = future_global_maxsize,
         ...
     )
 }
@@ -248,7 +242,6 @@ SCPreProcess.dgCMatrix <- function(
     resolution = 0.6,
     dims = 1:10,
     verbose = TRUE,
-    future_global_maxsize = 6 * 1024^3,
     ...
 ) {
     SCPreProcess.matrix(
@@ -270,7 +263,6 @@ SCPreProcess.dgCMatrix <- function(
         resolution = resolution,
         dims = dims,
         verbose = verbose,
-        future_global_maxsize = future_global_maxsize,
         ...
     )
 }
@@ -297,10 +289,8 @@ SCPreProcess.AnnDataR6 <- function(
     resolution = 0.6,
     dims = 1:10,
     verbose = TRUE,
-    future_global_maxsize = 6 * 1024^3,
     ...
 ) {
-    options(future.globals.maxSize = future_global_maxsize)
     chk::chk_null_or(meta_data, chk::chk_data)
     chk::chk_null_or(column2only_tumor, chk::chk_character)
 
@@ -388,11 +378,8 @@ SCPreProcess.Seurat <- function(
     sc,
     column2only_tumor = NULL,
     verbose = TRUE,
-    future_global_maxsize = 6 * 1024^3,
     ...
 ) {
-    options(future.globals.maxSize = future_global_maxsize)
-
     FilterTumorCell(
         obj = sc,
         column2only_tumor = column2only_tumor

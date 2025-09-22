@@ -226,12 +226,9 @@ Scissor.v5.optimized <- function(
     family = c("gaussian", "binomial", "cox"),
     Save_file = "Scissor_inputs.RData",
     Load_file = NULL,
-    workers = 32,
+    workers = 4,
     ...
 ) {
-    cl <- parallel::makeCluster(min(workers, parallel::detectCores() - 1))
-    doParallel::registerDoParallel(cl)
-
     cli::cli_alert_info(
         c("[{TimeStamp()}]", crayon::green(" Scissor start..."))
     )
@@ -270,21 +267,7 @@ Scissor.v5.optimized <- function(
             }
         } else {
             sc_exprs <- as.matrix(sc_dataset)
-            Seurat_tmp <- Seurat::CreateSeuratObject(
-                counts = sc_dataset,
-                verbose = FALSE
-            ) %>%
-                Seurat::FindVariableFeatures(
-                    selection.method = "vst",
-                    nfeatures = 2000,
-                    verbose = FALSE
-                ) %>%
-                Seurat::ScaleData(verbose = FALSE) %>%
-                Seurat::RunPCA(
-                    features = Seurat::VariableFeatures(.),
-                    verbose = FALSE
-                ) %>%
-                Seurat::FindNeighbors(dims = 1:10, verbose = FALSE)
+            Seurat_tmp <- SCPreProcess(sc_dataset, verbose = FALSE)
             network <- as.matrix(Seurat_tmp@graphs$RNA_snn)
         }
         diag(network) <- 0
@@ -454,14 +437,14 @@ Scissor.v5.optimized <- function(
                 Cell1 <- colnames(X)[which(Coefs > 0)]
                 Cell2 <- colnames(X)[which(Coefs < 0)]
                 percentage <- (length(Cell1) + length(Cell2)) / ncol(X)
-                print(c(sprintf("alpha = %s", alpha[i])))
-                print(sprintf(
-                    "Scissor identified %d Scissor+ cells and %d Scissor- cells.",
+                cli::cli_h2("At alpha = {.val {alpha[i]}}")
+                cli::cli_text(sprintf(
+                    "Scissor identified {.val {%d}} Scissor+ cells and {.val {%d}} Scissor- cells.",
                     length(Cell1),
                     length(Cell2)
                 ))
-                print(sprintf(
-                    "The percentage of selected cell is: %s%%",
+                cli::cli_text(sprintf(
+                    "The percentage of selected cell is: {.val {%s}}%%",
                     formatC(percentage * 100, format = "f", digits = 3)
                 ))
                 if (percentage < cutoff) {
@@ -473,16 +456,15 @@ Scissor.v5.optimized <- function(
                 cat("\n")
             },
             error = function(e) {
-                cli::cli_alert_danger(c(
-                    "[{TimeStamp()}] ",
-                    crayon::red("Error at alpha={alpha[i]}: "),
-                    e$message
+                cli::cli_alert_danger(c("[{TimeStamp()}] ", e$message))
+
+                cli::cli_alert_info(c(
+                    "[{TimeStamp()}]",
+                    crayon::yellow(" scissor screening exit.")
                 ))
             }
         )
     }
-    cat(strrep("-", getOption("width")), "\n", sep = "")
-
     return(list(
         para = list(
             alpha = alpha[i],

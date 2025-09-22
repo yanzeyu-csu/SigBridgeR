@@ -106,6 +106,12 @@ jobs:
                   sed -i "s/\(badge\/devel%20version-\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$NEW_VERSION/g" README.md
                   echo "Updated README.md version badge to $NEW_VERSION"
 
+            - name: Update version badge in README.Rmd
+              if: steps.version_bump.outputs.type != 'none'
+              run: |
+                  sed -i "s/\(badge\/devel%20version-\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$NEW_VERSION/g" README.Rmd
+                  echo "Updated README.Rmd version badge to $NEW_VERSION"
+
             - name: Update version in .Rproj file
               if: steps.version_bump.outputs.type != 'none'
               run: |

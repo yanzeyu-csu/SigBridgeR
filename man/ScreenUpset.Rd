@@ -6,7 +6,7 @@
 \usage{
 ScreenUpset(
   screened_seurat,
-  screen_type = c("scissor", "scAB", "scPAS", "scPP"),
+  screen_type = NULL,
   show_plot = TRUE,
   n_intersections = 20,
   x_lab = "Screen Set Intersections",
@@ -22,7 +22,7 @@ ScreenUpset(
 Must contain columns with screening types marked as "Positive".}
 
 \item{screen_type}{Character vector of screening types to analyze.
-Default: c("scissor", "scAB", "scPAS", "scPP").}
+Default: NULL, indicating that a self-search pattern will be used.}
 
 \item{show_plot}{Whether to show the upset plot. Default: TRUE.}
 

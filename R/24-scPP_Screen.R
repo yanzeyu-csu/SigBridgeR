@@ -87,7 +87,6 @@
 #' @importFrom crayon green
 #' @importFrom cli cli_abort cli_alert_info cli_alert_success
 #' @importFrom tibble rownames_to_column
-#' @importFrom data.table as.data.table fifelse
 #' @importFrom stats quantile
 #'
 #' @family screen_method
@@ -222,11 +221,6 @@ DoscPP = function(
             ))
         }
     )
-    if (exists("scPP_result")) {
-        return(list(
-            scRNA_data = "`scPP` is not applicable to the current data."
-        ))
-    }
 
     sc_data@meta.data$scPP <- case_when(
         scPP_result$metadata$ScPP == "Phenotype+" ~ "Positive",

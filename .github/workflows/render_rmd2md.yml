@@ -3,7 +3,9 @@ name: Render Rmd to Md
 on:
     push:
         branches: [main]
-        paths: ["vignettes/**.Rmd"] # 只监控 vignettes 目录中的 Rmd 文件
+        paths:
+            - "vignettes/**.Rmd"
+            - "README.Rmd" # ← 改动1：同时监控根目录的 README.Rmd
 
 permissions:
     contents: write
@@ -11,7 +13,7 @@ permissions:
 jobs:
     render:
         runs-on: ubuntu-latest
-        concurrency: 
+        concurrency:
             group: ${{ github.workflow }}-${{ github.ref }}
             cancel-in-progress: true
 
@@ -22,7 +24,6 @@ jobs:
                   token: ${{ secrets.GITHUB_TOKEN }}
                   fetch-depth: 0
 
-             # 缓存R包依赖
             - name: Cache R packages
               uses: actions/cache@v3
               with:
@@ -42,26 +43,30 @@ jobs:
 
             - name: Install dependencies
               run: |
-                  # 只有在缓存未命中时才安装包
                   if [ ! -d "~/R/Library/rmarkdown" ] || [ ! -d "~/R/Library/knitr" ]; then
                     Rscript -e 'install.packages(c("rmarkdown", "knitr"))'
                   fi
 
-            - name: Render vignettes Rmd files
+            - name: Render Rmd files
               run: |
+                  # 处理 vignettes 目录
                   if [ -d "vignettes" ]; then
                     echo "Processing vignettes directory..."
                     find vignettes -type f \( -name "*.Rmd" -o -name "*.rmd" \) | while read -r file; do
-                      output_file="$(basename "${file%.*}.md")"  # Changed: use basename to strip 'vignettes/'
-                      echo "Rendering $file to $output_file"
+                      output_file="vignettes/$(basename "${file%.*}.md")"
+                      echo "Rendering $file -> $output_file"
                       Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')" || {
-                        echo "Failed to render $file"
-                        exit 1
+                        echo "Failed to render $file"; exit 1
                       }
                     done
-                  else
-                    echo "vignettes directory does not exist, skipping."
-                    exit 0
+                  fi
+
+                  # 处理根目录 README.Rmd
+                  if [ -f "README.Rmd" ]; then
+                    echo "Rendering README.Rmd -> README.md"
+                    Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('README.Rmd', output_format = 'md_document', output_file = 'README.md')" || {
+                      echo "Failed to render README.Rmd"; exit 1
+                    }
                   fi
 
             - name: Configure Git
@@ -71,22 +76,22 @@ jobs:
 
             - name: Pull latest changes before commit
               run: |
-                  # 在提交前拉取最新更改，避免冲突
-                  git fetch origin 
+                  git fetch origin
                   git merge origin/main
 
             - name: Commit results
               run: |
-                  # 只添加 vignettes 目录中的 md 文件
+                  # 添加 vignettes 目录下的 md
                   if [ -d "vignettes" ]; then
                     git add vignettes/*.md 2>/dev/null || echo "No markdown files found in vignettes"
                   fi
+                  # 添加根目录的 README.md
+                  git add README.md 2>/dev/null || echo "No README.md to add"
 
-                  # 检查是否有更改需要提交
                   if git diff --staged --quiet; then
                     echo "No changes to commit."
                   else
-                    git commit -m "Re-build vignettes from Rmd to Md"
+                    git commit -m "Re-build vignettes and README from Rmd to Md"
                     git push origin main
                     echo "Changes pushed to repository."
                   fi

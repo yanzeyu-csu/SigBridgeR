@@ -11,7 +11,7 @@
 #' @param screened_seurat A Seurat object containing screening results in metadata.
 #'                        Must contain columns with screening types marked as "Positive".
 #' @param screen_type Character vector of screening types to analyze.
-#'                    Default: c("scissor", "scAB", "scPAS", "scPP").
+#'                    Default: NULL, indicating that a self-search pattern will be used.
 #' @param show_plot Whether to show the upset plot. Default: TRUE.
 #' @param n_intersections Number of intersections to display in the plot. Default: 20.
 #' @param x_lab Label for the x-axis. Default: "Screen Set Intersections".
@@ -66,7 +66,7 @@
 #'
 ScreenUpset <- function(
     screened_seurat,
-    screen_type = c("scissor", "scAB", "scPAS", "scPP"),
+    screen_type = NULL,
     show_plot = TRUE,
     n_intersections = 20,
     x_lab = "Screen Set Intersections",
@@ -78,6 +78,7 @@ ScreenUpset <- function(
 ) {
     # Robust
     chk::chk_is(screened_seurat, "Seurat")
+    chk::chk_null_or(screen_type, chk::chk_character)
     chk::chk_whole_number(n_intersections)
     chk::chk_flag(show_plot)
     chk::chk_chr(x_lab)
@@ -88,6 +89,9 @@ ScreenUpset <- function(
 
     meta_data <- screened_seurat@meta.data
     all_screen_types = colnames(meta_data)
+    if (is.null(screen_type)) {
+        screen_type = grep("sc[A-Za-z]*$", all_screen_types, value = TRUE)
+    }
     if (
         !all(purrr::map_vec(
             screen_type,

@@ -117,35 +117,34 @@ CheckPkgs <- function(packages) {
 }
 
 CheckPkgs(list(
-  list(pkg = "Seurat", version = "5.0.0"),
-  list(pkg = "dplyr"),
-  list(pkg = "cli"),
-  list(pkg = "AUCell", version = "1.20.2"),
-  list(pkg = "future"),
-  list(pkg = "IDConverter"),
-  list(pkg = "Matrix"),
-  list(pkg = "scAB"),
-  list(pkg = "Scissor"),
-  list(pkg = "scPAS"),
-  list(pkg = "ScPP"),
-  list(pkg = "tibble"),
-  list(pkg = "tidyr"),
-  list(pkg = "data.table", version = "1.14.1"),
-  list(pkg = "ggforce"),
-  list(pkg = "ggplot2"),
-  list(pkg = "ggupset"),
-  list(pkg = "purrr"),
-  list(pkg = "edgeR"),
-  list(pkg = "scales"),
-  list(pkg = "doParallel"),
-  list(pkg = "preprocessCore"),
+  list(pkg = "Seurat", version = "5.3.0"),
+  list(pkg = "dplyr", version = "1.1.4"),
+  list(pkg = "cli", version = "3.6.5"),
+  list(pkg = "AUCell", version = "1.26.0"),
+  list(pkg = "future", version = "1.67.0"),
+  list(pkg = "IDConverter", version = "0.3.5"),
+  list(pkg = "Matrix", version = "1.7.4"),
+  list(pkg = "scAB", version = "1.0.0"),
+  list(pkg = "Scissor", version = "2.0.0"),
+  list(pkg = "scPAS", version = "0.2.0"),
+  list(pkg = "ScPP", version = "0.0.0.9000"),
+  list(pkg = "tibble", version = "3.3.0"),
+  list(pkg = "tidyr", version = "1.3.1"),
+  list(pkg = "data.table", version = "1.17.8"),
+  list(pkg = "ggforce", version = "0.5.0"),
+  list(pkg = "ggplot2", version = "4.0.0"),
+  list(pkg = "ggupset", version = "0.4.1"),
+  list(pkg = "purrr", version = "1.1.0"),
+  list(pkg = "edgeR", version = "4.2.2"),
+  list(pkg = "scales", version = "1.4.0"),
+  list(pkg = "preprocessCore", version = "1.66.0"),
   # suggest
-  list(pkg = "randomcoloR"),
-  list(pkg = "reticulate"),
-  list(pkg = "patchwork"),
-  list(pkg = "org.Hs.eg.db"),
-  list(pkg = "zeallot"),
-  list(pkg = "ggVennDiagram")
+  list(pkg = "randomcoloR", version = "1.1.0.1"),
+  list(pkg = "reticulate", version = "1.43.0"),
+  list(pkg = "patchwork", version = "1.3.2"),
+  list(pkg = "org.Hs.eg.db", verion = "3.19.1"),
+  list(pkg = "zeallot", version = "0.1.0"),
+  list(pkg = "ggVennDiagram", version = "1.5.4")
   )
 )
 
@@ -1019,7 +1018,7 @@ head(pheno)
 # TCGA-44-2655 43.50      0
 ```
 
-This single-cell RNA data is from humans. We set the `quality_control` and `data_filter` to FALSE, and we set `scale_features` to all genes in order to maximize the flexibility of downstream analyses and capture a broader range of biological signals, so as to avoid insignificant results caused by too small a dataset. 
+This single-cell RNA data is from humans. We set many parameters to `FALSE` or `0` in order to maximize the flexibility of downstream analyses and capture a broader range of biological signals, so as to avoid insignificant results caused by too small a dataset. 
 
 Now we use `SCPreProcess()` to pre-process the data.
 
@@ -1028,6 +1027,8 @@ seurat = SCPreProcess(
   sc = mat_exam,
   quality_control = FALSE,
   data_filter = FALSE,
+  min_cells = 0,
+  min_features = 0,
   scale_features = rownames(mat_exam),
   dims = 1:20,
   resolution = 0.1
@@ -1073,7 +1074,7 @@ scissor_result = Screen(
 
 table(scissor_result$scRNA_data$scissor)
 # Negative  Neutral Positive 
-#      244      603      246 
+#       73      755      265 
 
 ```
 
@@ -1173,8 +1174,8 @@ scpas_result = Screen(
 
 table(scpas_result$scRNA_data$scPAS)
 
-# Neutral 
-#    1093 
+# Neutral Positive 
+#     1092        1 
 
 ```
 
@@ -1190,98 +1191,92 @@ scpas_result = Screen(
     screen_method = "scPAS",
     alpha = NULL
 )
-# ℹ [2025/09/11 09:44:42] Start scPAS screening.
+# ℹ [2025/09/22 18:46:25] Start scPAS screening.
 # [1] "Step 1:Quantile normalization of bulk data."
 # [1] "Step 2: Extracting single-cell expression profiles...."
-# Warning: The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
-# ℹ Please use the `layer` argument instead.
-# ℹ The deprecated feature was likely used in the scPAS package.
-#   Please report the issue to the authors.
-# This warning is displayed once every 8 hours.
-# Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
 # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
 # Building SNN based on a provided distance matrix
 # Computing SNN
 # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
 # [1] "Perform cox regression on the given clinical outcomes:"
 # [1] "alpha = 0.001"
-# [1] "lambda = 3.22620698162906"
-# [1] "scPAS identified 129 rick+ features and 36 rick- features."
-# [1] "The percentage of selected feature is: 95.376%"
+# [1] "lambda = 7.88965313498356"
+# [1] "scPAS identified 449 rick+ features and 236 rick- features."
+# [1] "The percentage of selected feature is: 78.375%"
 
 # [1] "alpha = 0.005"
-# [1] "lambda = 1.97047399269694"
-# [1] "scPAS identified 94 rick+ features and 33 rick- features."
-# [1] "The percentage of selected feature is: 73.410%"
+# [1] "lambda = 3.32139271651783"
+# [1] "scPAS identified 279 rick+ features and 159 rick- features."
+# [1] "The percentage of selected feature is: 50.114%"
 
 # [1] "alpha = 0.01"
-# [1] "lambda = 1.42941018794126"
-# [1] "scPAS identified 80 rick+ features and 27 rick- features."
-# [1] "The percentage of selected feature is: 61.850%"
+# [1] "lambda = 2.5241108003373"
+# [1] "scPAS identified 207 rick+ features and 102 rick- features."
+# [1] "The percentage of selected feature is: 35.355%"
 
 # [1] "alpha = 0.05"
-# [1] "lambda = 0.499586979737535"
-# [1] "scPAS identified 46 rick+ features and 16 rick- features."
-# [1] "The percentage of selected feature is: 35.838%"
+# [1] "lambda = 0.8038196391727"
+# [1] "scPAS identified 82 rick+ features and 24 rick- features."
+# [1] "The percentage of selected feature is: 12.128%"
 
 # [1] "alpha = 0.1"
-# [1] "lambda = 0.274148046759175"
-# [1] "scPAS identified 32 rick+ features and 14 rick- features."
-# [1] "The percentage of selected feature is: 26.590%"
+# [1] "lambda = 0.441095530835556"
+# [1] "scPAS identified 57 rick+ features and 12 rick- features."
+# [1] "The percentage of selected feature is: 7.895%"
 
 # [1] "alpha = 0.2"
-# [1] "lambda = 0.150438571440263"
-# [1] "scPAS identified 21 rick+ features and 14 rick- features."
-# [1] "The percentage of selected feature is: 20.231%"
+# [1] "lambda = 0.220547765417778"
+# [1] "scPAS identified 42 rick+ features and 12 rick- features."
+# [1] "The percentage of selected feature is: 6.178%"
 
 # [1] "alpha = 0.3"
-# [1] "lambda = 0.132580625268887"
-# [1] "scPAS identified 16 rick+ features and 8 rick- features."
-# [1] "The percentage of selected feature is: 13.873%"
+# [1] "lambda = 0.154032875529483"
+# [1] "scPAS identified 37 rick+ features and 9 rick- features."
+# [1] "The percentage of selected feature is: 5.263%"
 
 # [1] "alpha = 0.4"
-# [1] "lambda = 0.0994354689516653"
-# [1] "scPAS identified 16 rick+ features and 8 rick- features."
-# [1] "The percentage of selected feature is: 13.873%"
+# [1] "lambda = 0.115524656647112"
+# [1] "scPAS identified 33 rick+ features and 8 rick- features."
+# [1] "The percentage of selected feature is: 4.691%"
 
 # [1] "alpha = 0.5"
-# [1] "lambda = 0.0795483751613323"
-# [1] "scPAS identified 15 rick+ features and 8 rick- features."
-# [1] "The percentage of selected feature is: 13.295%"
+# [1] "lambda = 0.0924197253176895"
+# [1] "scPAS identified 30 rick+ features and 8 rick- features."
+# [1] "The percentage of selected feature is: 4.348%"
 
 # [1] "alpha = 0.6"
-# [1] "lambda = 0.0727535362804505"
-# [1] "scPAS identified 14 rick+ features and 5 rick- features."
-# [1] "The percentage of selected feature is: 10.983%"
+# [1] "lambda = 0.0770164377647413"
+# [1] "scPAS identified 29 rick+ features and 8 rick- features."
+# [1] "The percentage of selected feature is: 4.233%"
 
 # [1] "alpha = 0.7"
-# [1] "lambda = 0.0623601739546719"
-# [1] "scPAS identified 14 rick+ features and 5 rick- features."
-# [1] "The percentage of selected feature is: 10.983%"
+# [1] "lambda = 0.0660140895126354"
+# [1] "scPAS identified 28 rick+ features and 8 rick- features."
+# [1] "The percentage of selected feature is: 4.119%"
 
 # [1] "alpha = 0.8"
-# [1] "lambda = 0.0545651522103379"
-# [1] "scPAS identified 14 rick+ features and 4 rick- features."
-# [1] "The percentage of selected feature is: 10.405%"
+# [1] "lambda = 0.0577623283235559"
+# [1] "scPAS identified 27 rick+ features and 7 rick- features."
+# [1] "The percentage of selected feature is: 3.890%"
 
 # [1] "alpha = 0.9"
-# [1] "lambda = 0.0485023575203004"
-# [1] "scPAS identified 14 rick+ features and 4 rick- features."
-# [1] "The percentage of selected feature is: 10.405%"
+# [1] "lambda = 0.0537890889507252"
+# [1] "scPAS identified 24 rick+ features and 7 rick- features."
+# [1] "The percentage of selected feature is: 3.547%"
 
 # [1] "|**************************************************|"
 # [1] "Step 5: calculating quantified risk scores...."
 # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
 # [1] "Finished."
-# ✔ [2025/09/11 09:46:02] scPAS screening done.
+# ✔ [2025/09/22 18:51:16] scPAS screening done.
 ```
 
-Unfortunatly, scPAS is not able to screen out any positive cells in this dataset. This means that scPAS may be not suitable for this dataset. You can try to adjust other parameters to screen out the positive cells (and no, it’s totally not because the author was too lazy to tune them `_(¦3」∠)_` ), and we are always happy to see others test our package.
+Now there may be some significant cells appearing.
 
 ```{r,example_data_scpas3,eval=FALSE}
 table(scpas_result$scRNA_data$scPAS)
-# Neutral 
-#    1093 
+# Negative  Neutral Positive 
+#        2     1086        5 
 ```
 
 Now we use scAB and scPP to screen cells.
@@ -1304,7 +1299,7 @@ scab_result = Screen(
 
 table(scab_result$scRNA_data$scAB)
 #    Other Positive 
-#     1006       87 
+#     1018       75 
 ```
 
 ```{r,example_data_scpp,eval=FALSE}
@@ -1329,7 +1324,7 @@ scpp_result = Screen(
 
 table(scpp_result$scRNA_data$scPP)
 # Negative  Neutral Positive 
-#       57      992       44 
+#       52      993       48 
 ```
 
 After these algorithms have been run, the four sets of data can be merged since screening methods performed on the same data.
@@ -1424,9 +1419,6 @@ When there are too many sets, the visualization effect of the Venn diagram is no
 ```{r,example_data_set_plot,eval=FALSE}
 upset <- ScreenUpset(screened_seurat = screen_result,screen_type = c("scissor", "scPAS", "scAB", "scPP"))
 
-# * show the upset plot
-upset$plot
-
 # * show the cell numbers of each set
 head(upset$stats)
 # # A tibble: 6 × 3
@@ -1463,7 +1455,7 @@ table(screen_result$Sample)
 fraction_list = ScreenFractionPlot(
     screened_seurat = screen_result,
     group_by = "Sample",
-    screen_type = c("scissor", "scPP", "scAB"), # scPAS is not included due to no positive cells
+    screen_type = c("scissor", "scPP", "scAB","scPAS"), # scPAS is not included due to no positive cells
     show_null = FALSE,
     plot_color = NULL,
     show_plot = TRUE
@@ -1484,10 +1476,12 @@ fraction_list
     ├── stats
     │   ├── scissor
     │   ├── scAB
+    │   ├── scPAS
     │   └── scPP
     ├── plots
     │   ├── scissor
     │   ├── scAB
+    │   ├── scPAS
     │   └── scPP   
     └── combined_plot # show 3 plots in one plot
 ```
