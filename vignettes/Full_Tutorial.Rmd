@@ -123,7 +123,7 @@ CheckPkgs(list(
   list(pkg = "AUCell", version = "1.26.0"),
   list(pkg = "future", version = "1.67.0"),
   list(pkg = "IDConverter", version = "0.3.5"),
-  list(pkg = "Matrix", version = "1.7.4"),
+  list(pkg = "Matrix", version = "1.7.3"),
   list(pkg = "scAB", version = "1.0.0"),
   list(pkg = "Scissor", version = "2.0.0"),
   list(pkg = "scPAS", version = "0.2.0"),
@@ -149,6 +149,8 @@ CheckPkgs(list(
 )
 
 ```
+
+If you encounter compatibility issues, you can install the version of the package indicated here.
 
 ------------------------------------------------------------------------
 

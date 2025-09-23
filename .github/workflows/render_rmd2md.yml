@@ -49,24 +49,18 @@ jobs:
 
             - name: Render Rmd files
               run: |
-                  # 处理 vignettes 目录
+                  # 1. 处理 vignettes 目录
                   if [ -d "vignettes" ]; then
                     echo "Processing vignettes directory..."
-                    find vignettes -type f \( -name "*.Rmd" -o -name "*.rmd" \) | while read -r file; do
+                    find vignettes -type f \( -iname "*.rmd" \) | while read -r file; do
                       output_file="vignettes/$(basename "${file%.*}.md")"
                       echo "Rendering $file -> $output_file"
                       Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')" || {
                         echo "Failed to render $file"; exit 1
                       }
                     done
-                  fi
-
-                  # 处理根目录 README.Rmd
-                  if [ -f "README.Rmd" ]; then
-                    echo "Rendering README.Rmd -> README.md"
-                    Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('README.Rmd', output_format = 'md_document', output_file = 'README.md')" || {
-                      echo "Failed to render README.Rmd"; exit 1
-                    }
+                  else
+                    echo "vignettes/ 不存在，跳过渲染 vignettes。"
                   fi
 
             - name: Configure Git
