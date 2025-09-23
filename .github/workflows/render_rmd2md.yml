@@ -3,9 +3,7 @@ name: Render Rmd to Md
 on:
     push:
         branches: [main]
-        paths:
-            - "vignettes/**.Rmd"
-            - "README.Rmd" # ← 改动1：同时监控根目录的 README.Rmd
+        paths: ["vignettes/**.Rmd"]
 
 permissions:
     contents: write
