@@ -51,7 +51,7 @@ jobs:
                   if [ -d "vignettes" ]; then
                     echo "Processing vignettes directory..."
                     find vignettes -type f \( -iname "*.rmd" \) | while read -r file; do
-                      output_file="vignettes/$(basename "${file%.*}.md")"
+                      output_file="$(basename "${file%.*}.md")"
                       echo "Rendering $file -> $output_file"
                       Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')" || {
                         echo "Failed to render $file"; exit 1

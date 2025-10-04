@@ -1590,7 +1590,7 @@ As you see, the `label_type`s set in function `Screen` are shown in the legend o
 
 The `fraction_list` contains the statistical data and charts for each screening algorithm. The title of each plot will be appended with the method name as an identifier.
 
-```{text,example_data_fraction_list,eval=FALSE}
+
 fraction_list
     ├── stats
     │   ├── scissor
@@ -1603,7 +1603,7 @@ fraction_list
     │   ├── scPAS
     │   └── scPP   
     └── combined_plot # show 4 plots in one plot
-```
+
 
 UMAP is the most commonly used type of plot in academic literature.
 
