@@ -10,7 +10,6 @@
 #' @export
 #'
 SymbolConvert = function(data) {
-    chk::chk_is(data, c("data.frame", "matrix"))
     row_names = gsub("\\..*$", "", rownames(data))
     if (is.null(row_names)) {
         cli::cli_abort(c("x" = "Row names are missing in the data"))
@@ -64,16 +63,16 @@ SymbolConvert = function(data) {
 #'
 #' @param data Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info
 #' @param sample_info Sample information data frame (optional), ignored if data is a list
-#' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default TRUE.
-#' @param check Whether to perform detailed quality checks, default TRUE
-#' @param min_count_threshold Minimum count threshold for gene filtering, default 10
-#' @param min_gene_expressed Minimum number of samples a gene must be expressed in, default 3
-#' @param min_total_reads Minimum total reads per sample, default 1e6
-#' @param min_genes_detected Minimum number of genes detected per sample, default 10000
-#' @param min_correlation Minimum correlation threshold between samples, default 0.8
-#' @param n_top_genes Number of top variable genes for PCA analysis, default 500
-#' @param show_plot_results Whether to generate visualization plots, default TRUE
-#' @param verbose Whether to output detailed information, default TRUE
+#' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE
+#' @param check Whether to perform detailed quality checks, default: TRUE
+#' @param min_count_threshold Minimum count threshold for gene filtering, default: 10
+#' @param min_gene_expressed Minimum number of samples a gene must be expressed in, default: 3
+#' @param min_total_reads Minimum total reads per sample, default: 1e6
+#' @param min_genes_detected Minimum number of genes detected per sample, default: 10000
+#' @param min_correlation Minimum correlation threshold between samples, default: 0.8
+#' @param n_top_genes Number of top variable genes for PCA analysis, default: 500
+#' @param show_plot_results Whether to generate visualization plots, default: TRUE
+#' @param verbose Whether to output detailed information, default: TRUE
 #'
 #'
 #' @section Quality Metrics:
@@ -115,7 +114,7 @@ SymbolConvert = function(data) {
 #' \code{\link[edgeR]{cpm}} for counts per million calculation,
 #' \code{\link[stats]{prcomp}} for PCA analysis,
 #' \code{\link[stats]{cor}} for correlation analysis,
-#' \code{\link[SigBridgeR]{rowVars}} for variance calculation of each row,
+#' \code{\link[SigBridgeR]{RowVars}} for variance calculation of each row,
 #' \code{\link[SigBridgeR]{SymbolConvert}} for gene symbol conversion
 #'
 #' @return Filtered count matrix
@@ -124,7 +123,7 @@ SymbolConvert = function(data) {
 BulkPreProcess <- function(
     data,
     sample_info = NULL,
-    gene_symbol_conversion = TRUE,
+    gene_symbol_conversion = FALSE,
     check = TRUE,
     min_count_threshold = 10,
     min_gene_expressed = 3,
@@ -135,7 +134,19 @@ BulkPreProcess <- function(
     show_plot_results = TRUE,
     verbose = TRUE
 ) {
-    chk::chk_is(data, c("data.frame", "matrix"))
+    purrr::walk(
+        list(
+            min_count_threshold,
+            min_gene_expressed,
+            min_genes_detected,
+            min_total_reads,
+            min_correlation,
+            n_top_genes
+        ),
+        ~ chk::chk_numeric
+    )
+    purrr::walk(list(check, show_plot_results, verbose), ~ chk::chk_flag)
+
     if (verbose) {
         cli::cli_alert_info(c(
             "[{TimeStamp()}]",
@@ -206,9 +217,11 @@ BulkPreProcess <- function(
 
     if (is.null(sample_info)) {
         # Create default sample information
-        cli::cli_alert_info(
-            "[{TimeStamp()}] No sample info provided, using default settings."
-        )
+        if (verbose) {
+            cli::cli_alert_info(
+                "[{TimeStamp()}] No sample info provided, using default settings."
+            )
+        }
         sample_info <- data.frame(
             sample = colnames(counts_matrix) %||%
                 glue::glue("Sample_{seq_len(n_samples)}"),
@@ -296,7 +309,7 @@ BulkPreProcess <- function(
 
         # Select highly variable genes
         n_genes_for_pca <- min(n_top_genes, nrow(cpm_values))
-        gene_vars <- rowVars(cpm_values, na.rm = TRUE)
+        gene_vars <- RowVars(cpm_values, na.rm = TRUE)
         top_var_idx <- order(gene_vars, decreasing = TRUE)[seq_len(
             n_genes_for_pca
         )]
@@ -407,7 +420,7 @@ BulkPreProcess <- function(
 
                 p_pca <- ggplot2::ggplot(
                     pca_df,
-                    ggplot2::aes(x = PC1, y = PC2, color = condition)
+                    ggplot2::aes(x = `PC1`, y = `PC2`, color = `condition`)
                 ) +
                     ggplot2::geom_point(size = 3, alpha = 0.8) +
                     ggplot2::labs(
@@ -426,7 +439,7 @@ BulkPreProcess <- function(
 
                 if ("batch" %in% colnames(pca_df)) {
                     p_pca <- p_pca +
-                        ggplot2::aes(shape = batch) +
+                        ggplot2::aes(shape = `batch`) +
                         ggplot2::scale_shape_manual(
                             values = c(
                                 16,
@@ -509,17 +522,6 @@ BulkPreProcess <- function(
             )
         }
 
-        # Gene count
-        if (n_genes_filtered >= 15000) {
-            cli::cli_alert_success(
-                "Gene count: Sufficient ({.val {n_genes_filtered}} genes)"
-            )
-        } else {
-            cli::cli_warn(
-                "Gene count: Low ({.val {n_genes_filtered}} genes, recommend >= 15,000)"
-            )
-        }
-
         # Sample quality
         if (all(samples_pass_reads[samples_to_keep])) {
             cli::cli_alert_success(
@@ -575,10 +577,12 @@ BulkPreProcess <- function(
         cli::cli_alert_success("[{TimeStamp()}] Gene symbol conversion done")
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::green(" BulkPreProcess completed")
-    ))
+    if (verbose) {
+        cli::cli_alert_info(c(
+            "[{TimeStamp()}]",
+            crayon::green(" BulkPreProcess completed")
+        ))
+    }
 
     return(filtered_counts)
 }
@@ -649,10 +653,9 @@ BulkPreProcess <- function(
 #' \code{\link{rowMeans}} for row means,
 #' \code{\link{apply}} for applying functions across rows or columns
 #'
+#' @keywords internal
 #'
-#' @export
-#'
-rowVars <- function(x, na.rm = TRUE) {
+RowVars <- function(x, na.rm = TRUE) {
     if (na.rm) {
         n <- rowSums(!is.na(x))
         rowSums((x - rowMeans(x, na.rm = TRUE))^2, na.rm = TRUE) / (n - 1)

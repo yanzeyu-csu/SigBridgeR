@@ -2,12 +2,13 @@
 % Please edit documentation in R/41-LoadRefData.R
 \name{LoadRefData}
 \alias{LoadRefData}
-\title{Download and load the reference data}
+\title{Download & Load Reference Data}
 \usage{
 LoadRefData(
   data_type = c("survival", "binary", "continuous"),
   path = tempdir(),
-  cache = TRUE
+  cache = TRUE,
+  timeout = 60
 )
 }
 \arguments{
@@ -16,17 +17,19 @@ LoadRefData(
 \item{path}{Optional path to save the downloaded file.}
 
 \item{cache}{Logical. If TRUE (default), saves the data for future sessions.}
+
+\item{timeout}{Integer. Connection timeout in seconds (default: 60).}
 }
 \value{
-The requested datasets
+The requested datasets, stored in a list.
 }
 \description{
 This function checks if the data already exists in a local cache.
-If not, it downloads the file from the remote repository.
+If not, it downloads the file from the remote repository using multiple sources with fallback.
 }
 \examples{
 \dontrun{
-ref_data <- LoadRefData()
+ref_data <- LoadRefData(data_type = c("survival"))
 }
 
 }

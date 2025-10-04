@@ -10,7 +10,7 @@ Screen(
   phenotype,
   label_type = NULL,
   phenotype_class = c("binary", "survival", "continuous"),
-  screen_method = c("Scissor", "scPP", "scPAS", "scAB"),
+  screen_method = c("Scissor", "scPP", "scPAS", "scAB", "DEGAS"),
   ...
 )
 }
@@ -28,14 +28,15 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 
 \item{phenotype_class}{Type of phenotypic outcome (must be consistent with input data):
 - \code{"binary"}: Binary traits (e.g., case/control)
-- \code{"continuous"}: Continuous measurements (only for \code{Scissor}, \code{scPAS}, \code{scPP})
+- \code{"continuous"}: Continuous measurements
 - \code{"survival"}: Survival objects}
 
 \item{screen_method}{Screening algorithm to use, there are four options:
 - \code{"Scissor"}: see also \code{DoScissor()}
 - \code{"scPP"}: see also \code{DoscPP()}
 - \code{"scPAS"}: see also \code{DoscPAS()}
-- \code{"scAB"}: see also \code{DoscAB()}, no continuous support}
+- \code{"scAB"}: see also \code{DoscAB()}, no continuous support
+- \code{"DEGAS"}: see also \code{DoDEGAS()}}
 
 \item{...}{Additional method-specific parameters:
 \describe{
@@ -44,8 +45,13 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 \item{cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when \code{alpha} is NULL, default 0.2}
 \item{path2load_scissor_cache}{(character) default \code{NULL}}
 \item{path2save_scissor_inputs}{(character) A path to save the intermediary data. By using \code{path2load_scissor_cache},  the intermediary data can be loaded from the specified path. default \code{"Scissor_inputs.RData"}}
-\item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
 \item{reliability_test}{(logical) Whether to perform reliability test, default FALSE}
+\item{reliability_test.nfold}{(integer) Cross-validation folds for reliability test, default 10}
+\item{reliability_test.n}{(integer) Number of cells to use for reliability test, default 10}
+\item{cell_evaluation}{(logical) Whether to perform cell evaluation, default FALSE}
+\item{cell_evaluation.benchmark_data}{.RData Benchmark data for cell evaluation, default NULL}
+\item{cell_evaluation.FDR}{(numeric) FDR threshold for cell evaluation, default 0.05}
+\item{cell_evaluation.bootstrap_n}{(integer) Number of bootstrap samples for cell evaluation, default 10}
 }}
 \item{scPP}{\describe{
 \item{ref_group}{(integer or character) Reference group or baseline for \strong{binary} comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. default: 0}
@@ -68,6 +74,14 @@ data (genes x samples). Column names must match names/IDs in \code{phenotype}.}
 \item{alpha_2}{(numeric) Coefficent of cell-cell similarity regularization, default 5e-05}
 \item{maxiter}{(integer) NMF optimization iterations, default 2000}
 \item{tred}{(integer) Z-score threshold, default 2}
+}}
+\item{DEGAS}{\describe{
+\item{sc_data.pheno_colname}{(character) Phenotype column name in sc_data, default "NULL"}
+\item{select_fraction}{(numeric) Fraction of cells to select for DEGAS, default 0.05}
+\item{tmp_dir}{(character) Temporary directory for DEGAS, default "NULL"}
+\item{env_params}{(list) Environment parameters for DEGAS, default "list()"}
+\item{degas_params}{(list) DEGAS parameters, default "list()"}
+\item{normality_test_method}{(character) Normality test method for DEGAS, default "jarque-bera"}
 }}
 }}
 }
@@ -96,10 +110,11 @@ before analysis.
 \section{Method Compatibility}{
 \tabular{lll}{
    \strong{Method} \tab \strong{Supported Phenotypes} \tab \strong{Additional Parameters} \cr
-   \code{Scissor} \tab All three types \tab \code{alpha}, \code{cutoff}, \code{path2load_scissor_cache}, \code{path2save_scissor_inputs}, \code{nfold}, \code{reliability_test}, \code{reliability_test_n} \cr
+   \code{Scissor} \tab All three types \tab \code{alpha}, \code{cutoff}, \code{path2load_scissor_cache}, \code{path2save_scissor_inputs}, \code{reliability_test}, \code{reliability_test.n},\code{reliability_test.nfold}, \code{cell_evaluation},\code{cell_evaluation.benchmark_data},\code{cell_evaluation.FDR},\code{cell_evaluation.bootstrap_n} \cr
    \code{scPP} \tab All three types \tab \code{ref_group}, \code{Log2FC_cutoff}, \code{estimate_cutoff}, \code{probs} \cr
    \code{scPAS} \tab All three types \tab \code{n_components} ,\code{assay}, \code{imputation},\code{nfeature}, \code{alpha},\code{network_class},\code{permutation_times},\code{FDR_threshold},\code{independent} \cr
    \code{scAB} \tab Binary/Survival \tab \code{alpha}, \code{alpha_2}, \code{maxiter}, \code{tred} \cr
+   \code{DEGAS} \tab All three types \tab \code{sc_data.pheno_colname},\code{select_fraction},\code{tmp_dir},\code{env_params},\code{degas_params},\code{normality_test_method} \cr
 }
 }
 
@@ -110,5 +125,6 @@ Associated functions:
 \item \code{\link{DoscPP}}
 \item \code{\link{DoscPAS}}
 \item \code{\link{DoscAB}}
+\item \code{\link{DoDEGAS}}
 }
 }

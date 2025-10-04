@@ -81,7 +81,7 @@ scissor_res <- Screen(
   pheno_bi,
   phenotype_class = "binary",
   screen_method = "Scissor",
-  scissor_alpha = 0.05
+  alpha = 0.05
 )
 ```
 
@@ -117,6 +117,9 @@ fraction = ScreenFractionPlot(
   group_by = "seurat_clusters",
   screen_type = c("scissor", "scPAS")
 )
+
+# names(fraction)
+# [1] "stats"         "plot"          "combined_plot"
 ```
 
 ```{r,visualize_fraction_plot}

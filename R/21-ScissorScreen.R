@@ -1,4 +1,4 @@
-# ---- 2. DO SCISSOR ----
+# ? ---- 2. DO SCISSOR ----
 
 #' @title Perform Scissor Screening Analysis
 #' @description
@@ -8,6 +8,7 @@
 #' @usage
 #' DoScissor(
 #'    path2load_scissor_cache = NULL,
+#'    path2save_scissor_inputs = "Scissor_inputs.RData",
 #'    matched_bulk,
 #'    sc_data,
 #'    phenotype,
@@ -16,14 +17,18 @@
 #'    cutoff = 0.2,
 #'    scissor_family = c("gaussian", "binomial", "cox"),
 #'    reliability_test = FALSE,
-#'    path2save_scissor_inputs = "Scissor_inputs.RData",
-#'    reliability_test_n = 10,
-#'    nfold = 10,
+#'    reliability_test.n = 10,
+#'    reliability_test.nfold = 10,
+#'    cell_evaluation = FALSE,
+#'    cell_evaluation.benchmark_data = "path_to_file.RData",
+#'    cell_evaluation.FDR = 0.05,
+#'    cell_evaluation.bootstrap_n = 100,
 #'    ...
 #' )
 #'
 #' @param path2load_scissor_cache Path to precomputed Scissor inputs (RData file).
 #'        If provided, skips recomputation (default: NULL).
+#' @param path2save_scissor_inputs Path to save intermediate files (default: "Scissor_inputs.RData").
 #' @param matched_bulk Normalized bulk expression matrix (features × samples).
 #'        Column names must match `phenotype` identifiers.
 #' @param sc_data Seurat object containing single-cell RNA-seq data.
@@ -32,17 +37,20 @@
 #'        - Data frame: with row names matching bulk columns
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
 #' @param alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.
-#' @param cutoff  (default: 0.2).
+#' @param cutoff  (default: 0.2). When `alpha=NULL`, the cutoff is used to determine the optimal alpha.
 #'        Higher values increase specificity.
 #' @param scissor_family Model family for outcome type:
 #'        - "gaussian": Continuous outcomes
 #'        - "binomial": Binary outcomes (default)
 #'        - "cox": Survival outcomes
 #' @param reliability_test Logical to perform stability assessment when `scissor_alpha` is specified as a value between 0 and 1.(default: TRUE).
-#' @param reliability_test_n Number of CV folds for reliability test (default: 10).
+#' @param reliability_test.n Number of CV folds for reliability test (default: 10).
 #'
-#' @param path2save_scissor_inputs Path to save intermediate files (default: "Scissor_inputs.RData").
-#' @param nfold Cross-validation folds for reliability test (default: 10).
+#' @param reliability_test.nfold Cross-validation folds for reliability test (default: 10).
+#' @param cell_evaluation Logical to perform cell evaluation (default: FALSE).
+#' @param cell_evaluation.benchmark_data Path to benchmark data (RData file).
+#' @param cell_evaluation.FDR FDR threshold for cell evaluation (default: 0.05).
+#' @param cell_evaluation.bootstrap_n Number of bootstrap iterations for cell evaluation (default: 100).
 #' @param ... Additional arguments passed to `Scissor.v5.optimized`.
 #'
 #' @return A list containing:
@@ -60,6 +68,11 @@
 #'       \item{p}{p-value of the test statistic}
 #'       \item{AUC_test_real}{10 values of AUC for real data}
 #'       \item{AUC_test_back}{A list of AUC for background data}
+#'     }
+#'   }
+#'   \item{cell_evaluation}{If cell_evaluation=TRUE, contains:
+#'     \describe{
+#'       \item{evaluation_res}{A data.frame with some supporting information for each Scissor selected cell}
 #'     }
 #'   }
 #' }
@@ -95,6 +108,7 @@
 #'
 DoScissor = function(
     path2load_scissor_cache = NULL,
+    path2save_scissor_inputs = "Scissor_inputs.RData",
     matched_bulk,
     sc_data,
     phenotype,
@@ -103,22 +117,23 @@ DoScissor = function(
     cutoff = 0.2,
     scissor_family = c("gaussian", "binomial", "cox"),
     reliability_test = FALSE,
-    path2save_scissor_inputs = "Scissor_inputs.RData",
-    reliability_test_n = 10,
-    nfold = 10,
+    reliability_test.n = 10,
+    reliability_test.nfold = 10,
+    cell_evaluation = FALSE,
+    cell_evaluation.benchmark_data = "path_to_file.RData",
+    cell_evaluation.FDR = 0.05,
+    cell_evaluation.bootstrap_n = 100,
     ...
 ) {
     # Input validation
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
-    chk::chk_null_or(alpha, chk::chk_range) # 0-1
+    chk::chk_character(label_type)
     chk::chk_range(cutoff)
-    chk::chk_subset(scissor_family, c("gaussian", "binomial", "cox"))
-    chk::chk_length(scissor_family, 1)
-    chk::chk_null_or(path2load_scissor_cache, chk::chk_file)
+    scissor_family <- match.arg(scissor_family)
+    chk::chk_character(path2save_scissor_inputs)
     chk::chk_flag(reliability_test)
-    chk::chk_number(reliability_test_n)
-    chk::chk_number(nfold)
+    chk::chk_flag(cell_evaluation)
 
     if (scissor_family %in% c("binomial", "cox")) {
         label_type_scissor = c(
@@ -166,16 +181,19 @@ DoScissor = function(
     sc_data <- Seurat::AddMetaData(sc_data, metadata = sc_meta) %>%
         AddMisc(scissor_type = label_type, cover = FALSE)
 
-    # reliability test
+    # *reliability test
     if (reliability_test) {
+        chk::chk_number(reliability_test.n)
+        chk::chk_number(reliability_test.nfold)
+        chk::chk_number(alpha)
+
         # indicate that Y has only two levels, both Pos and Neg cells exist
         if (!length(table(infos1$Y)) < 2) {
-            chk::chk_number(alpha)
-
             cli::cli_alert_info(c(
                 "[{TimeStamp()}]",
                 crayon::green(" Start reliability test")
             ))
+
             reliability_result <- Scissor::reliability.test(
                 infos1$X,
                 infos1$Y,
@@ -184,9 +202,10 @@ DoScissor = function(
                 family = scissor_family,
                 cell_num = length(infos1$Scissor_pos) +
                     length(infos1$Scissor_neg),
-                n = reliability_test_n,
-                nfold = nfold
+                n = reliability_test.n,
+                nfold = reliability_test.nfold
             )
+
             cli::cli_alert_success(
                 "[{TimeStamp()}] reliability test: Done"
             )
@@ -199,10 +218,36 @@ DoScissor = function(
         reliability_result <- NULL
     }
 
+    # * cell_evaluation
+    if (cell_evaluation) {
+        chk::chk_file(cell_evaluation.benchmark_data)
+        chk::chk_number(cell_evaluation.bootstrap_n)
+        chk::chk_range(cell_evaluation.FDR)
+
+        cli::cli_alert_info(c(
+            "[{TimeStamp()}]",
+            crayon::green(" Start cell evalutaion")
+        ))
+
+        evaluate_res <- Scissor::evaluate.cell(
+            Load_file = cell_evaluation.benchmark_data,
+            Scissor_result = infos1,
+            FDR_cutoff = cell_evaluation.FDR,
+            bootstrap_n = cell_evaluation.bootstrap_n
+        )
+
+        cli::cli_alert_success(
+            "[{TimeStamp()}] cell evalutaion: Done"
+        )
+    } else {
+        evaluate_res <- NULL
+    }
+
     return(list(
         scRNA_data = sc_data,
         scissor_result = infos1,
-        reliability_result = reliability_result
+        reliability_result = reliability_result,
+        cell_evaluation = evaluate_res
     ))
 }
 
@@ -210,6 +255,14 @@ DoScissor = function(
 #' @description
 #' Scissor.v5 from `https://doi.org/10.1038/s41587-021-01091-3`and `https://github.com/sunduanchen/Scissor/issues/59`
 #' Another version of Scissor.v5() to optimize memory usage and execution speed in preprocess.
+#'
+#' @references
+#' Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nat Biotechnol. 2022 Apr;40(4):527–38.
+#'
+#' @section LICENSE:
+#' Licensed under the GNU General Public License version 3 (GPL-3.0).
+#' A copy of the license is available at <https://www.gnu.org/licenses/gpl-3.0.en.html>.
+#'
 #'
 #' @family screen_method
 #'
@@ -267,37 +320,46 @@ Scissor.v5.optimized <- function(
             }
         } else {
             sc_exprs <- as.matrix(sc_dataset)
-            Seurat_tmp <- SCPreProcess(sc_dataset, verbose = FALSE)
+            Seurat_tmp <- SCPreProcess(
+                sc_dataset,
+                quality_control.pattern = c("^MT-"),
+                verbose = FALSE
+            )
             network <- as.matrix(Seurat_tmp@graphs$RNA_snn)
         }
         diag(network) <- 0
-        network[which(network != 0)] <- 1
-        dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ])
+        network <- (network != 0) * 1
+
+        bulk_mat <- as.matrix(bulk_dataset[common, ])
+        sc_mat <- as.matrix(sc_exprs[common, ])
+        dataset0 <- cbind(bulk_mat, sc_mat)
 
         cli::cli_alert_info(
             "[{TimeStamp()}] Normalizing quantiles of data..."
         )
 
         dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0))
-        rownames(dataset1) <- rownames(dataset0)
-        colnames(dataset1) <- colnames(dataset0)
+        rownames(dataset1) <- common
+        colnames(dataset1) <- c(colnames(bulk_mat), colnames(sc_mat))
 
         cli::cli_alert_info(
             "[{TimeStamp()}] Subsetting data..."
         )
+
+        n_bulk <- ncol(bulk_mat)
         # gene-sample
-        Expression_bulk <- dataset1[, 1:ncol(bulk_dataset)]
+        Expression_bulk <- dataset1[, 1:n_bulk, drop = FALSE]
         # gene-cell
-        Expression_cell <- dataset1[,
-            (ncol(bulk_dataset) + 1):ncol(dataset1)
-        ]
+        Expression_cell <- dataset1[, (n_bulk + 1):ncol(dataset1), drop = FALSE]
+
         gc(verbose = FALSE)
 
         cli::cli_alert_info(
             "[{TimeStamp()}] Calculating correlation..."
         )
+
         X <- cor(Expression_bulk, Expression_cell)
-        quality_check <- stats::quantile(X)
+        quality_check <- matrixStats::colQuantiles(X, probs = seq(0, 1, 0.25))
 
         cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
         message(crayon::bold("Five-number summary of correlations:\n"))
@@ -310,62 +372,65 @@ Scissor.v5.optimized <- function(
             ))
         }
 
-        switch(
-            family,
-            "binomial" = {
+        FamilyProcessor <- list(
+            binomial = function() {
                 Y <- as.numeric(phenotype)
                 z <- table(Y)
                 if (length(z) != length(tag)) {
-                    cli::cli_abort(c(
+                    cli::cli_abort(
                         "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type."
-                    ))
-                } else {
-                    cli::cli_alert_info(
-                        "Current phenotype contains {crayon::bold(z[1])} {tag[1]} and {crayon::bold(z[2])} {tag[2]} samples."
-                    )
-                    cli::cli_alert_info(
-                        "[{TimeStamp()}] Perform logistic regression on the given phenotypes(It may take long):"
                     )
                 }
+                cli::cli_alert_info(
+                    "Current phenotype contains {crayon::bold(z[1])} {tag[1]} and {crayon::bold(z[2])} {tag[2]} samples."
+                )
+                cli::cli_alert_info(
+                    "[{TimeStamp()}] Perform logistic regression on the given phenotypes..."
+                )
+                Y
             },
-            "gaussian" = {
+            gaussian = function() {
                 Y <- as.numeric(phenotype)
                 z <- table(Y)
                 if (length(z) != length(tag)) {
-                    cli::cli_abort(c(
+                    cli::cli_abort(
                         "x" = "The length differs between tags and phenotypes. Please check Scissor inputs and selected regression type.",
                         "i" = "length of tags: {.val {length(tag)}}",
                         "i" = "length of phenotypes: {.val {length(z)}}"
-                    ))
-                } else {
-                    tmp <- paste(z, tag)
-                    cli::cli_alert_info(
-                        "Current phenotype contains: {.val {length(tmp)}} samples."
-                    )
-                    cli::cli_text("Sample examples:")
-                    cli::cli_bullets(c(
-                        " " = "{.val {head(tmp, 5)}}",
-                        " " = "... ({length(tmp)-6} more samples)",
-                        " " = "{.val {tail(tmp, 1)}}"
-                    ))
-                    cli::cli_alert_info(
-                        "[{TimeStamp()}] Perform linear regression on the given phenotypes:"
                     )
                 }
+                tmp <- paste(z, tag)
+                cli::cli_alert_info(
+                    "Current phenotype contains: {.val {length(tmp)}} samples."
+                )
+                cli::cli_text("Sample examples:")
+                cli::cli_bullets(c(
+                    " " = "{.val {head(tmp, 5)}}",
+                    " " = "... ({length(tmp)-6} more samples)",
+                    " " = "{.val {tail(tmp, 1)}}"
+                ))
+                cli::cli_alert_info(
+                    "[{TimeStamp()}] Perform linear regression on the given phenotypes..."
+                )
+                Y
             },
-            "cox" = {
+            cox = function() {
                 Y <- as.matrix(phenotype)
                 if (ncol(Y) != 2) {
-                    cli::cli_abort(c(
+                    cli::cli_abort(
                         "x" = "The size of survival data is wrong. Please check Scissor inputs and selected regression type."
-                    ))
-                } else {
-                    cli::cli_alert_info(
-                        "[{TimeStamp()}] Perform cox regression on the given clinical outcomes:"
                     )
                 }
+                cli::cli_alert_info(
+                    "[{TimeStamp()}] Perform cox regression on the given clinical outcomes..."
+                )
+                Y
             }
         )
+
+        family <- match.arg(family)
+        Y <- FamilyProcessor[[family]]()
+
         if (!is.null(Save_file)) {
             save(
                 X,
@@ -375,9 +440,7 @@ Scissor.v5.optimized <- function(
                 Expression_cell,
                 file = Save_file
             )
-            cli::cli_alert_success(
-                "Statistics data saved to `{Save_file}`."
-            )
+            cli::cli_alert_success("Statistics data saved to `{Save_file}`.")
         }
     } else {
         # Load data from previous work
@@ -434,8 +497,10 @@ Scissor.v5.optimized <- function(
                 } else {
                     Coefs <- as.numeric(fit1$Beta)
                 }
-                Cell1 <- colnames(X)[which(Coefs > 0)]
-                Cell2 <- colnames(X)[which(Coefs < 0)]
+                pos_mask <- Coefs > 0
+                neg_mask <- Coefs < 0
+                Cell1 <- colnames(X)[pos_mask]
+                Cell2 <- colnames(X)[neg_mask]
                 percentage <- (length(Cell1) + length(Cell2)) / ncol(X)
                 cli::cli_h2("At alpha = {.val {alpha[i]}}")
                 cli::cli_text(sprintf(
@@ -445,7 +510,7 @@ Scissor.v5.optimized <- function(
                 ))
                 cli::cli_text(sprintf(
                     "The percentage of selected cell is: {.val {%s}}%%",
-                    formatC(percentage * 100, format = "f", digits = 3)
+                    round(percentage * 100, digits = 3)
                 ))
                 if (percentage < cutoff) {
                     cli::cli_alert_info(

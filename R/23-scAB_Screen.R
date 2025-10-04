@@ -72,8 +72,7 @@ DoscAB <- function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    chk::chk_subset(phenotype_class, c("binary", "survival"))
-    chk::chk_length(phenotype_class, 1)
+    phenotype_class <- match.arg(phenotype_class)
     chk::chk_range(alpha)
     chk::chk_range(alpha_2)
     chk::chk_number(maxiter)
@@ -143,9 +142,9 @@ DoscAB <- function(
         AddMisc(scAB_type = label_type, cover = FALSE)
 
     sc_data@meta.data <- sc_data@meta.data %>%
-        dplyr::rename(scAB = scAB_select) %>%
+        dplyr::rename(scAB = `scAB_select`) %>%
         dplyr::mutate(
-            scAB = case_when(
+            scAB = dplyr::case_when(
                 scAB == "Other cells" ~ "Other",
                 scAB == "scAB+ cells" ~ "Positive",
                 TRUE ~ "NULL"

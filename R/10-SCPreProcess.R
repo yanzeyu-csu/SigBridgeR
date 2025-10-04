@@ -68,7 +68,7 @@ SCPreProcess.matrix <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
+    project = glue::glue("SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -85,8 +85,8 @@ SCPreProcess.matrix <- function(
     verbose = TRUE,
     ...
 ) {
-    chk::chk_null_or(meta_data, chk::chk_data)
-    chk::chk_null_or(column2only_tumor, chk::chk_character)
+    chk::chk_is(meta_data, c("NULL", "data.frame", "matrix"))
+    chk::chk_is(column2only_tumor, c("NULL", "character"))
 
     # sc is a count matrix
     if (verbose) {
@@ -129,8 +129,8 @@ SCPreProcess.matrix <- function(
         sc_seurat = subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
-                nFeature_RNA < data_filter.nFeature_RNA_thresh[2] &
-                percent.mt < data_filter.percent.mt
+                `nFeature_RNA` < data_filter.nFeature_RNA_thresh[2] &
+                `percent.mt` < data_filter.percent.mt
         )
     }
     sc_seurat = ProcessSeuratObject(
@@ -180,7 +180,7 @@ SCPreProcess.data.frame <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
+    project = glue::glue("SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -227,7 +227,7 @@ SCPreProcess.dgCMatrix <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
+    project = glue::glue("SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -274,7 +274,7 @@ SCPreProcess.AnnDataR6 <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("{TimeStamp()}_SC_Screening_Proj"),
+    project = glue::glue("SC_Screening_Proj"),
     min_cells = 400,
     min_features = 0,
     quality_control = TRUE,
@@ -291,8 +291,8 @@ SCPreProcess.AnnDataR6 <- function(
     verbose = TRUE,
     ...
 ) {
-    chk::chk_null_or(meta_data, chk::chk_data)
-    chk::chk_null_or(column2only_tumor, chk::chk_character)
+    chk::chk_is(meta_data, c("NULL", "data.frame", "matrix"))
+    chk::chk_is(column2only_tumor, c("NULL", "character"))
 
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
@@ -339,8 +339,8 @@ SCPreProcess.AnnDataR6 <- function(
         sc_seurat = subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
-                nFeature_RNA < data_filter.nFeature_RNA_thresh[2] &
-                percent.mt < data_filter.percent.mt
+                `nFeature_RNA` < data_filter.nFeature_RNA_thresh[2] &
+                `percent.mt` < data_filter.percent.mt
         )
     }
 

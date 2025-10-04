@@ -123,7 +123,9 @@ ScreenFractionPlot = function(
     chk::chk_character(group_by)
     chk::chk_length(group_by, 1)
     chk::chk_flag(show_null)
-    chk::chk_null_or(plot_color, chk::chk_vector)
+    if (!is.null(plot_color)) {
+        chk::chk_vector(plot_color)
+    }
     all_screen_types = colnames(screened_seurat@meta.data)
     if (
         !all(purrr::map_vec(
@@ -173,18 +175,18 @@ ScreenFractionPlot = function(
             tidyr::complete(
                 !!sym(group_by),
                 !!sym(single_screen_type),
-                fill = list(n = 0)
+                fill = list(`n` = 0)
             ) %>%
             dplyr::group_by(!!sym(group_by)) %>%
-            dplyr::mutate(Total = sum(n)) %>%
+            dplyr::mutate(Total = sum(`n`)) %>%
             dplyr::ungroup() %>%
             dplyr::mutate(
-                Fraction = ifelse(Total == 0, 0, n / Total)
+                Fraction = ifelse(Total == 0, 0, `n` / Total)
             )
 
         plot_order <- stats_df %>%
             dplyr::filter(!!sym(single_screen_type) == "Positive") %>%
-            dplyr::arrange(desc(Fraction)) %>%
+            dplyr::arrange(dplyr::desc(Fraction)) %>%
             dplyr::pull(!!sym(group_by))
 
         # Get label type from misc

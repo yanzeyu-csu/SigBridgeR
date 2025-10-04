@@ -1,8 +1,6 @@
 .Rproj.user
 .Rhistory
 .Rdata
-.RData.qs
-.Rdata.qs
 .httr-oauth
 .DS_Store
 .quarto
@@ -12,6 +10,5 @@ tmp
 *.RData
 inst/doc
 Tmp/*
-MatchArg*
 docs
 *.qs

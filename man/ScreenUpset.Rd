@@ -72,7 +72,6 @@ The function performs the following steps:
 \dontrun{
 # Basic usage with default parameters
 result <- ScreenUpset(screened_seurat = my_seurat_obj)
-print(result$plot)
 
 # Customize screening types and appearance
 result <- ScreenUpset(

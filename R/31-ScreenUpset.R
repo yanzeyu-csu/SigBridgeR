@@ -40,7 +40,6 @@
 #' \dontrun{
 #' # Basic usage with default parameters
 #' result <- ScreenUpset(screened_seurat = my_seurat_obj)
-#' print(result$plot)
 #'
 #' # Customize screening types and appearance
 #' result <- ScreenUpset(
@@ -78,14 +77,15 @@ ScreenUpset <- function(
 ) {
     # Robust
     chk::chk_is(screened_seurat, "Seurat")
-    chk::chk_null_or(screen_type, chk::chk_character)
+    if (!is.null(screen_type)) {
+        chk::chk_character(screen_type)
+    }
     chk::chk_whole_number(n_intersections)
     chk::chk_flag(show_plot)
-    chk::chk_chr(x_lab)
-    chk::chk_chr(y_lab)
-    chk::chk_chr(title)
-    chk::chk_character(bar_color)
-    chk::chk_character(combmatrix_point_color)
+    purrr::walk(
+        list(x_lab, y_lab, title, bar_color, combmatrix_point_color),
+        ~ chk::chk_character
+    )
 
     meta_data <- screened_seurat@meta.data
     all_screen_types = colnames(meta_data)
@@ -153,10 +153,10 @@ ScreenUpset <- function(
     # Create UpSet plot
     upset <- ggplot2::ggplot(
         intersection_data,
-        ggplot2::aes(x = sets, y = count)
+        ggplot2::aes(x = `sets`, y = `count`)
     ) +
         ggplot2::geom_col(fill = bar_color, alpha = 0.9, width = 0.7) +
-        ggplot2::geom_text(ggplot2::aes(label = count), vjust = -0.5) +
+        ggplot2::geom_text(ggplot2::aes(label = `count`), vjust = -0.5) +
         ggupset::scale_x_upset(
             order_by = "degree",
             sets = screen_type,

@@ -6,6 +6,7 @@
 \usage{
 DoScissor(
    path2load_scissor_cache = NULL,
+   path2save_scissor_inputs = "Scissor_inputs.RData",
    matched_bulk,
    sc_data,
    phenotype,
@@ -14,15 +15,20 @@ DoScissor(
    cutoff = 0.2,
    scissor_family = c("gaussian", "binomial", "cox"),
    reliability_test = FALSE,
-   path2save_scissor_inputs = "Scissor_inputs.RData",
-   reliability_test_n = 10,
-   nfold = 10,
+   reliability_test.n = 10,
+   reliability_test.nfold = 10,
+   cell_evaluation = FALSE,
+   cell_evaluation.benchmark_data = "path_to_file.RData",
+   cell_evaluation.FDR = 0.05,
+   cell_evaluation.bootstrap_n = 100,
    ...
 )
 }
 \arguments{
 \item{path2load_scissor_cache}{Path to precomputed Scissor inputs (RData file).
 If provided, skips recomputation (default: NULL).}
+
+\item{path2save_scissor_inputs}{Path to save intermediate files (default: "Scissor_inputs.RData").}
 
 \item{matched_bulk}{Normalized bulk expression matrix (features × samples).
 Column names must match \code{phenotype} identifiers.}
@@ -37,7 +43,7 @@ Column names must match \code{phenotype} identifiers.}
 
 \item{alpha}{Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.}
 
-\item{cutoff}{(default: 0.2).
+\item{cutoff}{(default: 0.2). When \code{alpha=NULL}, the cutoff is used to determine the optimal alpha.
 Higher values increase specificity.}
 
 \item{scissor_family}{Model family for outcome type:
@@ -47,11 +53,17 @@ Higher values increase specificity.}
 
 \item{reliability_test}{Logical to perform stability assessment when \code{scissor_alpha} is specified as a value between 0 and 1.(default: TRUE).}
 
-\item{path2save_scissor_inputs}{Path to save intermediate files (default: "Scissor_inputs.RData").}
+\item{reliability_test.n}{Number of CV folds for reliability test (default: 10).}
 
-\item{reliability_test_n}{Number of CV folds for reliability test (default: 10).}
+\item{reliability_test.nfold}{Cross-validation folds for reliability test (default: 10).}
 
-\item{nfold}{Cross-validation folds for reliability test (default: 10).}
+\item{cell_evaluation}{Logical to perform cell evaluation (default: FALSE).}
+
+\item{cell_evaluation.benchmark_data}{Path to benchmark data (RData file).}
+
+\item{cell_evaluation.FDR}{FDR threshold for cell evaluation (default: 0.05).}
+
+\item{cell_evaluation.bootstrap_n}{Number of bootstrap iterations for cell evaluation (default: 100).}
 
 \item{...}{Additional arguments passed to \code{Scissor.v5.optimized}.}
 }
@@ -71,6 +83,11 @@ A list containing:
 \item{p}{p-value of the test statistic}
 \item{AUC_test_real}{10 values of AUC for real data}
 \item{AUC_test_back}{A list of AUC for background data}
+}
+}
+\item{cell_evaluation}{If cell_evaluation=TRUE, contains:
+\describe{
+\item{evaluation_res}{A data.frame with some supporting information for each Scissor selected cell}
 }
 }
 }

@@ -15,13 +15,14 @@
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time")
 #' @param phenotype_class Type of phenotypic outcome (must be consistent with input data):
 #'        - `"binary"`: Binary traits (e.g., case/control)
-#'        - `"continuous"`: Continuous measurements (only for `Scissor`, `scPAS`, `scPP`)
+#'        - `"continuous"`: Continuous measurements
 #'        - `"survival"`: Survival objects
 #' @param screen_method Screening algorithm to use, there are four options:
 #'        - `"Scissor"`: see also `DoScissor()`
 #'        - `"scPP"`: see also `DoscPP()`
 #'        - `"scPAS"`: see also `DoscPAS()`
 #'        - `"scAB"`: see also `DoscAB()`, no continuous support
+#'        - `"DEGAS"`: see also `DoDEGAS()`
 #' @param ... Additional method-specific parameters:
 #' \describe{
 #'   \item{Scissor}{\describe{
@@ -29,8 +30,13 @@
 #'     \item{cutoff}{(numeric) A threshold for terminating the iteration of alpha, only work when `alpha` is NULL, default 0.2}
 #'     \item{path2load_scissor_cache}{(character) default `NULL`}
 #'     \item{path2save_scissor_inputs}{(character) A path to save the intermediary data. By using `path2load_scissor_cache`,  the intermediary data can be loaded from the specified path. default `"Scissor_inputs.RData"`}
-#'     \item{nfold}{(integer) Cross-validation folds for reliability test, default 10}
 #'     \item{reliability_test}{(logical) Whether to perform reliability test, default FALSE}
+#'     \item{reliability_test.nfold}{(integer) Cross-validation folds for reliability test, default 10}
+#'     \item{reliability_test.n}{(integer) Number of cells to use for reliability test, default 10}
+#'     \item{cell_evaluation}{(logical) Whether to perform cell evaluation, default FALSE}
+#'     \item{cell_evaluation.benchmark_data}{.RData Benchmark data for cell evaluation, default NULL}
+#'     \item{cell_evaluation.FDR}{(numeric) FDR threshold for cell evaluation, default 0.05}
+#'     \item{cell_evaluation.bootstrap_n}{(integer) Number of bootstrap samples for cell evaluation, default 10}
 #'   }}
 #'   \item{scPP}{\describe{
 #'     \item{ref_group}{(integer or character) Reference group or baseline for **binary** comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. default: 0}
@@ -54,6 +60,14 @@
 #'     \item{maxiter}{(integer) NMF optimization iterations, default 2000}
 #'     \item{tred}{(integer) Z-score threshold, default 2}
 #'   }}
+#'   \item{DEGAS}{\describe{
+#'     \item{sc_data.pheno_colname}{(character) Phenotype column name in sc_data, default "NULL"}
+#'     \item{select_fraction}{(numeric) Fraction of cells to select for DEGAS, default 0.05}
+#'     \item{tmp_dir}{(character) Temporary directory for DEGAS, default "NULL"}
+#'     \item{env_params}{(list) Environment parameters for DEGAS, default "list()"}
+#'     \item{degas_params}{(list) DEGAS parameters, default "list()"}
+#'     \item{normality_test_method}{(character) Normality test method for DEGAS, default "jarque-bera"}
+#'   }}
 #' }
 #'
 #' @return A list containing:
@@ -72,10 +86,11 @@
 #'
 #' | **Method** | **Supported Phenotypes**      | **Additional Parameters**      |
 #' |------------|-------------------------------|---------------------------------|
-#' | `Scissor`  | All three types               | `alpha`, `cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `nfold`, `reliability_test`, `reliability_test_n` |           |
+#' | `Scissor`  | All three types               | `alpha`, `cutoff`, `path2load_scissor_cache`, `path2save_scissor_inputs`, `reliability_test`, `reliability_test.n`,`reliability_test.nfold`, `cell_evaluation`,`cell_evaluation.benchmark_data`,`cell_evaluation.FDR`,`cell_evaluation.bootstrap_n` |
 #' | `scPP`     | All three types               | `ref_group`, `Log2FC_cutoff`, `estimate_cutoff`, `probs`                |
 #' | `scPAS`    | All three types               | `n_components` ,`assay`, `imputation`,`nfeature`, `alpha`,`network_class`,`permutation_times`,`FDR_threshold`,`independent`               |
 #' | `scAB`     | Binary/Survival               | `alpha`, `alpha_2`, `maxiter`, `tred`            |
+#' | `DEGAS` | All three types | `sc_data.pheno_colname`,`select_fraction`,`tmp_dir`,`env_params`,`degas_params`,`normality_test_method` |
 #'
 #'
 #'
@@ -85,12 +100,15 @@
 #'   \item \code{\link{DoscPP}}
 #'   \item \code{\link{DoscPAS}}
 #'   \item \code{\link{DoscAB}}
+#'   \item \code{\link{DoDEGAS}}
 #' }
 #'
 #'
 #' @export
-#' @import dplyr
 #' @importFrom glue glue
+#' @importFrom chk chk_subset chk_is
+#' @importFrom cli cli_alert_info cli_abort
+#
 #'
 Screen <- function(
     matched_bulk,
@@ -98,16 +116,19 @@ Screen <- function(
     phenotype,
     label_type = NULL,
     phenotype_class = c("binary", "survival", "continuous"),
-    screen_method = c("Scissor", "scPP", "scPAS", "scAB"),
+    screen_method = c("Scissor", "scPP", "scPAS", "scAB", "DEGAS"),
     ...
 ) {
     chk::chk_subset(phenotype_class, c("binary", "survival", "continuous"))
-    chk::chk_subset(screen_method, c("Scissor", "scPP", "scPAS", "scAB"))
+    chk::chk_subset(
+        screen_method,
+        c("Scissor", "scPP", "scPAS", "scAB", "DEGAS")
+    )
     chk::chk_is(sc_data, "Seurat")
 
     if (is.null(label_type) || length(label_type) != 1) {
         cli::cli_alert_info(c(
-            "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
+            "i" = "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
         ))
         label_type = screen_method
     }
@@ -180,10 +201,20 @@ Screen <- function(
                     ...
                 )
             },
+            "DEGAS" = {
+                DoDEGAS(
+                    sc_data = sc_data,
+                    matched_bulk = matched_bulk,
+                    phenotype = phenotype,
+                    label_type = label_type,
+                    phenotype_class = phenotype_class, # "Binary", "Survival", "Continuous"
+                    ...
+                )
+            },
             TRUE ~
                 cli::cli_abort(c(
                     "x" = "Screen method not found.",
-                    "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}"
+                    "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
                 ))
         )
 

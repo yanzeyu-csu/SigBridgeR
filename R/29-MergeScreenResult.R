@@ -64,9 +64,9 @@ MergeResult = function(...) {
         } else if (is.list(x) && inherits(x$scRNA_data, "Seurat")) {
             return(x$scRNA_data)
         } else {
-            cli::cli_alert_warning(crayon::yellow(
-                "Skipping object of class {.code class(x)} - not a Seurat object or a list with Seurat object"
-            ))
+            cli::cli_warn(
+                "Skipping object of class {.code {class(x)}} - not a Seurat object or a list with Seurat object"
+            )
             return(NULL)
         }
     }) %>%
@@ -76,6 +76,7 @@ MergeResult = function(...) {
         cli::cli_abort(c("x" = "No valid Seurat objects found in inputs."))
     }
 
+    # extract metadata
     meta_list <- lapply(seurat_objects, function(x) {
         data.table::as.data.table(x@meta.data, keep.rownames = "cell_id")
     })

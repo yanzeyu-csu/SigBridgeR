@@ -108,8 +108,7 @@ DoscPP = function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    chk::chk_subset(phenotype_class, c("Binary", "Continuous", "Survival"))
-    chk::chk_length(phenotype_class, 1)
+    phenotype_class <- match.arg(phenotype_class)
     chk::chk_number(ref_group)
     chk::chk_range(Log2FC_cutoff)
     chk::chk_range(estimate_cutoff)
@@ -149,7 +148,7 @@ DoscPP = function(
         phenotype = as.data.frame(phenotype) %>%
             tibble::rownames_to_column("Sample") %>%
             dplyr::rename("Feature" = 2) %>%
-            dplyr::mutate(Feature = as.numeric(Feature))
+            dplyr::mutate(Feature = as.numeric(`Feature`))
     }
     if (tolower(phenotype_class) == "binary") {
         Check0VarRows(matched_bulk)
@@ -211,7 +210,7 @@ DoscPP = function(
 
     # *Start screen
     tryCatch(
-        scPP_result <- ScPP::ScPP(sc_data, gene_list, probs = probs),
+        scPP_result <- ScPP.optimized(sc_data, gene_list, probs = probs),
         error = function(e) {
             cli::cli_alert_danger(c("[{TimeStamp()}] ", e$message))
 
@@ -222,7 +221,7 @@ DoscPP = function(
         }
     )
 
-    sc_data@meta.data$scPP <- case_when(
+    sc_data@meta.data$scPP <- dplyr::case_when(
         scPP_result$metadata$ScPP == "Phenotype+" ~ "Positive",
         scPP_result$metadata$ScPP == "Phenotype-" ~ "Negative",
         TRUE ~ "Neutral"
@@ -243,7 +242,7 @@ DoscPP = function(
                 genes_pos = scPP_result$Genes_pos,
                 genes_neg = scPP_result$Genes_neg
             ),
-            AUC = select(scPP_result$metadata, "AUCup", "AUCdown")
+            AUC = dplyr::select(scPP_result$metadata, "AUCup", "AUCdown")
         )
     )
 }
@@ -266,7 +265,7 @@ DoscPP = function(
 #'   the function throws an error with a message listing the problematic row names.
 #'
 #' @details
-#' For dense matrices, variance is computed using an optimized `rowVars` function that
+#' For dense matrices, variance is computed using an optimized `RowVars` function that
 #' efficiently calculates row variances with proper NA handling. For sparse matrices of
 #' class `dgCMatrix`, variance is computed using a mathematical identity that avoids
 #' creating large intermediate matrices. Rows with fewer than 2 non-zero observations
@@ -298,7 +297,7 @@ DoscPP = function(
 #' @importFrom rlang caller_env
 #' @importFrom cli cli_abort
 #'
-#' @export
+#' @keywords internal
 #'
 Check0VarRows <- function(mat, call = rlang::caller_env()) {
     if (inherits(mat, "dgCMatrix")) {
@@ -313,7 +312,7 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
         vars[zero_counts <= 1] <- 0
         vars[is.nan(vars)] <- 0
     } else {
-        vars <- rowVars(mat, na.rm = TRUE)
+        vars <- RowVars(mat, na.rm = TRUE)
     }
 
     zero_idx <- which(vars == 0 | is.na(vars))
@@ -329,4 +328,187 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
         )
     }
     invisible(vars)
+}
+
+
+#' @title Single-Cell Phenotype Profiling (Optimized)
+#'
+#' @description
+#' Performs optimized single-cell phenotype profiling using gene set enrichment
+#' analysis and differential expression to identify phenotype-associated cells
+#' and marker genes. This implementation uses AUCell for efficient gene set
+#' scoring and provides comprehensive phenotype characterization.
+#'
+#' @param sc_dataset A Seurat object containing single-cell RNA-seq data.
+#'   Must have RNA assay with normalized data.
+#' @param geneList A named list of length 2 containing gene sets for phenotype
+#'   characterization. The list should contain:
+#'   \itemize{
+#'     \item `gene_pos` - Genes associated with positive phenotype
+#'     \item `gene_neg` - Genes associated with negative phenotype
+#'   }
+#' @param probs Numeric value between 0 and 1 specifying the quantile threshold
+#'   for phenotype classification. Default: 0.2 (20th and 80th percentiles).
+#'
+#' @return
+#' A list with three components:
+#' \itemize{
+#'   \item `metadata` - Data frame containing cell metadata with added columns:
+#'     \itemize{
+#'       \item `AUCup` - AUCell scores for positive gene set
+#'       \item `AUCdown` - AUCell scores for negative gene set
+#'       \item `ScPP` - Phenotype classification: "Phenotype+", "Phenotype-", or "Background"
+#'     }
+#'   \item `Genes_pos` - Character vector of genes significantly upregulated
+#'         in Phenotype+ cells compared to Phenotype- cells
+#'   \item `Genes_neg` - Character vector of genes significantly upregulated
+#'         in Phenotype- cells compared to Phenotype+ cells
+#' }
+#'
+#' @details
+#' This function implements an optimized workflow for single-cell phenotype
+#' profiling that combines gene set enrichment analysis with differential
+#' expression to identify and characterize cell phenotypes:
+#'
+#' ## Method Overview:
+#' 1. **Gene Set Scoring**: Uses AUCell to calculate enrichment scores for
+#'    both positive and negative gene sets in each cell
+#' 2. **Phenotype Classification**: Identifies phenotype-positive and
+#'    phenotype-negative cells based on quantile thresholds of AUC scores
+#' 3. **Differential Expression**: Finds marker genes distinguishing the
+#'    two phenotype groups using Seurat's FindMarkers
+#'
+#' ## Phenotype Classification Criteria:
+#' - **Phenotype+**: High positive gene set score AND low negative gene set score
+#' - **Phenotype-**: Low positive gene set score AND high negative gene set score
+#' - **Background**: All other cells not meeting above criteria
+#'
+#' ## Differential Expression Thresholds:
+#' - Absolute average log2 fold change > 1
+#' - Adjusted p-value < 0.05
+#'
+#' @note
+#' The function requires the Seurat object to have normalized data in the RNA
+#' assay. For Seurat version compatibility, it handles both v4 and v5 data
+#' structures automatically.
+#'
+#' @examples
+#' \dontrun{
+#' # Example using a Seurat object and gene lists
+#' gene_list <- list(
+#'   gene_pos = c("CD4", "IL7R", "CCR7"),
+#'   gene_neg = c("CD8A", "CD8B", "GZMB")
+#' )
+#'
+#' result <- ScPP.optimized(
+#'   sc_dataset = seurat_obj,
+#'   geneList = gene_list,
+#'   probs = 0.2
+#' )
+#'
+#' # Access results
+#' head(result$metadata)
+#' result$Genes_pos
+#' result$Genes_neg
+#' }
+#'
+#' @seealso
+#' [AUCell::AUCell_buildRankings()], [AUCell::AUCell_calcAUC()],
+#' [Seurat::FindMarkers()]
+#'
+#' @references
+#' \url{https://github.com/WangX-Lab/ScPP/}, function ScPP()
+#'
+#' @keywords internal
+#
+ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
+    chk::chk_length(geneList, 2)
+    chk::chk_is(sc_dataset, "Seurat")
+    chk::chk_range(probs)
+
+    rna_data <- if (utils::packageVersion("Seurat") >= "5.0.0") {
+        sc_dataset@assays$RNA$data
+    } else {
+        sc_dataset@assays$RNA@data
+    }
+
+    cli::cli_alert_info("[{TimeStamp()}] Computing AUC scores...")
+
+    cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
+    cellAUC <- AUCell::AUCell_calcAUC(geneList, cellrankings)
+
+    auc_matrix <- AUCell::getAUC(cellAUC)
+    auc_up <- as.numeric(auc_matrix["gene_pos", ])
+    auc_down <- as.numeric(auc_matrix["gene_neg", ])
+
+    metadata_dt <- data.table::as.data.table(
+        sc_dataset@meta.data,
+        keep.rownames = "cell_id"
+    )
+    metadata_dt[, `:=`(
+        AUCup = auc_up,
+        AUCdown = auc_down
+    )]
+
+    up_quantiles <- matrixStats::colQuantiles(
+        matrix(c(auc_up, auc_down), ncol = 2),
+        probs = c(probs, 1 - probs)
+    )
+
+    up_q1 <- up_quantiles[1, 1]
+    up_q2 <- up_quantiles[1, 2]
+    down_q1 <- up_quantiles[2, 1]
+    down_q2 <- up_quantiles[2, 2]
+
+    downcells1 <- metadata_dt[AUCup <= up_q1, cell_id]
+    upcells1 <- metadata_dt[AUCup >= up_q2, cell_id]
+    downcells2 <- metadata_dt[AUCdown >= down_q2, cell_id]
+    upcells2 <- metadata_dt[AUCdown <= down_q1, cell_id]
+
+    ScPP_neg <- purrr::reduce(list(downcells1, downcells2), intersect)
+    ScPP_pos <- purrr::reduce(list(upcells1, upcells2), intersect)
+
+    metadata_dt[, ScPP := "Background"]
+    metadata_dt[cell_id %in% ScPP_pos, ScPP := "Phenotype+"]
+    metadata_dt[cell_id %in% ScPP_neg, ScPP := "Phenotype-"]
+
+    sc_dataset$ScPP <- metadata_dt$ScPP
+    Seurat::Idents(sc_dataset) <- "ScPP"
+
+    cli::cli_alert_info("[{TimeStamp()}] Finding markers...")
+
+    markers <- Seurat::FindMarkers(
+        sc_dataset,
+        ident.1 = "Phenotype+",
+        ident.2 = "Phenotype-"
+    )
+
+    markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
+
+    pos_mask <- markers_mat[, "avg_log2FC"] > 1 &
+        markers_mat[, "p_val_adj"] < 0.05
+    neg_mask <- markers_mat[, "avg_log2FC"] < -1 &
+        markers_mat[, "p_val_adj"] < 0.05
+
+    genes_pos <- rownames(markers)[pos_mask]
+    genes_neg <- rownames(markers)[neg_mask]
+
+    CheckGenes <- purrr::safely(function(genes, msg) {
+        if (length(genes) == 0) cli::cli_warn(msg)
+    })
+
+    CheckGenes(
+        genes_pos,
+        "There are no genes significantly upregulated in Phenotype+ compared to Phenotype-."
+    )
+    CheckGenes(
+        genes_neg,
+        "There are no genes significantly upregulated in Phenotype- compared to Phenotype+."
+    )
+
+    return(list(
+        metadata = as.data.frame(metadata_dt),
+        Genes_pos = genes_pos,
+        Genes_neg = genes_neg
+    ))
 }

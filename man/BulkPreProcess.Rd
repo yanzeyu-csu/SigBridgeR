@@ -7,7 +7,7 @@
 BulkPreProcess(
   data,
   sample_info = NULL,
-  gene_symbol_conversion = TRUE,
+  gene_symbol_conversion = FALSE,
   check = TRUE,
   min_count_threshold = 10,
   min_gene_expressed = 3,
@@ -24,25 +24,25 @@ BulkPreProcess(
 
 \item{sample_info}{Sample information data frame (optional), ignored if data is a list}
 
-\item{gene_symbol_conversion}{Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default TRUE.}
+\item{gene_symbol_conversion}{Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE}
 
-\item{check}{Whether to perform detailed quality checks, default TRUE}
+\item{check}{Whether to perform detailed quality checks, default: TRUE}
 
-\item{min_count_threshold}{Minimum count threshold for gene filtering, default 10}
+\item{min_count_threshold}{Minimum count threshold for gene filtering, default: 10}
 
-\item{min_gene_expressed}{Minimum number of samples a gene must be expressed in, default 3}
+\item{min_gene_expressed}{Minimum number of samples a gene must be expressed in, default: 3}
 
-\item{min_total_reads}{Minimum total reads per sample, default 1e6}
+\item{min_total_reads}{Minimum total reads per sample, default: 1e6}
 
-\item{min_genes_detected}{Minimum number of genes detected per sample, default 10000}
+\item{min_genes_detected}{Minimum number of genes detected per sample, default: 10000}
 
-\item{min_correlation}{Minimum correlation threshold between samples, default 0.8}
+\item{min_correlation}{Minimum correlation threshold between samples, default: 0.8}
 
-\item{n_top_genes}{Number of top variable genes for PCA analysis, default 500}
+\item{n_top_genes}{Number of top variable genes for PCA analysis, default: 500}
 
-\item{show_plot_results}{Whether to generate visualization plots, default TRUE}
+\item{show_plot_results}{Whether to generate visualization plots, default: TRUE}
 
-\item{verbose}{Whether to output detailed information, default TRUE}
+\item{verbose}{Whether to output detailed information, default: TRUE}
 }
 \value{
 Filtered count matrix
@@ -112,6 +112,6 @@ Samples are retained if:
 \code{\link[edgeR]{cpm}} for counts per million calculation,
 \code{\link[stats]{prcomp}} for PCA analysis,
 \code{\link[stats]{cor}} for correlation analysis,
-\code{\link[SigBridgeR]{rowVars}} for variance calculation of each row,
+\code{\link[SigBridgeR]{RowVars}} for variance calculation of each row,
 \code{\link[SigBridgeR]{SymbolConvert}} for gene symbol conversion
 }

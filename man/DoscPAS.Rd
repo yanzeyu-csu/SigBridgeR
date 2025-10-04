@@ -14,6 +14,7 @@ DoscPAS(
   imputation_method = c("KNN", "ALRA"),
   nfeature = 3000,
   alpha = c(0.01, NULL),
+  cutoff = 0.2,
   network_class = c("SC", "bulk"),
   scPAS_family = c("cox", "gaussian", "binomial"),
   permutation_times = 2000,
@@ -40,6 +41,8 @@ DoscPAS(
 \item{nfeature}{Number of features to select (default: 3000, indicating that the top 3000 highly variable genes are selected for model training}
 
 \item{alpha}{Numeric. Significance threshold. Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is in \verb{[0,1]}. A larger alpha lays more emphasis on the l1 norm. (default: 0.01)}
+
+\item{cutoff}{Numeric. Cutoff value for selecting the optimal alpha value when alpha = NULL. (default: 0.2)}
 
 \item{network_class}{Network class to use (default: 'SC', indicating gene-gene similarity networks derived from single-cell data. The other one is 'bulk'.)}
 
@@ -71,6 +74,7 @@ Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associat
 }
 \seealso{
 Other screen_method: 
+\code{\link{DoDEGAS}()},
 \code{\link{DoscPP}()}
 }
 \concept{screen_method}

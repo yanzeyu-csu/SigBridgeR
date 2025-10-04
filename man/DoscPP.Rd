@@ -102,6 +102,7 @@ surv_res <- DoscPP(
 }
 \seealso{
 Other screen_method: 
+\code{\link{DoDEGAS}()},
 \code{\link{DoscPAS}()}
 }
 \concept{screen_method}
