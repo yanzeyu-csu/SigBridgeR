@@ -66,7 +66,7 @@ Let’s start by trying **Scissor**.
       pheno_bi,
       phenotype_class = "binary",
       screen_method = "Scissor",
-      scissor_alpha = 0.05
+      alpha = 0.05
     )
 
 Other screening methods are also available.
@@ -98,6 +98,9 @@ Finally, we visualize the screening results.
       group_by = "seurat_clusters",
       screen_type = c("scissor", "scPAS")
     )
+
+    # names(fraction)
+    # [1] "stats"         "plot"          "combined_plot"
 
     knitr::include_graphics("vignettes/example_figures/fraction_q.png")
 
