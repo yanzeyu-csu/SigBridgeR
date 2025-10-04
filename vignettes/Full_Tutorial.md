@@ -42,6 +42,8 @@
             Screening](#32-option-b-scpas-screening)
         -   [3.3 (Option C) scAB Screening](#33-option-c-scab-screening)
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
+        -   [3.5 (Option E) DEGAS
+            Screening](#35-option-e-degas-screening)
         -   [3.8 (Optional) Merge screening
             results](#38-optional-merge-screening-results)
     -   [4. Visualization](#4-visualization)
@@ -56,17 +58,16 @@
     -   [5. Example](#5-example)
         -   [5.1 Survival-associated cell
             screening](#51-survival-associated-cell-screening)
-        -   [5.2 Phenotype-associated cell
-            screening](#52-phenotype-associated-cell-screening)
-        -   [5.3 Binarized phenotype associated cell
+        -   [5.2 Continuous Phenotype-associated cell
+            screening](#52-continuous-phenotype-associated-cell-screening)
+        -   [5.3 Binarized phenotype-associated cell
             screening](#53-binarized-phenotype-associated-cell-screening)
     -   [6. Other function details](#6-other-function-details)
         -   [6.1 Add miscellaneous information to the Seurat
             object](#61-add-miscellaneous-information-to-the-seurat-object)
-        -   [6.2 Calculate the variance of each row in a
-            matrix](#62-calculate-the-variance-of-each-row-in-a-matrix)
-        -   [6.3 Detect Rows with Zero Variance in
-            Matrices](#63-detect-rows-with-zero-variance-in-matrices)
+        -   [6.2 Load reference data](#62-load-reference-data)
+        -   [6.3 Setting up Python
+            Environment](#63-setting-up-python-environment)
     -   [7. References](#7-references)
 
 ### 0.1 Introduction to SigBridgeR
@@ -78,8 +79,9 @@ sample\_related phenotype data at a pan-cancer level. It integrates
 functionality from these R packages:
 [Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor),
 [Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/),
-[Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP) and
-[Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS).
+[Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP),[Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
+and
+[Github-tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
 
 ------------------------------------------------------------------------
 
@@ -135,43 +137,46 @@ their versions:
     }
 
     CheckPkgs(list(
-      list(pkg = "Seurat", version = "5.0.0"),
-      list(pkg = "dplyr"),
-      list(pkg = "cli"),
-      list(pkg = "AUCell", version = "1.20.2"),
-      list(pkg = "future"),
-      list(pkg = "IDConverter"),
-      list(pkg = "Matrix"),
-      list(pkg = "scAB"),
-      list(pkg = "Scissor"),
-      list(pkg = "scPAS"),
-      list(pkg = "ScPP"),
-      list(pkg = "tibble"),
-      list(pkg = "tidyr"),
-      list(pkg = "data.table", version = "1.14.1"),
-      list(pkg = "ggforce"),
-      list(pkg = "ggplot2"),
-      list(pkg = "ggupset"),
-      list(pkg = "purrr"),
-      list(pkg = "edgeR"),
-      list(pkg = "scales"),
-      list(pkg = "doParallel"),
-      list(pkg = "preprocessCore"),
+      list(pkg = "Seurat", version = "5.3.0"),
+      list(pkg = "dplyr", version = "1.1.4"),
+      list(pkg = "cli", version = "3.6.5"),
+      list(pkg = "AUCell", version = "1.26.0"),
+      list(pkg = "future", version = "1.67.0"),
+      list(pkg = "IDConverter", version = "0.3.5"),
+      list(pkg = "Matrix", version = "1.7.3"),
+      list(pkg = "matrixStats", version = "1.5.0"),
+      list(pkg = "reticulate", version = "1.43.0"),
+      list(pkg = "scAB", version = "1.0.0"),
+      list(pkg = "Scissor", version = "2.0.0"),
+      list(pkg = "scPAS", version = "0.2.0"),
+      list(pkg = "ScPP", version = "0.0.0.9000"),
+      list(pkg = "tibble", version = "3.3.0"),
+      list(pkg = "tidyr", version = "1.3.1"),
+      list(pkg = "data.table", version = "1.17.8"),
+      list(pkg = "ggforce", version = "0.5.0"),
+      list(pkg = "ggplot2", version = "4.0.0"),
+      list(pkg = "ggupset", version = "0.4.1"),
+      list(pkg = "purrr", version = "1.1.0"),
+      list(pkg = "edgeR", version = "4.2.2"),
+      list(pkg = "scales", version = "1.4.0"),
+      list(pkg = "preprocessCore", version = "1.66.0"),
       # suggest
-      list(pkg = "randomcoloR"),
-      list(pkg = "reticulate"),
-      list(pkg = "patchwork"),
-      list(pkg = "org.Hs.eg.db"),
-      list(pkg = "zeallot"),
-      list(pkg = "ggVennDiagram")
+      list(pkg = "randomcoloR", version = "1.1.0.1"),
+      list(pkg = "patchwork", version = "1.3.2"),
+      list(pkg = "org.Hs.eg.db", verion = "3.19.1"),
+      list(pkg = "zeallot", version = "0.1.0"),
+      list(pkg = "ggVennDiagram", version = "1.5.4")
       )
     )
+
+If you encounter compatibility issues, you can install the version of
+the package indicated here.
 
 ------------------------------------------------------------------------
 
 ## 2. Loading and preprocessing data
 
-First load the packaged:
+First load the packages:
 
     library(SigBridgeR)
     library(Seurat)
@@ -623,8 +628,19 @@ Parameters pass to `...` when using `Scissor` method:
     total cells. This parameter is used to restrict the number of the
     Scissor selected cells. A cutoff less than 50% (default 20%) is
     recommended depending on the input data.
--   `reliability_test_n`: Permutation times (default: 10)
--   `nfold`: The fold number in cross-validation (default: 10)
+-   `reliability_test`: A logical value specifying whether to perform
+    reliability test. Default: `FALSE`
+-   `reliability_test.n`: Permutation times (default: 10)
+-   `reliability_test.nfold`: The fold number in cross-validation
+    (default: 10)
+-   `cell_evaluation`: A logical value specifying whether to perform
+    cell evaluation. Default: `FALSE`
+-   `cell_evaluation.benchmark_data`: Path to benchmark data (RData
+    file).
+-   `cell_evaluation.FDR`: FDR threshold for cell evaluation (default:
+    0.05).
+-   `cell_evaluation.bootstrap_n`: Number of bootstrap iterations for
+    cell evaluation (default: 100).
 
 **Usage**:
 
@@ -671,15 +687,21 @@ can also be applied.
 
 **Cell level Evaluation**:
 
-You can use `Sissor::evaluate.cell()` to obtain some supporting
-information for each Scissor selected cell. First, prepare a benchmark
-dataset yourself.
+You can use `cell_evalutaion = TRUE` and `reliability_test = TRUE` to
+obtain some supporting information for each Scissor selected cell.
+First, prepare a benchmark dataset yourself for cell evalutaion.
 
-    evaluate_summary <- Scissor::evaluate.cell(
-        'your_benchmark_data.RData', # file path
-        scissor_result$scRNA_data, # The Seurat object after screening
-        FDR = 0.05,
-        bootstrap_n = 100
+    scissor_result = Screen(
+      sc_data = sc_dataset, 
+      label_type = "TP53", 
+      phenotype_class = "binary", 
+      screen_method = c("Scissor"),
+      path2load_scissor_cahce = "Tmp/Scissor_inputs.RData", # Intermediate data
+      reliability_test = TRUE,
+      cell_evaluation = TRUE,
+      cell_evaluation.benchmark_data = "path_to_benchmark_data.RData",
+      alpha = NULL, 
+      cutoff = 0.05 
     )
 
 helpful documentation:
@@ -781,6 +803,117 @@ Parameters pass to `...` when using `scPP` method :
 
 -   `scRNA_data`: A Seurat object after screening
 
+### 3.5 (Option E) DEGAS Screening
+
+**This method is not recommended because of low performance and
+intractable dependence control.**
+
+Parameters pass to `...` when using `DEGAS` method
+
+-   `sc_data.pheno_colname`: The column name of the phenotype in the
+    `sc_data@meta.data` slot, used to specify the phenotype for more
+    accurate screening. Default is `NULL`.
+-   `tmp_dir`: The directory for storing the intermediate files, default
+    is `NULL`.
+-   `env_params` : A list of parameters for the environment, default is
+    `list()`. Use `?DoDEGAS` to see the details.
+-   `degas_params`: A list of parameters for the DEGAS algorithm,
+    default is `list()`. Use `?DoDEGAS` to see the details.
+-   `normality_test_method`: Method for normality testing:
+    `"jarque-bera", "d'agostino", or "kolmogorov-smirnov"`, default is
+    “jarque-bera”.
+
+<!-- -->
+
+    degas_result = Screen(
+      matched_bulk = your_matched_bulk,
+      sc_data = A_Seurat_object,
+      phenotype = your_matched_phenotype,
+      label_type = "TP53", # The filtering labels are stored in the `@misc`
+      screen_method = "DEGAS",
+      phenotype_class = "binary",
+      # Environment parameters   
+      env_params = list(
+        env.name = "r-reticulate-degas",
+        env.type = "conda",
+        # Environment.yml file will be used to create the conda environment in default, so other parameters can be omitted
+        env.method = "environment",
+        # The path of the environment.yml file
+        env.file = system.file(
+            "conda/DEGAS_environment.yml",
+            package = "SigBridgeR"
+        ),
+        env.python_verion = "3.9.15",
+        env.packages = c(
+            "tensorflow" = "2.4.1",
+            "numpy" = "any"
+        ),
+        env.recreate = FALSE,
+        env.use_conda_forge = TRUE,
+        env.verbose = FALSE
+      ),
+      # DEGAS parameters
+      degas_params = list(
+        # DEGAS.model_type will be automatically determined by the phenotype_class
+        DEGAS.model_type = c(
+            "BlankClass", # only bulk level phenotype specified
+            "ClassBlank", # only single cell level phenotype specified
+            "ClassClass", # when both single cell level phenotype and bulk level phenotype specified
+            "ClassCox", # when both single cell level phenotype and bulk level survival data specified
+            "BlankCox" # only bulk level survival data specified
+        ),
+        # DEGAS.architecture will be `DenseNet` in default
+        DEGAS.architecture = c(
+            "DenseNet", # a dense net network
+            "Standard" # a feed forward network
+        ),
+        DEGAS.ff_depth = 3,
+        DEGAS.bag_depth = 5,
+        path.data = '',
+        path.result = '',
+        # The python executable path of the conda environment, auto detected in default
+        DEGAS.pyloc = NULL,
+        # Some python functions will be called in the DEGAS algorithm
+        DEGAS.toolsPath = paste0(.libPaths()[1], "/DEGAS/tools/"),
+        # Screening parameters
+        DEGAS.train_steps = 2000,
+        DEGAS.scbatch_sz = 200,
+        DEGAS.patbatch_sz = 50,
+        DEGAS.hidden_feats = 50,
+        DEGAS.do_prc = 0.5,
+        DEGAS.lambda1 = 3.0,
+        DEGAS.lambda2 = 3.0,
+        DEGAS.lambda3 = 3.0,
+        DEGAS.seed = 2
+      ),
+      normality_test_method = c(
+        "jarque-bera",
+        "d'agostino",
+        "kolmogorov-smirnov"
+      )
+    )
+
+This code chunk will CREATE a conda environment called
+“**r-reticulate-degas**” with python 3.9.15, and install the required
+packages for DEGAS. If an environment with the same name already exists,
+it will directly use this environment without creating a new one (unless
+specified `env_params = list(env.recreate=TRUE)`).
+
+You can use `ListPyEnvs()` to list all the python environments in your
+system, including virtual environments. Both Windows and Unix-like
+systems are supported.
+
+    # * On Unix-like system it goes like this
+    ListPyEnv()
+    #                 name                                                   python  type
+    # 1               base                         /home/user/miniconda3/bin/python conda
+    # 2 r-reticulate-degas /home/user/miniconda3/envs/r-reticulate-degas/bin/python conda
+    # 3               test                  /home/user/.virtualenvs/test/bin/python  venv
+
+Please note that the environmental dependencies required for DEGAS to
+run are quite stringent, and conflicts are highly likely to occur. This
+is why the use of this screening method is not recommended.
+
 ### 3.8 (Optional) Merge screening results
 
 If you have performed multiple screening methods one the same
@@ -788,7 +921,7 @@ single-cell data, you can use the `MergeResult` to merge the screening
 results of these methods. The Seurat object or a results list from
 `Screen` is accepted.
 
-    merged_seurat=MergeResult(
+    merged_seurat = MergeResult(
         your_scissor_result, 
         your_scPAS_result, 
         your_scAB_result, 
@@ -1115,11 +1248,10 @@ functions in `SigBridgeR` to screen cells associated with phenotype.
     # TCGA-44-6775 23.16      0
     # TCGA-44-2655 43.50      0
 
-This single-cell RNA data is from humans. We set the `quality_control`
-and `data_filter` to FALSE, and we set `scale_features` to all genes in
-order to maximize the flexibility of downstream analyses and capture a
-broader range of biological signals, so as to avoid insignificant
-results caused by too small a dataset.
+This single-cell RNA data is from humans. We set many parameters to
+`FALSE` or `0` in order to maximize the flexibility of downstream
+analyses and capture a broader range of biological signals, so as to
+avoid insignificant results caused by too small a dataset.
 
 Now we use `SCPreProcess()` to pre-process the data.
 
@@ -1127,6 +1259,8 @@ Now we use `SCPreProcess()` to pre-process the data.
       sc = mat_exam,
       quality_control = FALSE,
       data_filter = FALSE,
+      min_cells = 0,
+      min_features = 0,
       scale_features = rownames(mat_exam),
       dims = 1:20,
       resolution = 0.1
@@ -1176,7 +1310,7 @@ First, we use `scissor` to screen cells associated with survival.
 
     table(scissor_result$scRNA_data$scissor)
     # Negative  Neutral Positive 
-    #      244      603      246 
+    #       73      755      265 
 
 You will see an additional “Scissor\_inputs.RData” in the working
 directory. This is the intermediate data generated by the Scissor
@@ -1276,8 +1410,8 @@ specified any particular parameters.
 
     table(scpas_result$scRNA_data$scPAS)
 
-    # Neutral 
-    #    1093 
+    # Neutral Positive 
+    #    1092        1 
 
 As you can see, due to differences in data and algorithms, not every
 screening algorithm is able to screen out cells. You can adjust the
@@ -1295,100 +1429,90 @@ scPAS Screening](#32-option-b-scpas-screening)
         screen_method = "scPAS",
         alpha = NULL
     )
-    # ℹ [2025/09/11 09:44:42] Start scPAS screening.
+    # ℹ [2025/09/22 18:46:25] Start scPAS screening.
     # [1] "Step 1:Quantile normalization of bulk data."
     # [1] "Step 2: Extracting single-cell expression profiles...."
-    # Warning: The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
-    # ℹ Please use the `layer` argument instead.
-    # ℹ The deprecated feature was likely used in the scPAS package.
-    #   Please report the issue to the authors.
-    # This warning is displayed once every 8 hours.
-    # Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
     # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
     # Building SNN based on a provided distance matrix
     # Computing SNN
     # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
     # [1] "Perform cox regression on the given clinical outcomes:"
     # [1] "alpha = 0.001"
-    # [1] "lambda = 3.22620698162906"
-    # [1] "scPAS identified 129 rick+ features and 36 rick- features."
-    # [1] "The percentage of selected feature is: 95.376%"
+    # [1] "lambda = 7.88965313498356"
+    # [1] "scPAS identified 449 rick+ features and 236 rick- features."
+    # [1] "The percentage of selected feature is: 78.375%"
 
     # [1] "alpha = 0.005"
-    # [1] "lambda = 1.97047399269694"
-    # [1] "scPAS identified 94 rick+ features and 33 rick- features."
-    # [1] "The percentage of selected feature is: 73.410%"
+    # [1] "lambda = 3.32139271651783"
+    # [1] "scPAS identified 279 rick+ features and 159 rick- features."
+    # [1] "The percentage of selected feature is: 50.114%"
 
     # [1] "alpha = 0.01"
-    # [1] "lambda = 1.42941018794126"
-    # [1] "scPAS identified 80 rick+ features and 27 rick- features."
-    # [1] "The percentage of selected feature is: 61.850%"
+    # [1] "lambda = 2.5241108003373"
+    # [1] "scPAS identified 207 rick+ features and 102 rick- features."
+    # [1] "The percentage of selected feature is: 35.355%"
 
     # [1] "alpha = 0.05"
-    # [1] "lambda = 0.499586979737535"
-    # [1] "scPAS identified 46 rick+ features and 16 rick- features."
-    # [1] "The percentage of selected feature is: 35.838%"
+    # [1] "lambda = 0.8038196391727"
+    # [1] "scPAS identified 82 rick+ features and 24 rick- features."
+    # [1] "The percentage of selected feature is: 12.128%"
 
     # [1] "alpha = 0.1"
-    # [1] "lambda = 0.274148046759175"
-    # [1] "scPAS identified 32 rick+ features and 14 rick- features."
-    # [1] "The percentage of selected feature is: 26.590%"
+    # [1] "lambda = 0.441095530835556"
+    # [1] "scPAS identified 57 rick+ features and 12 rick- features."
+    # [1] "The percentage of selected feature is: 7.895%"
 
     # [1] "alpha = 0.2"
-    # [1] "lambda = 0.150438571440263"
-    # [1] "scPAS identified 21 rick+ features and 14 rick- features."
-    # [1] "The percentage of selected feature is: 20.231%"
+    # [1] "lambda = 0.220547765417778"
+    # [1] "scPAS identified 42 rick+ features and 12 rick- features."
+    # [1] "The percentage of selected feature is: 6.178%"
 
     # [1] "alpha = 0.3"
-    # [1] "lambda = 0.132580625268887"
-    # [1] "scPAS identified 16 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 13.873%"
+    # [1] "lambda = 0.154032875529483"
+    # [1] "scPAS identified 37 rick+ features and 9 rick- features."
+    # [1] "The percentage of selected feature is: 5.263%"
 
     # [1] "alpha = 0.4"
-    # [1] "lambda = 0.0994354689516653"
-    # [1] "scPAS identified 16 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 13.873%"
+    # [1] "lambda = 0.115524656647112"
+    # [1] "scPAS identified 33 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 4.691%"
 
     # [1] "alpha = 0.5"
-    # [1] "lambda = 0.0795483751613323"
-    # [1] "scPAS identified 15 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 13.295%"
+    # [1] "lambda = 0.0924197253176895"
+    # [1] "scPAS identified 30 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 4.348%"
 
     # [1] "alpha = 0.6"
-    # [1] "lambda = 0.0727535362804505"
-    # [1] "scPAS identified 14 rick+ features and 5 rick- features."
-    # [1] "The percentage of selected feature is: 10.983%"
+    # [1] "lambda = 0.0770164377647413"
+    # [1] "scPAS identified 29 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 4.233%"
 
     # [1] "alpha = 0.7"
-    # [1] "lambda = 0.0623601739546719"
-    # [1] "scPAS identified 14 rick+ features and 5 rick- features."
-    # [1] "The percentage of selected feature is: 10.983%"
+    # [1] "lambda = 0.0660140895126354"
+    # [1] "scPAS identified 28 rick+ features and 8 rick- features."
+    # [1] "The percentage of selected feature is: 4.119%"
 
     # [1] "alpha = 0.8"
-    # [1] "lambda = 0.0545651522103379"
-    # [1] "scPAS identified 14 rick+ features and 4 rick- features."
-    # [1] "The percentage of selected feature is: 10.405%"
+    # [1] "lambda = 0.0577623283235559"
+    # [1] "scPAS identified 27 rick+ features and 7 rick- features."
+    # [1] "The percentage of selected feature is: 3.890%"
 
     # [1] "alpha = 0.9"
-    # [1] "lambda = 0.0485023575203004"
-    # [1] "scPAS identified 14 rick+ features and 4 rick- features."
-    # [1] "The percentage of selected feature is: 10.405%"
+    # [1] "lambda = 0.0537890889507252"
+    # [1] "scPAS identified 24 rick+ features and 7 rick- features."
+    # [1] "The percentage of selected feature is: 3.547%"
 
     # [1] "|**************************************************|"
     # [1] "Step 5: calculating quantified risk scores...."
     # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
     # [1] "Finished."
-    # ✔ [2025/09/11 09:46:02] scPAS screening done.
+    # ✔ [2025/09/22 18:51:16] scPAS screening done.
 
-Unfortunatly, scPAS is not able to screen out any positive cells in this
-dataset. This means that scPAS may be not suitable for this dataset. You
-can try to adjust other parameters to screen out the positive cells (and
-no, it’s totally not because the author was too lazy to tune them
-`_(¦3」∠)_` ), and we are always happy to see others test our package.
+Now there may be some significant cells appearing.
 
     table(scpas_result$scRNA_data$scPAS)
-    # Neutral 
-    #    1093 
+    # Negative  Neutral Positive 
+    #        2     1086        5 
 
 Now we use scAB and scPP to screen cells.
 
@@ -1409,7 +1533,7 @@ Now we use scAB and scPP to screen cells.
 
     table(scab_result$scRNA_data$scAB)
     #    Other Positive 
-    #     1006       87 
+    #     1018       75 
 
     scpp_result = Screen(
         matched_bulk = bulk,
@@ -1432,7 +1556,7 @@ Now we use scAB and scPP to screen cells.
 
     table(scpp_result$scRNA_data$scPP)
     # Negative  Neutral Positive 
-    #       57      992       44 
+    #       52      993       48 
 
 After these algorithms have been run, the four sets of data can be
 merged since screening methods performed on the same data.
@@ -1522,9 +1646,6 @@ cells are shown in the set plot.
 
     upset <- ScreenUpset(screened_seurat = screen_result,screen_type = c("scissor", "scPAS", "scAB", "scPP"))
 
-    # * show the upset plot
-    upset$plot
-
     # * show the cell numbers of each set
     head(upset$stats)
     # # A tibble: 6 × 3
@@ -1559,7 +1680,7 @@ we have created a fictional `Sample` column.
     fraction_list = ScreenFractionPlot(
         screened_seurat = screen_result,
         group_by = "Sample",
-        screen_type = c("scissor", "scPP", "scAB"), # scPAS is not included due to no positive cells
+        screen_type = c("scissor", "scPP", "scAB","scPAS"),
         show_null = FALSE,
         plot_color = NULL,
         show_plot = TRUE
@@ -1568,22 +1689,19 @@ we have created a fictional `Sample` column.
 
     knitr::include_graphics("vignettes/example_figures/fraction.png")
 
+As you see, the `label_type`s set in function `Screen` are shown in the
+legend of each plot.
+
 [<img src="example_figures/fraction.png" data-fig-align="center"
 width="600" alt="fraction" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/fraction.png))
 
 The `fraction_list` contains the statistical data and charts for each
-screening algorithm.
+screening algorithm. The title of each plot will be appended with the
+method name as an identifier.
 
-    fraction_list
-        ├── stats
-        │   ├── scissor
-        │   ├── scAB
-        │   └── scPP
-        ├── plots
-        │   ├── scissor
-        │   ├── scAB
-        │   └── scPP   
-        └── combined_plot # show 3 plots in one plot
+fraction\_list ├── stats │ ├── scissor │ ├── scAB │ ├── scPAS │ └── scPP
+├── plots │ ├── scissor │ ├── scAB │ ├── scPAS │ └── scPP  
+└── combined\_plot \# show 4 plots in one plot
 
 UMAP is the most commonly used type of plot in academic literature.
 
@@ -1748,101 +1866,125 @@ various screening algorithms are based on during execution.
     # Add multiple attributes to the `SeuratObject@misc` slot simultaneously
     seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
 
-### 6.2 Calculate the variance of each row in a matrix
-
--   `rowVars()` : Calculate the variance of each row in a matrix.
-
-<!-- -->
-
-     # Basic usage with a matrix
-     mat <- matrix(1:12, nrow = 3)
-     rowVars(mat)
-
-     # With missing values
-     mat[1, 2] <- NA
-     mat[2, 3] <- NA
-     rowVars(mat, na.rm = TRUE)   # Excludes NAs
-     rowVars(mat, na.rm = FALSE)  # Includes NAs (returns NA for affected rows)
-
-     # With a data frame
-     df <- data.frame(
-       a = c(1, 4, 7),
-       b = c(2, 5, 8),
-       c = c(3, 6, 9)
-     )
-     rowVars(df)
-
-     # Edge case: single column (variance is 0)
-     single_col <- matrix(1:3, ncol = 1)
-     rowVars(single_col)  # Returns NaN due to division by 0
-
-### 6.3 Detect Rows with Zero Variance in Matrices
-
--   `Check0VarRows`: Detect Rows with Zero Variance in Matrices
-
-The `Check0VarRows` function identifies rows with zero variance
-(constant values) or exclusively `NA` values in numeric matrices,
-including sparse matrices of class `dgCMatrix`. It throws an informative
-error if such rows are detected, listing their names. This is
-particularly useful for preprocessing steps in statistical analyses
-(e.g., PCA, regression) where constant rows may cause computational
-issues or misinterpretations.
+### 6.2 Load reference data
 
 #### Parameters
 
--   **`mat`** (Required)  
-    A numeric matrix or sparse matrix of class `dgCMatrix` (from the
-    `Matrix` package). Rows represent features (e.g., genes), and
-    columns represent observations. Must have row names to identify
-    problematic rows in error messages.
+-   `data_type`: The type of data to load. Can be either “continuous”,
+    “survival” or “binary”, case-insensitive.
+-   `path`: The path to the data directory.
+-   `cache`: Whether to cache the data. Defaults to `TRUE`.
+-   `timeout`: The maximum timeout time when downloading data.
 
--   **`call`** (Optional, Advanced)  
-    The environment from which the function was called. Used internally
-    for error reporting. Defaults to `rlang::caller_env()`. Most users
-    can ignore this parameter.
+When loading the example data, the single-cell RNA expression matrix,
+the bulk RNA expression matrix, and the clinical phenotype data are
+loaded all at once. These data are combined into a list and returned.
 
-#### Details
+    mydata = LoadRefData(
+        data_type = c("survival"),
+        path = tempdir(),
+        cache = TRUE,
+        timeout = 60
+    )
 
-**Algorithm:**
+    # * mat_exam (matrix_example)
+    mydata[[1]][1:6,1:6]
+    #          SMC01.T_AAACCTGCATACGCCG SMC01.T_AAACCTGGTCGCATAT SMC01.T_AAACCTGTCCCTTGCA SMC01.T_AAACGGGAGGGAAACA SMC01.T_AAACGGGGTATAGGTA SMC01.T_AAAGATGAGGCCGAAT
+    # A1BG                            0                        0                        0                        0                        0                        0
+    # A1BG.AS1                        0                        0                        0                        0                        0                        0
+    # A1CF                            0                        2                        0                        0                        3                        0
+    # A2M                             0                        0                        0                        0                        0                        0
+    # A2M.AS1                         0                        0                        0                        0                        0                        0
+    # A2ML1                           0                        0                        0                        0                        0                        0
 
--   For **dense matrices**, uses `rowVars` ([Section
-    6.2](#62-calculate-the-variance-of-each-row-in-a-matrix))
-    implementation to compute row variances with efficient NA
-    handling.  
+    # * bulk_survival
+    mydata[[2]][1:6,1:6]
+    #         TCGA-69-7978 TCGA-62-8399 TCGA-78-7539 TCGA-73-4658 TCGA-44-6775 TCGA-44-2655
+    # HIF3A         4.2598      11.6239       9.1362       5.0288       4.0573       5.5335
+    # RTN4RL2       8.2023       5.5819       3.5365       7.4156       7.7107       5.3257
+    # HMGCLL1       2.7476       5.8513       3.8334       3.6447       2.9188       4.8820
+    # LRRTM1        0.0000       0.4628       4.7506       6.8005       7.7819       2.2882
+    # GRIN1         6.6074       5.4257       4.9563       7.3510       3.5361       3.3311
+    # LRRTM3        1.7458       2.0092       0.0000       1.4468       0.0000       0.0000
 
--   For **sparse matrices (`dgCMatrix`)**, leverages a mathematical
-    identity to compute variance without dense intermediate matrices:  
-    $$
-    \text{Var}(x) = \frac{\sum x^2 - \frac{(\sum x)^2}{n}}{n-1}
-    $$
+    # * pheno_survival
+    mydata[[3]] |> head()
+    #               time status
+    # TCGA-69-7978  4.40      0
+    # TCGA-62-8399 88.57      0
+    # TCGA-78-7539 25.99      0
+    # TCGA-73-4658 52.56      1
+    # TCGA-44-6775 23.16      0
+    # TCGA-44-2655 43.50      0
 
-    Rows with &lt;=1 non-zero observation are treated as zero-variance
-    to avoid numerical instability.
+I recommend using the `zeallot` package’s `%<-%` function to assign
+values and rename them simultaneously.
 
-<!-- -->
+    library(zeallot)
 
-    # Example 1: Dense matrix with no zero-variance rows
-    set.seed(123)
-    mat_dense <- matrix(rnorm(100), nrow = 10)
-    rownames(mat_dense) <- paste0("Gene", 1:10)
-    Check0VarRows(mat_dense)  # No error
+    c(mat_exam, bulk, pheno) %<-%  LoadRefData(
+        data_type = c("survival"),
+        path = tempdir(),
+        cache = TRUE,
+        timeout = 60
+    )
 
-    # Example 2: Dense matrix with zero-variance row
-    mat_dense[1, ] <- rep(5, 10)  # First row is constant
-    Check0VarRows(mat_dense)      # Error: "Detected 1 gene(s) with zero variance: Gene1"
+### 6.3 Setting up Python Environment
 
-    # Example 3: Sparse matrix (dgCMatrix)
-    library(Matrix)
-    mat_sparse <- as(matrix(rpois(100, 0.5), nrow = 10), "dgCMatrix")
-    rownames(mat_sparse) <- paste0("Gene", 1:10)
-    Check0VarRows(mat_sparse)  # Error if any row has zero variance
+Some screening methods (e.g. DEGAS) are built using Python and require
+an execution environment. Here is a function to help you set up a Python
+environment. Both Windows and Unix-like systems are supported.
 
-#### Notes
+    # * This is an example of setting up a Python environment using conda
+    SetupPyEnv(
+        env_type = "conda",
+        env_name = "test-condaenv",
+        method = c("reticulate", "system","environment"), # choose one of the two, default is "reticulate"
+        env_file = NULL # path to environment.yml file, used when method = "environment"
+        python_version = NULL,
+        packages = c(
+            "pandas" = "1.3",
+            "numpy" = "any"
+        ),
+        recreate = FALSE, # whether to remove the existing environment and recreate it
+        use_conda_forge = TRUE,
+        verbose = TRUE
+    ) 
 
--   **Row Names Requirement:** Ensure the input matrix has row names.
-    Without them, the error message will show indices instead of names.
--   **NA Handling:** Rows with all `NA` values are treated as
-    zero-variance and will trigger an error.
+    # * Or use virtualenv via reticulate
+    SetupPyEnv(
+        env_type = "venv", 
+        env_name = "test-venv", 
+        python_version = "3.9.15",
+        packages = c("tensorflow" = "2.4.1", "numpy" = "any"),
+        python_path = NULL,
+        recreate = FALSE,
+        verbose = TRUE
+    )
+
+You can use `ListPyEnv()` to list all the Python environments you have
+set up. Both conda and virtual environments are supported.
+
+    # * Unix-like systems
+    ListPyEnv()
+    #                 name                                                  python  type
+    # 1               base                        /home/user/miniconda3/bin/python conda
+    # 2      test-condaenv     /home/user/miniconda3/envs/test-condaenv/bin/python conda
+    # 3          test-venv         /home/user/miniconda3/envs/test-venv/bin/python  venv
+
+Show the conda environments only:
+
+    # * Unix-like systems
+    ListPyEnv(env_type = "conda")
+    #                 name                                                  python  type
+    # 1               base                        /home/user/miniconda3/bin/python conda
+    # 2      test-condaenv     /home/user/miniconda3/envs/test-condaenv/bin/python conda
+
+If the virtual environment isn’t installed in the default location, you
+can specify the location of the virtual environment with the
+`venv_locations` parameter.
+
+    ListPyEnv(env_type = "venv",venv_locations ="~/here_is_a_dir/.virtualenvs")
 
 ------------------------------------------------------------------------
 
@@ -1864,3 +2006,8 @@ issues or misinterpretations.
 >
 > 4.  WangX-Lab/ScPP Internet. cited 2025 Aug 31. Available from:
 >     <https://github.com/WangX-Lab/ScPP>
+>
+> 5.  Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et
+>     al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible
+>     deep transfer learning framework for prioritizing cells in
+>     relation to disease. Genome Med. 2022 Feb 1;14(1):11.
