@@ -62,6 +62,7 @@
 #' @importFrom ggupset scale_x_upset theme_combmatrix
 #'
 #' @export
+#' @family visualization_function
 #'
 ScreenUpset <- function(
     screened_seurat,

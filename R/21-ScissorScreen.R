@@ -104,7 +104,7 @@
 #' @importFrom crayon green red
 #'
 #' @keywords internal
-#' @export
+#' @family screen_method
 #'
 DoScissor = function(
     path2load_scissor_cache = NULL,
@@ -267,7 +267,6 @@ DoScissor = function(
 #' @family screen_method
 #'
 #' @keywords internal
-#' @noRd
 #'
 Scissor.v5.optimized <- function(
     bulk_dataset,

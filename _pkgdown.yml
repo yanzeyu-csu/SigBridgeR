@@ -25,8 +25,8 @@ title: SigBridgeR
 description: >-
   SigBridgeR: SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
 logo: 
-    light: pkgdown/figures/logo_white.png
-    dark:  pkgdown/figures/logo_black.png
+    light: inst/pkgdown/figures/logo_white.png
+    dark:  inst/pkgdown/figures/logo_black.png
 
 # 导航栏配置
 navbar:

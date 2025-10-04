@@ -56,7 +56,7 @@
 #' @importFrom crayon green
 #'
 #' @keywords internal
-#' @export
+#' @family screen_method
 #'
 DoscAB <- function(
     matched_bulk,

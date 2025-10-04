@@ -90,9 +90,7 @@
 #' @importFrom stats quantile
 #'
 #' @family screen_method
-#'
 #' @keywords internal
-#' @export
 #'
 DoscPP = function(
     matched_bulk,

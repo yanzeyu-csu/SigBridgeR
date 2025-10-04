@@ -100,6 +100,7 @@
 #' @importFrom glue glue
 #' @importFrom patchwork wrap_plots plot_annotation
 #'
+#' @family visualization_function
 #'
 ScreenFractionPlot = function(
     screened_seurat,

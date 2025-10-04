@@ -38,7 +38,6 @@
 #' @family screen_method
 #'
 #' @keywords internal
-#' @export
 #'
 DoscPAS = function(
     matched_bulk,

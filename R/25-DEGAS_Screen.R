@@ -437,7 +437,7 @@ Vec2sparse <- function(x, col_prefix = "") {
     )
 }
 
-#' @title Modified Jarque-Bera test for Normailty
+#' @title Modified Jarque-Bera Test for Normailty
 #'
 #' @description
 #' Performs a modified version of the Jarque-Bera test for normality that
