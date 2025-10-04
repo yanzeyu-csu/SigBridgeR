@@ -44,7 +44,7 @@ Depends:
     R (>= 4.1.0),    
     Matrix (>= 1.7.3)
 Remotes: 
-    tsteelejohnson91/DEGAS
+    tsteelejohnson91/DEGAS,
     ShixiangWang/IDConverter,
     Qinran-Zhang/scAB,
     sunduanchen/Scissor,
