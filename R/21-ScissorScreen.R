@@ -363,7 +363,12 @@ Scissor.v5.optimized <- function(
 
         cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
         message(crayon::bold("Five-number summary of correlations:\n"))
-        print(quality_check)
+        print(purrr::map_vec(
+            quality_check,
+            ~ {
+                mean(.x)
+            }
+        ))
         cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
         # median
         if (quality_check[3] < 0.01) {
