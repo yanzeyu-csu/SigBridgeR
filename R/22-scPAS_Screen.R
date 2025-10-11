@@ -94,10 +94,7 @@ DoscPAS = function(
         }
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::green(" Start scPAS screening.")
-    ))
+    ts_cli$cli_alert_info(cli::col_green("Start scPAS screening."))
 
     scPAS_result <- scPAS.optimized(
         bulk_dataset = as.matrix(matched_bulk),
@@ -123,12 +120,15 @@ DoscPAS = function(
         dplyr::contains("scPAS_")
     )
 
-    cli::cli_alert_success(c(
-        "[{TimeStamp()}]",
-        crayon::green(" scPAS screening done.")
-    ))
+    ts_cli$cli_alert_success(
+        cli::col_green("scPAS screening done.")
+    )
 
-    return(list(scRNA_data = scPAS_result, stats = detailed_info))
+    return(list(
+        scRNA_data = scPAS_result,
+        stats = detailed_info,
+        para = scPAS_result@misc$scPAS_para
+    ))
 }
 
 
@@ -332,10 +332,9 @@ scPAS.optimized <- function(
             intersect(rownames(bulk_dataset), nfeature)
         }
     } else {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
+        ts_cli$cli_alert_info(
             "The single-cell data is not a Seurat object, running default Seurat pipeline."
-        ))
+        )
         sc_dataset <- SCPreProcess(
             sc_dataset,
             quality_control.pattern = c("^MT-"),
@@ -374,10 +373,7 @@ scPAS.optimized <- function(
     }
 
     # Step 1: Quantile normalization with matrix optimization
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
-        "Quantile normalization of bulk data."
-    ))
+    ts_cli$cli_alert_info("Quantile normalization of bulk data.")
     Expression_bulk <- preprocessCore::normalize.quantiles(as.matrix(bulk_dataset[
         common_genes,
     ]))
@@ -394,15 +390,14 @@ scPAS.optimized <- function(
         assay <- Seurat::DefaultAssay(sc_dataset)
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
+    ts_cli$cli_alert_info(
         "Extracting single-cell expression profiles..."
-    ))
-    sc_exprs <- Seurat::GetAssayData(
-        object = sc_dataset,
-        assay = assay,
-        slot = 'data'
     )
+    sc_exprs <- if (utils::packageVersion("Seurat") >= "5.0.0") {
+        sc_dataset@assays$RNA$data
+    } else {
+        sc_dataset@assays$RNA@data
+    }
     Expression_cell <- sc_exprs[common_genes, ]
     Expression_cell <- methods::as(Expression_cell, "dgCMatrix")
 
@@ -412,23 +407,20 @@ scPAS.optimized <- function(
     if (length(rm_vars) > 0) {
         rm(list = rm_vars)
     }
-    gc(verbose = FALSE)
 
     # Prepare X matrix
     x <- t(Expression_bulk)
 
     # Step 3: Network construction with matrix optimizations
     if (network_class == 'bulk') {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
+        ts_cli$cli_alert_info(
             "Constructing a gene-gene similarity by bulk data..."
-        ))
+        )
         cor.m <- cor(x)
     } else {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
+        ts_cli$cli_alert_info(
             "Constructing a gene-gene similarity by single cell data..."
-        ))
+        )
         # Use matrix operations for efficient correlation
         cor.m <- scPAS::sparse.cor(t(Expression_cell))
     }
@@ -445,32 +437,28 @@ scPAS.optimized <- function(
     gc(verbose = FALSE)
 
     # Step 4: Model optimization with purrr functional programming
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
+    ts_cli$cli_alert_info(
         "Optimizing the network-regularized sparse regression model..."
-    ))
+    )
 
     # Prepare Y based on family using purrr pattern matching
     family_processor <- list(
         binomial = function() {
             y <- as.numeric(phenotype)
             z <- table(y)
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}] ",
+            ts_cli$cli_alert_info(
                 "Current phenotype contains {.val {z[1]}} {tag[1]} and {.val {z[2]}} {tag[2]} samples."
-            ))
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}] ",
+            )
+            ts_cli$cli_alert_info(
                 "Perform {.strong logistic} regression on the given phenotypes..."
-            ))
+            )
             y
         },
         gaussian = function() {
             y <- as.numeric(phenotype)
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}] ",
+            ts_cli$cli_alert_info(
                 "Perform linear regression on the given phenotypes..."
-            ))
+            )
             y
         },
         cox = function() {
@@ -483,10 +471,9 @@ scPAS.optimized <- function(
                     class = "IncorrectNumberOfColumns"
                 )
             }
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}] ",
+            ts_cli$cli_alert_info(
                 "Perform cox regression on the given phenotypes..."
-            ))
+            )
             y
         }
     )
@@ -496,7 +483,7 @@ scPAS.optimized <- function(
     # Alpha optimization with purrr
     alpha <- alpha %||%
         c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-
+    lambda <- c()
     # Use purrr for model fitting with early termination
     for (i in seq_along(alpha)) {
         set.seed(123)
@@ -521,7 +508,7 @@ scPAS.optimized <- function(
             alpha = alpha[i],
             lambda = fit0$lambda.min
         )
-
+        lambda <- c(lambda, fit0$lambda.min)
         # Extract coefficients using matrix indexing
         Coefs <- if (family == "binomial") {
             as.numeric(fit1$Beta[2:(ncol(x) + 1)])
@@ -552,10 +539,7 @@ scPAS.optimized <- function(
     }
 
     # Step 5: Risk score calculation with matrix optimizations
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
-        "Calculating quantified risk scores..."
-    ))
+    ts_cli$cli_alert_info("Calculating quantified risk scores...")
 
     # Fast sparse matrix scaling and risk calculation
     scaled_exp <- Seurat:::FastSparseRowScale(
@@ -569,10 +553,9 @@ scPAS.optimized <- function(
     risk_score <- as.matrix(Matrix::crossprod(scaled_exp, Coefs))
 
     # Step 6: Permutation test with purrr and matrix optimizations
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
+    ts_cli$cli_alert_info(
         "Qualitative identification by permutation test program with {.val {permutation_times}} times random perturbations..."
-    ))
+    )
 
     set.seed(12345)
 
@@ -596,7 +579,6 @@ scPAS.optimized <- function(
     # Matrix multiplication for background scores
     risk_score.background <- Matrix::crossprod(scaled_exp, randomPermutation)
     rm(randomPermutation_list, randomPermutation)
-    gc(verbose = FALSE)
     # Calculate background statistics using matrixStats
     if (independent) {
         risk_bg_matrix <- as.matrix(risk_score.background)
@@ -606,9 +588,10 @@ scPAS.optimized <- function(
     } else {
         risk_bg_vector <- as.vector(risk_score.background)
         mean.background <- mean(risk_bg_vector)
-        sd.background <- sd(risk_bg_vector)
+        sd.background <- stats::sd(risk_bg_vector)
         rm(risk_bg_vector)
     }
+    gc(verbose = FALSE)
 
     # Z-score calculation using vectorized operations with numerical stability
     # Add small epsilon to avoid division by zero
@@ -640,18 +623,18 @@ scPAS.optimized <- function(
         )
     ]
 
-    # Store parameters using purrr
-    alpha_used <- purrr::map_dbl(model_results, "alpha")
-    lambda_used <- purrr::map_dbl(model_results, "lambda")
-
-    sc_dataset@misc$scPAS_para <- list(
-        alpha = alpha_used,
-        lambda = lambda_used,
-        family = family,
-        Coefs = Coefs,
-        bulk = x,
-        phenotype = y,
-        Network = Network
+    sc_dataset <- AddMisc(
+        sc_dataset,
+        scPAS_para = list(
+            alpha = alpha,
+            lambda = lambda,
+            family = family,
+            Coefs = Coefs,
+            bulk = x,
+            phenotype = y,
+            Network = Network
+        ),
+        cover = FALSE
     )
 
     sc_dataset$scPAS_RS <- risk_score_data.frame$raw_score

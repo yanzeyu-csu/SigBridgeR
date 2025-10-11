@@ -90,7 +90,7 @@ SCPreProcess.matrix <- function(
 
     # sc is a count matrix
     if (verbose) {
-        cli::cli_alert_info("[{TimeStamp()}] Start from count matrix")
+        ts_cli$cli_alert_info("Start from count matrix")
     }
 
     sc_seurat <- Seurat::CreateSeuratObject(
@@ -298,7 +298,7 @@ SCPreProcess.AnnDataR6 <- function(
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
     if (verbose) {
-        cli::cli_alert_info("[{TimeStamp()}] Start from anndata object")
+        ts_cli$cli_alert_info("Start from anndata object")
     }
 
     sc_matrix <- t(sc$X)
@@ -354,7 +354,7 @@ SCPreProcess.AnnDataR6 <- function(
     )
 
     # Add metadata
-    if ("obs" %in% names(sc)) {
+    if ("obs" %chin% names(sc)) {
         sc_seurat <- Seurat::AddMetaData(sc_seurat, sc$obs)
     }
 
@@ -481,10 +481,10 @@ FilterTumorCell <- function(
     obj = AddMisc(obj, self_dim = dim(obj), cover = TRUE)
 
     if (!is.null(column2only_tumor)) {
-        if (!column2only_tumor %in% colnames(obj@meta.data)) {
-            cli::cli_alert_danger(crayon::red(
-                "Column '{column2only_tumor}' not found, skip tumor cell filtering"
-            ))
+        if (!column2only_tumor %chin% colnames(obj@meta.data)) {
+            cli::cli_warn(
+                "Column '{.emph column2only_tumor}' not found, skip tumor cell filtering"
+            )
             return(obj)
         } else {
             labels <- obj[[column2only_tumor]][[1]]

@@ -6,6 +6,7 @@
 \usage{
 DoDEGAS(
   select_fraction = 0.05,
+  min_thresh = 0.4,
   matched_bulk,
   sc_data,
   phenotype = NULL,
@@ -20,7 +21,9 @@ DoDEGAS(
 )
 }
 \arguments{
-\item{select_fraction}{Fraction of cells to select as positive when \code{phenotype_class} is "binary" or "survival" (default: 0.05)}
+\item{select_fraction}{The top percentage of selected cells will be considered as Positive cells, without considering how much larger the possible correlation coefficient of the observation group is compared to that of the control group. Only usedl when \code{phenotype_class} is "binary" or "survival". (default: 0.05)}
+
+\item{min_thresh}{DEGAS will calculate the possible correlation coefficients for each cell related to the phenotype. When the coefficient of the observation group is at least \code{min_thresh} larger than that of the control group, it can be considered related to the phenotype and will be marked as Positive. The priority of \code{min_thresh} is higher than that of \code{select_fraction.} (default: 0.4)}
 
 \item{matched_bulk}{Bulk RNA-seq data as matrix or data.frame (rows=genes, columns=samples)}
 
@@ -76,6 +79,7 @@ For survival: matrix with two columns (time and event status). Can be NULL, matr
 A list containing:
 \itemize{
 \item scRNA_data: Seurat object with DEGAS labels added to metadata
+\item model: The model trained using the input data, andit can be used for cell classification prediction.
 \item DEGAS_prediction: Data table with DEGAS predictions containing:
 \itemize{
 \item Predicted label probabilities for each cell
@@ -132,14 +136,25 @@ result <- DoDEGAS(
 }
 
 }
+\references{
+Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
+}
 \seealso{
-\code{\link{Vec2sparse}} for the structure of phenotype
+\code{\link{Vec2sparse}} for the structure transformation of phenotype
 \code{\link{jb.test.modified}} for modified Jarque-Bera test
 \code{\link{mad.test}} for outlier detection using Median Absolute Deviation
+\code{\link{runCCMTLBag.optimized}} for DEGAS model training
+\code{\link{predClassBag.optimized}} for DEGAS model prediction
+\code{\link{LabelBinaryCells}} for binary classification
+\code{\link{LabelSurvivalCells}} for survival classification
+\code{\link{LabelContinuousCells}} for continuous classification
 
 Other screen_method: 
+\code{\link{DoScissor}()},
+\code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
-\code{\link{DoscPP}()}
+\code{\link{DoscPP}()},
+\code{\link{Scissor.v5.optimized}()}
 }
 \concept{screen_method}
 \keyword{internal}

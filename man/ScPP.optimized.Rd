@@ -25,8 +25,8 @@ A list with three components:
 \itemize{
 \item \code{metadata} - Data frame containing cell metadata with added columns:
 \itemize{
-\item \code{AUCup} - AUCell scores for positive gene set
-\item \code{AUCdown} - AUCell scores for negative gene set
+\item \code{scPP_AUC} - AUCell scores for positive gene set
+\item \code{scPP_AUCwn} - AUCell scores for negative gene set
 \item \code{ScPP} - Phenotype classification: "Phenotype+", "Phenotype-", or "Background"
 }
 \item \code{Genes_pos} - Character vector of genes significantly upregulated
@@ -103,5 +103,9 @@ result$Genes_neg
 \seealso{
 \code{\link[AUCell:AUCell_buildRankings]{AUCell::AUCell_buildRankings()}}, \code{\link[AUCell:AUCell_calcAUC]{AUCell::AUCell_calcAUC()}},
 \code{\link[Seurat:FindMarkers]{Seurat::FindMarkers()}}
+
+Other scPP: 
+\code{\link{DoscPP}()}
 }
+\concept{scPP}
 \keyword{internal}

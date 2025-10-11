@@ -100,8 +100,7 @@
 #' @importFrom Scissor reliability.test
 #' @importFrom stats cor
 #' @importFrom glue glue
-#' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger
-#' @importFrom crayon green red
+#' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger col_green
 #'
 #' @keywords internal
 #' @family screen_method
@@ -135,7 +134,7 @@ DoScissor = function(
     chk::chk_flag(reliability_test)
     chk::chk_flag(cell_evaluation)
 
-    if (scissor_family %in% c("binomial", "cox")) {
+    if (scissor_family %chin% c("binomial", "cox")) {
         label_type_scissor = c(
             glue::glue("{label_type}_Negative"),
             glue::glue("{label_type}_Positive")
@@ -176,8 +175,8 @@ DoScissor = function(
         scissor = rep("Neutral", ncol(sc_data)),
         row.names = colnames(sc_data)
     )
-    sc_meta$scissor[rownames(sc_meta) %in% infos1$Scissor_pos] <- "Positive"
-    sc_meta$scissor[rownames(sc_meta) %in% infos1$Scissor_neg] <- "Negative"
+    sc_meta$scissor[rownames(sc_meta) %chin% infos1$Scissor_pos] <- "Positive"
+    sc_meta$scissor[rownames(sc_meta) %chin% infos1$Scissor_neg] <- "Negative"
     sc_data <- Seurat::AddMetaData(sc_data, metadata = sc_meta) %>%
         AddMisc(scissor_type = label_type, cover = FALSE)
 
@@ -189,10 +188,9 @@ DoScissor = function(
 
         # indicate that Y has only two levels, both Pos and Neg cells exist
         if (!length(table(infos1$Y)) < 2) {
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                crayon::green(" Start reliability test")
-            ))
+            ts_cli$cli_alert_info(
+                cli::col_green("Start reliability test")
+            )
 
             reliability_result <- Scissor::reliability.test(
                 infos1$X,
@@ -207,11 +205,12 @@ DoScissor = function(
             )
 
             cli::cli_alert_success(
-                "[{TimeStamp()}] reliability test: Done"
+                "reliability test: Done"
             )
         } else {
             cli::cli_abort(c(
-                "x" = "{crayon::red('Error in reliability test')}: one of the Pos or Neg cells doesn't exist"
+                "x" = "Error in reliability test:",
+                ">" = "one of the Pos or Neg cells doesn't exist"
             ))
         }
     } else {
@@ -224,10 +223,9 @@ DoScissor = function(
         chk::chk_number(cell_evaluation.bootstrap_n)
         chk::chk_range(cell_evaluation.FDR)
 
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::green(" Start cell evalutaion")
-        ))
+        ts_cli$cli_alert_info(
+            cli::col_green("Start cell evalutaion")
+        )
 
         evaluate_res <- Scissor::evaluate.cell(
             Load_file = cell_evaluation.benchmark_data,
@@ -237,7 +235,7 @@ DoScissor = function(
         )
 
         cli::cli_alert_success(
-            "[{TimeStamp()}] cell evalutaion: Done"
+            "cell evalutaion: Done"
         )
     } else {
         evaluate_res <- NULL
@@ -245,7 +243,7 @@ DoScissor = function(
 
     return(list(
         scRNA_data = sc_data,
-        scissor_result = infos1,
+        scissor_result = infos1, # parameters
         reliability_result = reliability_result,
         cell_evaluation = evaluate_res
     ))
@@ -281,15 +279,12 @@ Scissor.v5.optimized <- function(
     workers = 4,
     ...
 ) {
-    cli::cli_alert_info(
-        c("[{TimeStamp()}]", crayon::green(" Scissor start..."))
+    ts_cli$cli_alert_info(
+        cli::col_green("Scissor start...")
     )
 
     if (is.null(Load_file)) {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::bold(" Start from raw data...")
-        ))
+        ts_cli$cli_alert_info("Start from raw data...")
         common = intersect(
             rownames(bulk_dataset),
             rownames(sc_dataset)
@@ -302,12 +297,12 @@ Scissor.v5.optimized <- function(
 
         if (inherits(sc_dataset, "Seurat")) {
             sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
-            if ("RNA_snn" %in% names(sc_dataset@graphs)) {
+            if ("RNA_snn" %chin% names(sc_dataset@graphs)) {
                 network <- as.matrix(sc_dataset@graphs$RNA_snn)
                 cli::cli_alert_info(
                     "Using {.val RNA_snn} graph for network."
                 )
-            } else if ("integrated_snn" %in% names(sc_dataset@graphs)) {
+            } else if ("integrated_snn" %chin% names(sc_dataset@graphs)) {
                 network <- as.matrix(sc_dataset@graphs$integrated_snn)
                 cli::cli_alert_info(
                     "Using {.val integrated_snn} graph for network."
@@ -333,16 +328,16 @@ Scissor.v5.optimized <- function(
         sc_mat <- as.matrix(sc_exprs[common, ])
         dataset0 <- cbind(bulk_mat, sc_mat)
 
-        cli::cli_alert_info(
-            "[{TimeStamp()}] Normalizing quantiles of data..."
+        ts_cli$cli_alert_info(
+            "Normalizing quantiles of data..."
         )
 
         dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0))
         rownames(dataset1) <- common
         colnames(dataset1) <- c(colnames(bulk_mat), colnames(sc_mat))
 
-        cli::cli_alert_info(
-            "[{TimeStamp()}] Subsetting data..."
+        ts_cli$cli_alert_info(
+            "Subsetting data..."
         )
 
         n_bulk <- ncol(bulk_mat)
@@ -353,27 +348,22 @@ Scissor.v5.optimized <- function(
 
         gc(verbose = FALSE)
 
-        cli::cli_alert_info(
-            "[{TimeStamp()}] Calculating correlation..."
+        ts_cli$cli_alert_info(
+            "Calculating correlation..."
         )
 
         X <- cor(Expression_bulk, Expression_cell)
         quality_check <- matrixStats::colQuantiles(X, probs = seq(0, 1, 0.25))
 
         cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
-        message(crayon::bold("Five-number summary of correlations:\n"))
-        print(purrr::map_vec(
-            quality_check,
-            ~ {
-                mean(.x)
-            }
-        ))
+        cli::cli_text("Five-number summary of correlations:")
+        print(quality_check %>% asplit(2) %>% purrr::map_dbl(mean))
         cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
         # median
         if (quality_check[3] < 0.01) {
-            cli::cli_alert_warning(crayon::yellow(
+            cli::cli_warn(
                 "The median correlation between the single-cell and bulk samples is relatively low."
-            ))
+            )
         }
 
         FamilyProcessor <- list(
@@ -386,10 +376,10 @@ Scissor.v5.optimized <- function(
                     )
                 }
                 cli::cli_alert_info(
-                    "Current phenotype contains {crayon::bold(z[1])} {tag[1]} and {crayon::bold(z[2])} {tag[2]} samples."
+                    "Current phenotype contains {.val {z[1]}} {tag[1]} and {.val {z[2]}} {tag[2]} samples."
                 )
-                cli::cli_alert_info(
-                    "[{TimeStamp()}] Perform logistic regression on the given phenotypes..."
+                ts_cli$cli_alert_info(
+                    "Perform logistic regression on the given phenotypes..."
                 )
                 Y
             },
@@ -413,8 +403,8 @@ Scissor.v5.optimized <- function(
                     " " = "... ({length(tmp)-6} more samples)",
                     " " = "{.val {tail(tmp, 1)}}"
                 ))
-                cli::cli_alert_info(
-                    "[{TimeStamp()}] Perform linear regression on the given phenotypes..."
+                ts_cli$cli_alert_info(
+                    "Perform linear regression on the given phenotypes..."
                 )
                 Y
             },
@@ -425,8 +415,8 @@ Scissor.v5.optimized <- function(
                         "x" = "The size of survival data is wrong. Please check Scissor inputs and selected regression type."
                     )
                 }
-                cli::cli_alert_info(
-                    "[{TimeStamp()}] Perform cox regression on the given clinical outcomes..."
+                ts_cli$cli_alert_info(
+                    "Perform cox regression on the given clinical outcomes..."
                 )
                 Y
             }
@@ -444,14 +434,15 @@ Scissor.v5.optimized <- function(
                 Expression_cell,
                 file = Save_file
             )
-            cli::cli_alert_success("Statistics data saved to `{Save_file}`.")
+            ts_cli$cli_alert_success(glue::glue(
+                "Statistics data saved to `{Save_file}`."
+            ))
         }
     } else {
         # Load data from previous work
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::bold(" Loading data from `{Load_file}`...")
-        ))
+        ts_cli$cli_alert_info(
+            glue::glue("Loading data from `{Load_file}`...")
+        )
         load(Load_file)
     }
 
@@ -464,10 +455,7 @@ Scissor.v5.optimized <- function(
         phenotype
     )
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::bold(" Screening...")
-    ))
+    ts_cli$cli_alert_info("Screening...")
 
     alpha <- alpha %||%
         c(0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
@@ -517,20 +505,19 @@ Scissor.v5.optimized <- function(
                     round(percentage * 100, digits = 3)
                 ))
                 if (percentage < cutoff) {
-                    cli::cli_alert_info(
-                        c("[{TimeStamp()}]", crayon::green(" Scissor Ended."))
+                    ts_cli$cli_alert_info(
+                        cli::col_green("Scissor Ended.")
                     )
                     break
                 }
                 cat("\n")
             },
             error = function(e) {
-                cli::cli_alert_danger(c("[{TimeStamp()}] ", e$message))
+                cli::cli_alert_danger(e$message)
 
-                cli::cli_alert_info(c(
-                    "[{TimeStamp()}]",
-                    crayon::yellow(" scissor screening exit.")
-                ))
+                ts_cli$cli_alert_info(
+                    cli::col_yellow("Scissor screening exit 1.")
+                )
             }
         )
     }

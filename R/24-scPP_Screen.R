@@ -44,7 +44,7 @@
 #'   \item{gene_list}{List of genes used for screening}
 #'   \item{AUC}{A data.frame with area under the ROC curve:
 #'     \describe{
-#'         \item{AUCup}{AUC for positive}
+#'         \item{scPP_AUCup}{AUC for positive}
 #'         \item{AUCdown}{AUC for negative}
 #'     }
 #'   }
@@ -84,12 +84,12 @@
 #' @importFrom Seurat AddMetaData
 #' @importFrom dplyr %>% rename
 #' @importFrom glue glue
-#' @importFrom crayon green
-#' @importFrom cli cli_abort cli_alert_info cli_alert_success
+#' @importFrom cli cli_abort cli_alert_info cli_alert_success col_green col_yellow
 #' @importFrom tibble rownames_to_column
 #' @importFrom stats quantile
 #'
 #' @family screen_method
+#' @family scPP
 #' @keywords internal
 #'
 DoscPP = function(
@@ -130,15 +130,9 @@ DoscPP = function(
         }
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::green(" Start scPP screening.")
-    ))
+    ts_cli$cli_alert_info(cli::col_green("Start scPP screening."))
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        " Finding markers..."
-    ))
+    ts_cli$cli_alert_info("Finding markers...")
 
     matched_bulk = as.data.frame(matched_bulk)
     # decide which type of phenotype data is used
@@ -172,66 +166,43 @@ DoscPP = function(
     l = lapply(gene_list, length)
     pos_null = FALSE
     neg_null = FALSE
-    if ("gene_pos" %in% names(l)) {
+    if ("gene_pos" %chin% names(l)) {
         # Cannot combine the conditions due to the feature of `gene_list`
         if (l[["gene_pos"]] == 0) {
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                " No significant positive genes found"
-            ))
+            ts_cli$cli_alert_info(" No significant positive genes found")
             pos_null = TRUE
         }
     }
-    if ("gene_neg" %in% names(l)) {
+    if ("gene_neg" %chin% names(l)) {
         if (l[["gene_neg"]] == 0) {
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                " No significant negative genes found"
-            ))
+            ts_cli$cli_alert_info(" No significant negative genes found")
             neg_null = TRUE
         }
     }
     if (pos_null && neg_null) {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::yellow(" scPP screening exit.")
-        ))
+        ts_cli$cli_alert_info(
+            cli::col_yellow("scPP screening exits 1.")
+        )
         return(list(
             scRNA_data = "`scPP` is not applicable to the current data."
         ))
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        " Screening..."
-    ))
+    ts_cli$cli_alert_info("Screening...")
 
     # *Start screen
     tryCatch(
         scPP_result <- ScPP.optimized(sc_data, gene_list, probs = probs),
         error = function(e) {
-            cli::cli_alert_danger(c("[{TimeStamp()}] ", e$message))
+            cli::cli_alert_danger(e$message)
 
-            cli::cli_alert_info(c(
-                "[{TimeStamp()}]",
-                crayon::yellow(" scPP screening exit.")
-            ))
+            cli::cli_abort("scPP screening exits 1.")
         }
     )
+    sc_data@meta.data <- scPP_result$metadata
+    sc_data <- AddMisc(sc_data, scPP_type = label_type, cover = FALSE)
 
-    sc_data@meta.data$scPP <- dplyr::case_when(
-        scPP_result$metadata$ScPP == "Phenotype+" ~ "Positive",
-        scPP_result$metadata$ScPP == "Phenotype-" ~ "Negative",
-        TRUE ~ "Neutral"
-    )
-
-    sc_data <- sc_data %>%
-        AddMisc(scPP_type = label_type, cover = FALSE)
-
-    cli::cli_alert_success(c(
-        "[{TimeStamp()}]",
-        crayon::green(" scPP screening done.")
-    ))
+    ts_cli$cli_alert_success(cli::col_green("scPP screening done."))
 
     return(
         list(
@@ -240,7 +211,11 @@ DoscPP = function(
                 genes_pos = scPP_result$Genes_pos,
                 genes_neg = scPP_result$Genes_neg
             ),
-            AUC = dplyr::select(scPP_result$metadata, "AUCup", "AUCdown")
+            AUC = dplyr::select(
+                scPP_result$metadata,
+                "scPP_AUCup",
+                "scPP_AUCdown"
+            )
         )
     )
 }
@@ -321,7 +296,7 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
                 "Detected {.val {length(bad_genes)}} gene(s) with zero variance:",
                 "i" = "{.val {bad_genes}}"
             ),
-            class = "zero_variance_error",
+            class = "ZeroVarianceError",
             call = call
         )
     }
@@ -353,8 +328,8 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
 #' \itemize{
 #'   \item `metadata` - Data frame containing cell metadata with added columns:
 #'     \itemize{
-#'       \item `AUCup` - AUCell scores for positive gene set
-#'       \item `AUCdown` - AUCell scores for negative gene set
+#'       \item `scPP_AUC` - AUCell scores for positive gene set
+#'       \item `scPP_AUCwn` - AUCell scores for negative gene set
 #'       \item `ScPP` - Phenotype classification: "Phenotype+", "Phenotype-", or "Background"
 #'     }
 #'   \item `Genes_pos` - Character vector of genes significantly upregulated
@@ -418,6 +393,7 @@ Check0VarRows <- function(mat, call = rlang::caller_env()) {
 #' \url{https://github.com/WangX-Lab/ScPP/}, function ScPP()
 #'
 #' @keywords internal
+#' @family scPP
 #
 ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     chk::chk_length(geneList, 2)
@@ -430,7 +406,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
         sc_dataset@assays$RNA@data
     }
 
-    cli::cli_alert_info("[{TimeStamp()}] Computing AUC scores...")
+    ts_cli$cli_alert_info("Computing AUC scores...")
 
     cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
     cellAUC <- AUCell::AUCell_calcAUC(geneList, cellrankings)
@@ -444,8 +420,8 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
         keep.rownames = "cell_id"
     )
     metadata_dt[, `:=`(
-        AUCup = auc_up,
-        AUCdown = auc_down
+        scPP_AUCup = auc_up,
+        scPP_AUCdown = auc_down
     )]
 
     up_quantiles <- matrixStats::colQuantiles(
@@ -458,27 +434,27 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     down_q1 <- up_quantiles[2, 1]
     down_q2 <- up_quantiles[2, 2]
 
-    downcells1 <- metadata_dt[AUCup <= up_q1, cell_id]
-    upcells1 <- metadata_dt[AUCup >= up_q2, cell_id]
-    downcells2 <- metadata_dt[AUCdown >= down_q2, cell_id]
-    upcells2 <- metadata_dt[AUCdown <= down_q1, cell_id]
+    downcells1 <- metadata_dt[scPP_AUCup <= up_q1, cell_id]
+    upcells1 <- metadata_dt[scPP_AUCup >= up_q2, cell_id]
+    downcells2 <- metadata_dt[scPP_AUCdown >= down_q2, cell_id]
+    upcells2 <- metadata_dt[scPP_AUCdown <= down_q1, cell_id]
 
-    ScPP_neg <- purrr::reduce(list(downcells1, downcells2), intersect)
-    ScPP_pos <- purrr::reduce(list(upcells1, upcells2), intersect)
+    scPP_neg <- purrr::reduce(list(downcells1, downcells2), intersect)
+    scPP_pos <- purrr::reduce(list(upcells1, upcells2), intersect)
 
-    metadata_dt[, ScPP := "Background"]
-    metadata_dt[cell_id %in% ScPP_pos, ScPP := "Phenotype+"]
-    metadata_dt[cell_id %in% ScPP_neg, ScPP := "Phenotype-"]
+    metadata_dt[, scPP := "Neutral"]
+    metadata_dt[cell_id %chin% scPP_pos, scPP := "Positive"]
+    metadata_dt[cell_id %chin% scPP_neg, scPP := "Negative"]
 
-    sc_dataset$ScPP <- metadata_dt$ScPP
-    Seurat::Idents(sc_dataset) <- "ScPP"
+    sc_dataset$scPP <- metadata_dt$scPP
+    Seurat::Idents(sc_dataset) <- "scPP"
 
-    cli::cli_alert_info("[{TimeStamp()}] Finding markers...")
+    ts_cli$cli_alert_info("Finding markers...")
 
     markers <- Seurat::FindMarkers(
         sc_dataset,
-        ident.1 = "Phenotype+",
-        ident.2 = "Phenotype-"
+        ident.1 = "Positive",
+        ident.2 = "Negative"
     )
 
     markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
@@ -497,15 +473,16 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
 
     CheckGenes(
         genes_pos,
-        "There are no genes significantly upregulated in Phenotype+ compared to Phenotype-."
+        "There are no genes significantly upregulated in `Positive` compared to `Negative`."
     )
     CheckGenes(
         genes_neg,
-        "There are no genes significantly upregulated in Phenotype- compared to Phenotype+."
+        "There are no genes significantly upregulated in `Negative` compared to `Positive`."
     )
 
     return(list(
-        metadata = as.data.frame(metadata_dt),
+        metadata = as.data.frame(metadata_dt) %>%
+            tibble::column_to_rownames("cell_id"),
         Genes_pos = genes_pos,
         Genes_neg = genes_neg
     ))

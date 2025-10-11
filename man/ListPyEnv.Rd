@@ -7,19 +7,35 @@
 \alias{ListPyEnv.venv}
 \title{List Available Python Environments}
 \usage{
-ListPyEnv(env_type = c("all", "conda", "venv"), ...)
-
-\method{ListPyEnv}{default}(
-  env_type = "all",
+ListPyEnv(
+  env_type = c("all", "conda", "venv", "virtualenv"),
+  timeout = 30000,
   venv_locations = c("~/.virtualenvs", "~/.venvs", "./venv", "./.venv"),
+  verbose = TRUE,
   ...
 )
 
-\method{ListPyEnv}{conda}(env_type = "conda", ...)
+\method{ListPyEnv}{default}(
+  env_type = c("all", "conda", "venv", "virtualenv"),
+  timeout = 30000,
+  venv_locations = c("~/.virtualenvs", "~/.venvs", "./venv", "./.venv"),
+  verbose = TRUE,
+  ...
+)
+
+\method{ListPyEnv}{conda}(
+  env_type = c("all", "conda", "venv", "virtualenv"),
+  timeout = 30000,
+  venv_locations = c("~/.virtualenvs", "~/.venvs", "./venv", "./.venv"),
+  verbose = TRUE,
+  ...
+)
 
 \method{ListPyEnv}{venv}(
-  env_type = "venv",
+  env_type = c("all", "conda", "venv", "virtualenv"),
+  timeout = 30000,
   venv_locations = c("~/.virtualenvs", "~/.venvs", "./venv", "./.venv"),
+  verbose = TRUE,
   ...
 )
 }
@@ -27,12 +43,15 @@ ListPyEnv(env_type = c("all", "conda", "venv"), ...)
 \item{env_type}{Character string specifying the type of environments to list.
 One of: \code{"all"}, \code{"conda"}, \code{"venv"}. Defaults to \code{"all"}.}
 
-\item{...}{Additional arguments passed to specific methods. Currently supports
-\code{venv_locations} for custom virtual environment search paths.}
+\item{timeout}{The maximum timeout time when using system commands, only effective when \code{env_type=conda}.}
 
 \item{venv_locations}{Character vector of directory paths to search for
 virtual environments. Default includes standard locations and common
 project directories.}
+
+\item{verbose}{Logical indicating whether to print verbose output.}
+
+\item{...}{For future use.}
 }
 \value{
 A data frame with the following columns:
@@ -52,8 +71,8 @@ Default method that lists all Python environments by combining results from
 Conda and virtual environment discovery methods.
 
 Discovers Conda environments using multiple detection strategies for maximum
-reliability. First attempts to use reticulate's built-in Conda interface,
-then falls back to system Conda commands if reticulate is unavailable or
+reliability. First attempts to use system Conda commands,
+then falls back to reticulate's built-in Conda interface if Conda command is unavailable or
 fails. Returns empty data frame if Conda is not available or no environments
 are found.
 

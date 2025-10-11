@@ -1,3 +1,4 @@
+# ? Package startup messages
 .onAttach <- function(libname, pkgname) {
     pkg_version <- utils::packageVersion(pkgname)
 
@@ -6,4 +7,8 @@
     ))
     packageStartupMessage(msg)
     invisible()
+}
+
+.onLoad <- function(libname, pkgname) {
+    assign("ts_cli", CreateTimeStampCliEnv(), envir = asNamespace(pkgname))
 }

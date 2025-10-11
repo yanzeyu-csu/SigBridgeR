@@ -7,7 +7,7 @@
 ScreenFractionPlot(
   screened_seurat,
   group_by = "Source",
-  screen_type = c("scissor", "scPAS", "scPP", "scAB"),
+  screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
   show_null = FALSE,
   plot_color = NULL,
   show_plot = TRUE,
@@ -36,7 +36,7 @@ Must match metadata column(s) (case-sensitive, e.g., "scissor" for Scissor resul
 
 \item{plot_color}{Custom color palette (named vector format):
 - Required names: "Positive", "Negative", "Neutral"
-- Default: c("Neutral"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")}
+- Default: c("Neutral"="#CECECE", "Other"="#CECECE", Positive"="#ff3333", "Negative"="#386c9b")}
 
 \item{show_plot}{Logical to immediately display plot (default: TRUE).}
 
@@ -106,9 +106,14 @@ res <- ScreenFractionPlot(
 multi_res <- ScreenFractionPlot(
   screened_seurat = multi_screened_result,
   group_by = "TissueType",
-  screen_type = c("scissor", "scPAS", "scPP", "scAB"),
+  screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
   ncol = 2
 )
 }
 
 }
+\seealso{
+Other visualization_function: 
+\code{\link{ScreenUpset}()}
+}
+\concept{visualization_function}

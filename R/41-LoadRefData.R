@@ -95,7 +95,7 @@ LoadRefData <- function(
                     if (i == length(available_urls)) {
                         options(timeout = old_timeout)
                         cli::cli_abort(c(
-                            "x" = crayon::red("All download attempts failed."),
+                            "x" = cli::col_red("All download attempts failed."),
                             "i" = "Please check your internet connection or try again later.",
                             "i" = "Error from last attempt: {e$message}"
                         ))
@@ -116,12 +116,12 @@ LoadRefData <- function(
                 unlink(local_file) # Clean up corrupted file
             }
             cli::cli_abort(c(
-                "x" = crayon::red("Downloaded file appears to be corrupted."),
+                "x" = cli::col_red("Downloaded file appears to be corrupted."),
                 "i" = "Please try again. Error: {e$message}"
             ))
         }
     )
-    cli::cli_alert_success(crayon::green("Data loaded successfully."))
+    cli::cli_alert_success(cli::col_green("Data loaded successfully."))
 
     if (!cache) {
         on.exit(

@@ -22,7 +22,7 @@ BulkPreProcess(
 \arguments{
 \item{data}{Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info}
 
-\item{sample_info}{Sample information data frame (optional), ignored if data is a list}
+\item{sample_info}{Sample information data frame (optional), ignored if data is a list. A qualified \code{sample_info} should contain both \code{sample} and \code{condition} columns (case-sensitive), and there are no specific requirements for the data type stored in the \code{condition} column.}
 
 \item{gene_symbol_conversion}{Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE}
 

@@ -14,6 +14,8 @@ vignette: >
 
 This vignette provides solutions to common problems you might encounter when using this package. If you cannot find your problem here, please file an issue on our GitHub repository.
 
+<br>
+
 ------------------------------------------------------------------------
 
 > ### Error in normalize.quantiles(dataset0) : ERROR; return code from pthread_create() is 22
@@ -37,6 +39,8 @@ BiocManager::install(
 ```
 
 See [bioconductor_docker/issues/22](https://github.com/Bioconductor/bioconductor_docker/issues/22), [Scissor/issues/15](https://github.com/sunduanchen/Scissor/issues/15) for more details.
+
+<br>
 
 ------------------------------------------------------------------------
 
@@ -71,6 +75,8 @@ head(survival_phenotype) # case-sensitive
 # GSM70144 58.53      0
 ```
 
+<br>
+
 ------------------------------------------------------------------------
 
 > ### Error in `function_name()`:
@@ -91,6 +97,8 @@ if (!requireNamespace("remotes")) {
 remotes::install_github("WangLabCSU/SigBridgeR")
 ```
 
+<br>
+
 ------------------------------------------------------------------------
 
 > ### Error:
@@ -108,24 +116,29 @@ As far as I know, this is due to the R environment being contaminated, which pre
 rm(list = ls(all.names = TRUE))
 ```
 
+<br>
+
 ------------------------------------------------------------------------
 
 > ### Error:
-> 
+>
 > ### ! Detected n gene(s) with zero variance:
 >
 > ### ℹ "gene name(s)"
 
 This is due to the presence of genes with zero variance in the bulk expression data when you are using `scPP` and `binary` phenotype. This indicates that the expression levels of one (or several) genes are nearly identical across different samples. You should check your data.
 
----
+<br>
 
-> ### ✖ [2025/09/23 08:53:51] Fewer than 20% of the genes in the gene sets are included in the rankings.Check wether the gene IDs in the 'rankings' and 'geneSets' match.
-> ### ℹ [2025/09/23 08:53:51] scPP screening exit.
+------------------------------------------------------------------------
+
+> ### ✖ \[2025/09/23 08:53:51\] Fewer than 20% of the genes in the gene sets are included in the rankings.Check wether the gene IDs in the 'rankings' and 'geneSets' match.
+>
+> ### ℹ \[2025/09/23 08:53:51\] scPP screening exit.
 
 This issue arises from the single-cell processing, which filtered out too many genes and cells. Consider Adjusting `min_cells` and `min_features` to a smaller value.:
 
-```r
+``` r
 seurat = SCPreProcess(
   sc = mat_exam,
   min_cells = 200, 
@@ -136,3 +149,74 @@ seurat = SCPreProcess(
   resolution = 0.1
 )
 ```
+
+<br>
+
+------------------------------------------------------------------------
+
+> ### Warning in info\$envs : partial match of 'envs' to 'envs directories'
+>
+> ### Error in `reticulate::use_condaenv()`:
+>
+> ### ! Unable to locate conda environment 'r-reticulate-degas'.
+
+For some reason (maybe r session is contaminated), `reticulate` cannot find the relevant environment. One solution is to pass in the Python path of the environment instead of the environment name.
+
+```{r,find_python_path,eval=FALSE}
+envs <- ListPyEnv()
+head(envs) # goes like this
+#                                                            name                                                  python  type
+# /home/user/miniconda3                                       base                         /home/user/miniconda3/bin/python conda
+# /home/user/miniconda3/envs/r-reticulate-degas r-reticulate-degas /home/user/miniconda3/envs/r-reticulate-degas/bin/python conda
+```
+
+For example, if I want to use the `r-reticulate-degas` environment, I can pass its Python location to `reticulate::use_condaenv()`.
+
+```{r,eval=FALSE}
+py_path <- envs[envs$name == "r-reticulate-degas", "python"]
+# /home/user/miniconda3/envs/r-reticulate-degas/bin/python
+reticulate::use_condaenv(py_path)
+```
+
+<br>
+
+------------------------------------------------------------------------
+
+> ### Traceback (most recent call last):
+>
+> ### File "/home/user/R/Project/R_code/SigBridgeR/Tmp/tmp/BlankClassMTL.py", line 1, in <module>
+>
+> ### import tensorflow as tf #NEED
+>
+> ### ModuleNotFoundError: No module named 'tensorflow'
+>
+> ### Warning in file(file, "r") :
+>
+> ### cannot open file 'tmp//Activations.csv': No such file or directory
+
+This is due to the issue with the tensorflow package. Use the following method to check if the tensorflow package can be imported.
+
+```{python,check_tensorflow,eval=FALSE}
+# make sure you are using the correct python, i.e. r-reticulate-degas
+import sys
+
+sys.executable  # in an environment, it should be something like /home/user/miniconda3/envs/r-reticulate-degas/bin/python3
+
+import tensorflow as tf
+
+tf.__version__
+```
+
+```{shell,check_tensorflow_shell,eval=FALSE}
+# make sure you've entered the Conda environment you want to check, i.e. r-reticulate-degas
+conda list tensorflow
+
+# packages in environment at /home/user/miniconda3/envs/r-reticulate-degas:                                                               
+#                                                                                                                                        
+# Name                     Version          Build               Channel                                                                  
+# tensorflow                 2.4.1            mkl_py39h4683426_0
+# tensorflow-base            2.4.1            mkl_py39h43e0292_0
+# tensorflow-estimator       2.6.0            py39he80948d_0      https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+```
+
+If the output is `ModuleNotFoundError: No module named 'tensorflow'`, you need to install the tensorflow package, and strictly control the version of the package (version 2.4.1 has been tested and is feasible)

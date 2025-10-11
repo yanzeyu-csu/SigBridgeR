@@ -62,7 +62,7 @@ SymbolConvert = function(data) {
 #' }
 #'
 #' @param data Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info
-#' @param sample_info Sample information data frame (optional), ignored if data is a list
+#' @param sample_info Sample information data frame (optional), ignored if data is a list. A qualified `sample_info` should contain both `sample` and `condition` columns (case-sensitive), and there are no specific requirements for the data type stored in the `condition` column.
 #' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE
 #' @param check Whether to perform detailed quality checks, default: TRUE
 #' @param min_count_threshold Minimum count threshold for gene filtering, default: 10
@@ -148,17 +148,16 @@ BulkPreProcess <- function(
     purrr::walk(list(check, show_plot_results, verbose), ~ chk::chk_flag)
 
     if (verbose) {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::green(" Starting data preprocessing...")
-        ))
+        ts_cli$cli_alert_info(
+            cli::col_green("Starting data preprocessing...")
+        )
     }
 
     # Handle input data format
     if (is.list(data) && !is.data.frame(data)) {
-        if ("count_matrix" %in% names(data)) {
+        if ("count_matrix" %chin% names(data)) {
             counts_matrix <- as.matrix(data$count_matrix)
-            if ("sample_info" %in% names(data) && is.null(sample_info)) {
+            if ("sample_info" %chin% names(data) && is.null(sample_info)) {
                 sample_info <- data$sample_info
             }
         } else {
@@ -218,8 +217,8 @@ BulkPreProcess <- function(
     if (is.null(sample_info)) {
         # Create default sample information
         if (verbose) {
-            cli::cli_alert_info(
-                "[{TimeStamp()}] No sample info provided, using default settings."
+            ts_cli$cli_alert_info(
+                "No sample info provided, using default settings."
             )
         }
         sample_info <- data.frame(
@@ -232,20 +231,20 @@ BulkPreProcess <- function(
         # Validate matching
         if (nrow(sample_info) != n_samples) {
             cli::cli_abort(c(
-                "x" = "Number of rows in sample_info does not match number of columns in count matrix"
+                "x" = "Number of rows in `sample_info` does not match number of columns in count matrix"
             ))
         }
     }
 
     if (verbose) {
-        cli::cli_alert_success(
-            "[{TimeStamp()}] Data loaded: {n_genes} genes * {n_samples} samples"
+        ts_cli$cli_alert_success(
+            "Data loaded: {.val {n_genes}} genes * {.val {n_samples}} samples"
         )
     }
 
     # Basic Statistics
     if (verbose) {
-        cli::cli_alert_info("[{TimeStamp()}] Computing basic statistics...")
+        ts_cli$cli_alert_info("Computing basic statistics...")
     }
 
     missing_data <- sum(is.na(counts_matrix))
@@ -255,16 +254,16 @@ BulkPreProcess <- function(
     genes_expressed_multiple <- sum(genes_with_reads >= min_gene_expressed)
 
     if (verbose) {
-        cli::cli_alert_success(
-            "[{TimeStamp()}] {.val {genes_expressed_multiple}} genes pass expression filter"
+        ts_cli$cli_alert_success(
+            "{.val {genes_expressed_multiple}} genes pass expression filter"
         )
     }
 
     # Detailed Quality Checks (Conditional Execution)
     if (check) {
         if (verbose) {
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Starting detailed quality checks..."
+            ts_cli$cli_alert_info(
+                "Starting detailed quality checks..."
             )
         }
 
@@ -273,8 +272,8 @@ BulkPreProcess <- function(
 
         # Sample correlation
         if (verbose) {
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Computing sample correlations..."
+            ts_cli$cli_alert_info(
+                "Computing sample correlations..."
             )
         }
         sample_cor <- stats::cor(
@@ -290,8 +289,8 @@ BulkPreProcess <- function(
         low_cor_count <- sum(cor_lower_tri < min_correlation, na.rm = TRUE)
 
         if (verbose) {
-            cli::cli_alert_success(
-                "[{TimeStamp()}] Correlation analysis completed: min correlation = {.val {round(min_cor, 3)}}"
+            ts_cli$cli_alert_success(
+                "Correlation analysis completed: min correlation = {.val {round(min_cor, 3)}}"
             )
             if (low_cor_count > 0) {
                 cli::cli_warn(
@@ -302,8 +301,8 @@ BulkPreProcess <- function(
 
         # PCA Analysis
         if (verbose) {
-            cli::cli_alert_info(
-                "[{TimeStamp()}] Performing principal component analysis..."
+            ts_cli$cli_alert_info(
+                "Performing principal component analysis..."
             )
         }
 
@@ -336,8 +335,8 @@ BulkPreProcess <- function(
         if (verbose) {
             var_pc1 <- round(pca_summary$importance[2, 1] * 100, 2)
             var_pc2 <- round(pca_summary$importance[2, 2] * 100, 2)
-            cli::cli_alert_info(
-                "[{TimeStamp()}] PCA completed: PC1({.val {var_pc1}}%) PC2({.val {var_pc2}}%), {.val {length(outliers)}} outlier samples"
+            ts_cli$cli_alert_info(
+                "PCA completed: PC1({.val {var_pc1}}%) PC2({.val {var_pc2}}%), {.val {length(outliers)}} outlier samples"
             )
             if (length(outliers) > 0) {
                 outlier_names <- sample_info$sample[outliers]
@@ -348,12 +347,12 @@ BulkPreProcess <- function(
         }
 
         # Batch effect detection (ANOVA)
-        if ("batch" %in% colnames(sample_info)) {
+        if ("batch" %chin% colnames(sample_info)) {
             batch_levels <- unique(sample_info$batch)
             if (length(batch_levels) > 1) {
                 if (verbose) {
-                    cli::cli_alert_info(
-                        "[{TimeStamp()}] Detecting batch effects..."
+                    ts_cli$cli_alert_info(
+                        "Detecting batch effects..."
                     )
                 }
 
@@ -383,8 +382,8 @@ BulkPreProcess <- function(
                 batch_sig_prop <- mean(batch_pvalues < 0.05, na.rm = TRUE)
 
                 if (verbose) {
-                    cli::cli_alert_success(
-                        "[{TimeStamp()}] Batch effect detection completed: {.val {round(batch_sig_prop*100, 2)}}% genes affected"
+                    ts_cli$cli_alert_success(
+                        "Batch effect detection completed: {.val {round(batch_sig_prop*100, 2)}}% genes affected"
                     )
                     if (batch_sig_prop > 0.3) {
                         cli::cli_warn(
@@ -398,8 +397,8 @@ BulkPreProcess <- function(
         # Generate key plots
         if (show_plot_results) {
             if (verbose) {
-                cli::cli_alert_info(
-                    "[{TimeStamp()}] Generating visualization plots..."
+                ts_cli$cli_alert_info(
+                    "Generating visualization plots..."
                 )
             }
             # PCA graphics::plot
@@ -412,7 +411,7 @@ BulkPreProcess <- function(
                     stringsAsFactors = FALSE
                 )
 
-                if ("batch" %in% colnames(sample_info)) {
+                if ("batch" %chin% colnames(sample_info)) {
                     pca_df$batch <- sample_info$batch
                 }
 
@@ -437,7 +436,7 @@ BulkPreProcess <- function(
                         show.legend = FALSE
                     )
 
-                if ("batch" %in% colnames(pca_df)) {
+                if ("batch" %chin% colnames(pca_df)) {
                     p_pca <- p_pca +
                         ggplot2::aes(shape = `batch`) +
                         ggplot2::scale_shape_manual(
@@ -455,8 +454,8 @@ BulkPreProcess <- function(
             }
 
             if (verbose) {
-                cli::cli_alert_success(
-                    "[{TimeStamp()}] Plot generation completed"
+                ts_cli$cli_alert_success(
+                    "Plot generation completed"
                 )
             }
         }
@@ -470,7 +469,7 @@ BulkPreProcess <- function(
 
     # Data Filtering
     if (verbose) {
-        cli::cli_alert_info("[{TimeStamp()}] Performing data filtering...")
+        ts_cli$cli_alert_info("Performing data filtering...")
     }
 
     # Gene filtering
@@ -501,7 +500,7 @@ BulkPreProcess <- function(
     if (verbose) {
         genes_removed <- n_genes - n_genes_filtered
         samples_removed <- n_samples - n_samples_filtered
-        cli::cli_alert_success("[{TimeStamp()}] Data filtering completed:")
+        ts_cli$cli_alert_success("Data filtering completed:")
         cli::cli_alert_info(
             "  Genes: {.val {n_genes}} -> {.val {n_genes_filtered}} (removed {.val {genes_removed}})"
         )
@@ -511,7 +510,7 @@ BulkPreProcess <- function(
     }
     # Quality Report Generation
     if (verbose) {
-        cli::cli_alert_info("Quality Assessment Summary:")
+        cli::cli_h2("Quality Assessment Summary:")
 
         # Data integrity
         if (missing_data == 0) {
@@ -565,23 +564,18 @@ BulkPreProcess <- function(
                 )
             }
         }
-
-        cli::cli_alert_success(
-            "[{TimeStamp()}] Analysis completed successfully"
-        )
     }
 
     if (gene_symbol_conversion) {
-        cli::cli_alert_info("[{TimeStamp()}] Start Gene symbol conversion")
+        ts_cli$cli_alert_info("Start Gene symbol conversion")
         filtered_counts = SymbolConvert(filtered_counts)
-        cli::cli_alert_success("[{TimeStamp()}] Gene symbol conversion done")
+        ts_cli$cli_alert_success("Gene symbol conversion done")
     }
 
     if (verbose) {
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}]",
-            crayon::green(" BulkPreProcess completed")
-        ))
+        ts_cli$cli_alert_success(
+            cli::col_green("BulkPreProcess completed")
+        )
     }
 
     return(filtered_counts)

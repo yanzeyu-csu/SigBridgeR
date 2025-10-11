@@ -53,7 +53,7 @@ A list containing:
 \item{gene_list}{List of genes used for screening}
 \item{AUC}{A data.frame with area under the ROC curve:
 \describe{
-\item{AUCup}{AUC for positive}
+\item{scPP_AUCup}{AUC for positive}
 \item{AUCdown}{AUC for negative}
 }
 }
@@ -103,7 +103,14 @@ surv_res <- DoscPP(
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
-\code{\link{DoscPAS}()}
+\code{\link{DoScissor}()},
+\code{\link{DoscAB}()},
+\code{\link{DoscPAS}()},
+\code{\link{Scissor.v5.optimized}()}
+
+Other scPP: 
+\code{\link{ScPP.optimized}()}
 }
+\concept{scPP}
 \concept{screen_method}
 \keyword{internal}

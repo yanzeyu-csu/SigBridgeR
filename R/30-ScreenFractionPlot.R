@@ -14,7 +14,7 @@
 #' ScreenFractionPlot(
 #'   screened_seurat,
 #'   group_by = "Source",
-#'   screen_type = c("scissor", "scPAS", "scPP", "scAB"),
+#'   screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
 #'   show_null = FALSE,
 #'   plot_color = NULL,
 #'   show_plot = TRUE,
@@ -38,7 +38,7 @@
 #' @param show_null Logical whether to show groups with zero cells (default: FALSE).
 #' @param plot_color Custom color palette (named vector format):
 #'        - Required names: "Positive", "Negative", "Neutral"
-#'        - Default: c("Neutral"="#CECECE", "Positive"="#ff3333", "Negative"="#386c9b")
+#'        - Default: c("Neutral"="#CECECE", "Other"="#CECECE", Positive"="#ff3333", "Negative"="#386c9b")
 #' @param show_plot Logical to immediately display plot (default: TRUE).
 #' @param plot_title Plot title (default: "Screen Fraction"). When multiple screen types,
 #'        can be a vector of titles or single title (will append screen type).
@@ -86,7 +86,7 @@
 #' multi_res <- ScreenFractionPlot(
 #'   screened_seurat = multi_screened_result,
 #'   group_by = "TissueType",
-#'   screen_type = c("scissor", "scPAS", "scPP", "scAB"),
+#'   screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
 #'   ncol = 2
 #' )
 #' }
@@ -105,7 +105,7 @@
 ScreenFractionPlot = function(
     screened_seurat,
     group_by = "Source",
-    screen_type = c("scissor", "scPAS", "scPP", "scAB"),
+    screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
     show_null = FALSE,
     plot_color = NULL,
     show_plot = TRUE,
@@ -131,7 +131,7 @@ ScreenFractionPlot = function(
     if (
         !all(purrr::map_vec(
             screen_type,
-            ~ . %in% all_screen_types
+            ~ . %chin% all_screen_types
         ))
     ) {
         cli::cli_abort(c("x" = "Screen type(s) not found in metadata."))
@@ -139,7 +139,7 @@ ScreenFractionPlot = function(
 
     # Check available screen types in the Seurat object
     available_screens <- grep(
-        "scissor$|scPAS$|scPP$|scAB.*$",
+        "sc[a-zA-Z_]+$|DEGAS$",
         names(screened_seurat@meta.data),
         value = TRUE
     )

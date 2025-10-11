@@ -1,9 +1,3 @@
-# ? Global variables
-
-#' @importFrom data.table `:=`
-#' @importFrom magrittr `%>%`
-NULL
-
 # ? Package Description
 
 #' @title SigBridgeR: Multi-algorithm Integration of Phenotypic, scRNA-seq, and Bulk Data for Cell Screening

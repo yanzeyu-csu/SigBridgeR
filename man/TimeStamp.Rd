@@ -22,4 +22,10 @@ TimeStamp()
 }
 
 }
+\seealso{
+Other TimeStamp: 
+\code{\link{AddTimeStamp2cli}()},
+\code{\link{CreateTimeStampCliEnv}()}
+}
+\concept{TimeStamp}
 \keyword{internal}

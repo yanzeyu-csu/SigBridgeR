@@ -10,10 +10,11 @@
   method = c("reticulate", "system", "environment"),
   env_file = NULL,
   python_version = "3.9.15",
-  packages = c(tensorflow = "2.4.1", numpy = "any"),
+  packages = c(tensorflow = "2.4.1", protobuf = "3.20.3"),
   recreate = FALSE,
   use_conda_forge = TRUE,
   verbose = TRUE,
+  timeout = 1800000,
   ...
 )
 }
@@ -47,6 +48,8 @@ channel for package installation. Default: TRUE.}
 
 \item{verbose}{Logical indicating whether to display detailed progress
 messages and command output. Default: TRUE.}
+
+\item{timeout}{The maximum timeout time when using system commands, default: 30 miniutes}
 
 \item{...}{For future compatibility.}
 }

@@ -48,5 +48,4 @@ seurat_obj <- AddMisc(seurat_obj, markers = markers2, cover=FALSE)
 
 }
 
-
 }

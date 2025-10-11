@@ -52,11 +52,11 @@
 #' }
 #'
 #' @importFrom scAB create_scAB select_K scAB findSubset
-#' @importFrom cli cli_alert_info
-#' @importFrom crayon green
+#' @importFrom cli cli_alert_info col_green
 #'
 #' @keywords internal
 #' @family screen_method
+#' @family scAB
 #'
 DoscAB <- function(
     matched_bulk,
@@ -96,10 +96,7 @@ DoscAB <- function(
         }
     }
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::green(" Start scAB screening.")
-    ))
+    ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
 
     scAB_obj <- create_scAB.v5(
         Object = sc_data,
@@ -108,18 +105,14 @@ DoscAB <- function(
         method = phenotype_class
     )
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        " Selecting K..."
-    ))
+    ts_cli$cli_alert_info("Selecting K...")
 
     k <- scAB::select_K(scAB_obj)
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        " Run NMF with phenotype and cell-cell similarity regularization at",
-        " K = {.val {k}}."
-    ))
+    ts_cli$cli_alert_info(
+        "Run NMF with phenotype and cell-cell similarity regularization at",
+        "K = {.val {k}}."
+    )
 
     scAB_result <- scAB::scAB(
         Object = scAB_obj,
@@ -129,10 +122,7 @@ DoscAB <- function(
         maxiter = maxiter
     )
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        " Screening cells..."
-    ))
+    ts_cli$cli_alert_info("Screening cells...")
 
     sc_data <- scAB::findSubset(
         sc_data,
@@ -151,10 +141,9 @@ DoscAB <- function(
             )
         )
 
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}]",
-        crayon::green(" scAB screening done.")
-    ))
+    ts_cli$cli_alert_info(
+        cli::col_green("scAB screening done.")
+    )
 
     return(list(scRNA_data = sc_data, scAB_result = scAB_result))
 }
@@ -172,10 +161,9 @@ DoscAB <- function(
 #' @return a scAB_data
 #' @importFrom preprocessCore normalize.quantiles
 #'
-#' @family screen_method
+#' @family scAB
 #'
 #' @keywords internal
-#' @noRd
 #'
 create_scAB.v5 <- function(
     Object,
@@ -185,12 +173,12 @@ create_scAB.v5 <- function(
 ) {
     # cell neighbors
     method = match.arg(method)
-    if ("RNA_snn" %in% names(Object@graphs)) {
+    if ("RNA_snn" %chin% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$RNA_snn)
         cli::cli_alert_info(
             " Using {.val RNA_snn} graph for network."
         )
-    } else if ("integrated_snn" %in% names(Object@graphs)) {
+    } else if ("integrated_snn" %chin% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$integrated_snn)
         cli::cli_alert_info(
             "Using {.val integrated_snn} graph for network."

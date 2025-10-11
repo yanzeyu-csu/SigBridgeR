@@ -41,7 +41,6 @@
 #' @export
 #' @importFrom tibble rownames_to_column column_to_rownames
 #' @importFrom cli cli_abort cli_alert_warning cli_alert_success
-#' @importFrom crayon yellow
 #' @importFrom data.table merge.data.table
 #' @importFrom purrr map
 #'
@@ -89,14 +88,13 @@ MergeResult = function(...) {
                 y <- y[, !..duplicate_cols]
             }
 
-            merge(x, y, by = "cell_id", all = FALSE)
+            data.table::merge.data.table(x, y, by = "cell_id", all = FALSE)
         },
         meta_list
     )
 
     merged_obj <- seurat_objects[[1]]
-    merged_obj@meta.data <- merged_meta %>%
-        tibble::column_to_rownames("cell_id")
+    merged_obj@meta.data <- tibble::column_to_rownames(merged_meta, "cell_id")
 
     # merge misc
     all_keys <- unique(unlist(lapply(seurat_objects, function(obj) {
@@ -107,7 +105,7 @@ MergeResult = function(...) {
 
     for (key in all_keys) {
         values <- lapply(seurat_objects, function(obj) {
-            if (!is.null(obj@misc) && key %in% names(obj@misc)) {
+            if (!is.null(obj@misc) && key %chin% names(obj@misc)) {
                 obj@misc[[key]]
             } else {
                 NULL

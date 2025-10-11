@@ -91,7 +91,11 @@ ScreenUpset <- function(
     meta_data <- screened_seurat@meta.data
     all_screen_types = colnames(meta_data)
     if (is.null(screen_type)) {
-        screen_type = grep("sc[A-Za-z]*$", all_screen_types, value = TRUE)
+        screen_type = grep(
+            "sc[A-Za-z]+$|DEGAS$",
+            all_screen_types,
+            value = TRUE
+        )
     }
     if (
         !all(purrr::map_vec(

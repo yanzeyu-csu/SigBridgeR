@@ -119,11 +119,6 @@ Screen <- function(
     screen_method = c("Scissor", "scPP", "scPAS", "scAB", "DEGAS"),
     ...
 ) {
-    chk::chk_subset(phenotype_class, c("binary", "survival", "continuous"))
-    chk::chk_subset(
-        screen_method,
-        c("Scissor", "scPP", "scPAS", "scAB", "DEGAS")
-    )
     chk::chk_is(sc_data, "Seurat")
 
     if (is.null(label_type) || length(label_type) != 1) {
@@ -131,6 +126,18 @@ Screen <- function(
             "i" = "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
         ))
         label_type = screen_method
+    }
+    if (!screen_method %in% c("scPP", "scPAS", "scAB", "DEGAS", "Scissor")) {
+        cli::cli_abort(c(
+            "x" = "{.strong {screen_method}} is not supported.",
+            "i" = "Please use one of the following methods: {.val {c('scPP', 'scPAS', 'scAB', 'DEGAS','Scissor')}}"
+        ))
+    }
+    if (!phenotype_class %in% c("binary", "survival", "continuous")) {
+        cli::cli_abort(c(
+            "x" = "{.strong {phenotype_class}} is not supported.",
+            "i" = "Please use one of the following methods: {.val {c('binary', 'survival', 'continuous')}}"
+        ))
     }
 
     screened_result =
@@ -211,11 +218,11 @@ Screen <- function(
                     ...
                 )
             },
-            TRUE ~
-                cli::cli_abort(c(
-                    "x" = "Screen method not found.",
-                    "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
-                ))
+
+            cli::cli_abort(c(
+                "x" = "Screen method not found.",
+                "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
+            ))
         )
 
     return(screened_result)

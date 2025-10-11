@@ -8,7 +8,7 @@
   env_type = "venv",
   env_name = "r-reticulate-degas",
   python_version = "3.9.15",
-  packages = c(tensorflow = "2.4.1", numpy = "any"),
+  packages = c(tensorflow = "2.4.1", protobuf = "3.20.3"),
   python_path = NULL,
   recreate = FALSE,
   verbose = TRUE,

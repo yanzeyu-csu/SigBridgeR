@@ -9,7 +9,8 @@
 #' single-cell and bulk RNA-seq data, identifying phenotype-associated cells using
 #' a bootstrap aggregated multi-task learning approach.
 #'
-#' @param select_fraction Fraction of cells to select as positive when `phenotype_class` is "binary" or "survival" (default: 0.05)
+#' @param select_fraction The top percentage of selected cells will be considered as Positive cells, without considering how much larger the possible correlation coefficient of the observation group is compared to that of the control group. Only usedl when `phenotype_class` is "binary" or "survival". (default: 0.05)
+#' @param min_thresh DEGAS will calculate the possible correlation coefficients for each cell related to the phenotype. When the coefficient of the observation group is at least `min_thresh` larger than that of the control group, it can be considered related to the phenotype and will be marked as Positive. The priority of `min_thresh` is higher than that of `select_fraction.` (default: 0.4)
 #' @param matched_bulk Bulk RNA-seq data as matrix or data.frame (rows=genes, columns=samples)
 #' @param sc_data Single-cell data as Seurat object containing RNA assay
 #' @param phenotype Bulk-level phenotype data. For classification: binary matrix with one-hot encoding.
@@ -48,6 +49,7 @@
 #'
 #' @return A list containing:
 #'   - scRNA_data: Seurat object with DEGAS labels added to metadata
+#'   - model: The model trained using the input data, andit can be used for cell classification prediction.
 #'   - DEGAS_prediction: Data table with DEGAS predictions containing:
 #'     * Predicted label probabilities for each cell
 #'     * Cell labels ("Positive"/"Other") based on selection criteria
@@ -92,27 +94,35 @@
 #' }
 #'
 #' @seealso
-#' \code{\link{Vec2sparse}} for the structure of phenotype
+#' \code{\link{Vec2sparse}} for the structure transformation of phenotype
 #' \code{\link{jb.test.modified}} for modified Jarque-Bera test
 #' \code{\link{mad.test}} for outlier detection using Median Absolute Deviation
+#' \code{\link{runCCMTLBag.optimized}} for DEGAS model training
+#' \code{\link{predClassBag.optimized}} for DEGAS model prediction
+#' \code{\link{LabelBinaryCells}} for binary classification
+#' \code{\link{LabelSurvivalCells}} for survival classification
+#' \code{\link{LabelContinuousCells}} for continuous classification
 #'
 #' @importFrom purrr walk map_chr map_dfr
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @importFrom data.table as.data.table fifelse setnames `:=`
 #' @importFrom matrixStats colMeans2 colSds
 #' @importFrom stats ks.test qnorm median
-
 #' @keywords internal
 #' @family screen_method
 #'
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
+#'
 DoDEGAS <- function(
     select_fraction = 0.05,
+    min_thresh = 0.4,
     matched_bulk,
     sc_data,
     phenotype = NULL,
     sc_data.pheno_colname = NULL,
     label_type = "DEGAS",
     phenotype_class = c("binary", "continuous", "survival"),
+    # A directory for intermediate files
     tmp_dir = "tmp",
     # DEGAS environment
     env_params = list(),
@@ -125,188 +135,213 @@ DoDEGAS <- function(
     ),
     ...
 ) {
-    result <- local({
-        chk::chk_range(select_fraction)
-        chk::chk_is(matched_bulk, c("matrix", "data.frame"))
-        chk::chk_not_any_na(matched_bulk)
-        chk::chk_is(sc_data, "Seurat")
-        chk::chk_character(label_type)
-        if (!is.null(sc_data.pheno_colname)) {
-            chk::chk_is(sc_data.pheno_colname, c("character"))
-        }
-        chk::chk_list(env_params)
-        chk::chk_list(degas_params)
-        phenotype_class <- match.arg(phenotype_class)
-        chk::chk_subset(
+    # Robustness checks
+    chk::chk_range(select_fraction)
+    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
+    chk::chk_not_any_na(matched_bulk)
+    chk::chk_is(sc_data, "Seurat")
+    chk::chk_character(label_type)
+    if (!is.null(sc_data.pheno_colname)) {
+        chk::chk_is(sc_data.pheno_colname, c("character"))
+    }
+    chk::chk_list(env_params)
+    chk::chk_list(degas_params)
+    phenotype_class <- match.arg(phenotype_class)
+
+    ts_cli$cli_alert_info(cli::col_green("Starting DEGAS Screen"))
+
+    # Auto-choose normality test method
+    normality_test_method <- if (length(normality_test_method) > 1) {
+        "jarque-bera"
+    } else {
+        match.arg(
             normality_test_method,
-            c("kolmogorov-smirnov", "d'agostino", "jarque-bera")
+            choices = c("jarque-bera", "d'agostino", "kolmogorov-smirnov")
         )
-        # DEGAS path must contain "/"
-        if (!grepl("/$", tmp_dir)) {
-            tmp_dir <- paste0(tmp_dir, "/")
-        }
+    }
 
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
-            crayon::green("Starting DEGAS Screen")
-        ))
+    # DEGAS path must contain "/"
+    if (!grepl("/$", tmp_dir)) {
+        tmp_dir <- paste0(tmp_dir, "/")
+    }
 
-        default_env_params <- list(
-            env.name = "r-reticulate-degas",
-            env.type = "conda",
-            env.method = "environment",
-            env.file = system.file(
-                "conda/DEGAS_environment.yml",
-                package = "SigBridgeR"
-            ),
-            env.python_verion = "3.9.15",
-            env.packages = c(
-                "tensorflow" = "2.4.1",
-                "numpy" = "any"
-            ),
-            env.recreate = FALSE,
-            env.use_conda_forge = TRUE,
-            env.verbose = FALSE
-        )
-        default_degas_params <- list(
-            DEGAS.model_type = c(
-                "BlankClass", # only bulk level phenotype specified
-                "ClassBlank", # only single cell level phenotype specified
-                "ClassClass", # when both single cell level phenotype and bulk level phenotype specified
-                "ClassCox", # when both single cell level phenotype and bulk level survival data specified
-                "BlankCox" # only bulk level survival data specified
-            ),
-            DEGAS.architecture = c(
-                "DenseNet", # a dense net network
-                "Standard" # a feed forward network
-            ),
-            DEGAS.ff_depth = 3,
-            DEGAS.bag_depth = 5,
-            path.data = '',
-            path.result = '',
-            DEGAS.pyloc = NULL,
-            DEGAS.toolsPath = paste0(.libPaths()[1], "/DEGAS/tools/"),
-            DEGAS.train_steps = 2000,
-            DEGAS.scbatch_sz = 200,
-            DEGAS.patbatch_sz = 50,
-            DEGAS.hidden_feats = 50,
-            DEGAS.do_prc = 0.5,
-            DEGAS.lambda1 = 3.0,
-            DEGAS.lambda2 = 3.0,
-            DEGAS.lambda3 = 3.0,
-            DEGAS.seed = 2
-        )
-        env_params <- utils::modifyList(default_env_params, env_params)
-        degas_params <- utils::modifyList(default_degas_params, degas_params)
+    # default environment and DEGAS parameters
+    default_env_params <- list(
+        env.name = "r-reticulate-degas",
+        env.type = "conda",
+        env.method = "environment",
+        env.file = system.file(
+            "conda/DEGAS_environment.yml",
+            package = "SigBridgeR"
+        ),
+        env.python_verion = "3.9.15",
+        env.packages = c(
+            "tensorflow" = "2.4.1",
+            "protobuf" = "3.20.3"
+        ),
+        env.recreate = FALSE,
+        env.use_conda_forge = TRUE,
+        env.verbose = FALSE
+    )
+    default_degas_params <- list(
+        DEGAS.model_type = c(
+            "BlankClass", # only bulk level phenotype specified
+            "ClassBlank", # only single cell level phenotype specified
+            "ClassClass", # when both single cell level phenotype and bulk level phenotype specified
+            "ClassCox", # when both single cell level phenotype and bulk level survival data specified
+            "BlankCox" # only bulk level survival data specified
+        ),
+        DEGAS.architecture = c(
+            "DenseNet", # a dense net network
+            "Standard" # a feed forward network
+        ),
+        DEGAS.ff_depth = 3,
+        DEGAS.bag_depth = 5,
+        path.data = '',
+        path.result = '',
+        DEGAS.pyloc = NULL,
+        DEGAS.toolsPath = file.path(.libPaths()[1], "DEGAS/tools/"),
+        DEGAS.train_steps = 2000,
+        DEGAS.scbatch_sz = 200,
+        DEGAS.patbatch_sz = 50,
+        DEGAS.hidden_feats = 50,
+        DEGAS.do_prc = 0.5,
+        DEGAS.lambda1 = 3.0,
+        DEGAS.lambda2 = 3.0,
+        DEGAS.lambda3 = 3.0,
+        DEGAS.seed = 2
+    )
+    env_params <- utils::modifyList(
+        default_env_params,
+        env_params
+    )
+    degas_params <- utils::modifyList(
+        default_degas_params,
+        degas_params
+    )
 
-        model_type.first <- ifelse(
-            !is.null(sc_data.pheno_colname),
-            "Class",
-            "Blank"
+    # model.type auto-detection
+    model_type.first <- ifelse(
+        !is.null(sc_data.pheno_colname),
+        "Class",
+        "Blank"
+    )
+    model_type.last <- if (is.null(phenotype)) {
+        "Blank"
+    } else {
+        ifelse(is.vector(phenotype), "Class", "Cox")
+    }
+    if (model_type.first == "Blank" && model_type.last == "Blank") {
+        cli::cli_abort(
+            c(
+                "x" = "Specify at least one phenotype, currently both are {.val NULL}"
+            ),
+            class = "NoPhenotypeProvided"
         )
-        model_type.last <- if (is.null(phenotype)) {
-            "Blank"
+    }
+    degas_params$DEGAS.model_type = paste0(
+        model_type.first,
+        model_type.last
+    )
+
+    # Architecture auto-chosen
+    if (length(degas_params$DEGAS.architecture) != 1) {
+        degas_params$DEGAS.architecture <- "DenseNet"
+    }
+
+    # formatting phenotype
+    pheno_df <- if (!is.null(phenotype)) {
+        switch(
+            phenotype_class,
+            "binary" = Vec2sparse(phenotype, col_prefix = label_type),
+            "continuous" = Vec2sparse(phenotype, col_prefix = label_type),
+            "survival" = as.matrix(phenotype),
+        )
+    } else {
+        NULL
+    }
+
+    # Check if single-cell level phenotype is specified
+    meta_data = sc_data@meta.data
+    sc_pheno <- if (!is.null(sc_data.pheno_colname)) {
+        if (any(grepl(sc_data.pheno_colname, colnames(meta_data)))) {
+            Vec2sparse(meta_data[[sc_data.pheno_colname]])
         } else {
-            ifelse(is.vector(phenotype), "Class", "Cox")
-        }
-        if (model_type.first == "Blank" && model_type.last == "Blank") {
-            cli::cli_abort(c(
-                "x" = "Specify at least on phenotype"
-            ))
-        }
-        degas_params$DEGAS.model_type = paste0(
-            model_type.first,
-            model_type.last
-        )
-
-        if (length(degas_params$DEGAS.architecture) != 1) {
-            degas_params$DEGAS.architecture <- "DenseNet"
-        }
-
-        pheno_df <- if (!is.null(phenotype)) {
-            switch(
-                phenotype_class,
-                "binary" = Vec2sparse(phenotype),
-                "continuous" = Vec2sparse(phenotype),
-                "survival" = as.matrix(phenotype),
+            cli::cli_warn(
+                "single-cell phenotype specified but not found in meta.data, using {.val NULL} now"
             )
-        } else {
             NULL
         }
+    } else {
+        NULL
+    }
 
-        meta_data = sc_data@meta.data
-        sc_pheno <- if (!is.null(sc_data.pheno_colname)) {
-            if (any(grepl(sc_data.pheno_colname, colnames(meta_data)))) {
-                Vec2sparse(meta_data[[sc_data.pheno_colname]])
-            } else {
-                cli::cli_warn(
-                    "single-cell phenotype specified but not found in meta.data, using {.val NULL} now"
-                )
-                NULL
-            }
-        } else {
-            NULL
-        }
+    # Python-like data formats
+    sc_mat <- if (utils::packageVersion("Seurat") >= "5.0.0") {
+        sc_data@assays$RNA$data
+    } else {
+        sc_data@assays$RNA@data
+    }
+    cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
+    t_sc_mat <- t(sc_mat[cm_genes, ])
+    t_matched_bulk <- t(matched_bulk[cm_genes, ])
 
-        sc_mat <- if (utils::packageVersion("Seurat") >= "5.0.0") {
-            sc_data@assays$RNA$data
-        } else {
-            sc_data@assays$RNA@data
-        }
-        cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
-        t_sc_mat <- t(sc_mat[cm_genes, ])
-        t_matched_bulk <- t(matched_bulk[cm_genes, ])
+    ts_cli$cli_alert_info("Setting up Environment...")
 
-        cli::cli_alert_info(c("[{TimeStamp()}] ", "Setting up Environment..."))
-
-        existing_envs <- ListPyEnv()
-
-        if (
-            !env_params$env.name %in% existing_envs$name ||
-                env_params$env.recreate
-        ) {
-            do.call(
-                SetupPyEnv,
-                c(
+    # Check if environment exists
+    existing_envs <- ListPyEnv.conda(verbose = FALSE)
+    if (
+        !env_params$env.name %chin% existing_envs$name ||
+            env_params$env.recreate
+    ) {
+        do.call(
+            SetupPyEnv,
+            c(
+                list(
+                    env_type = env_params$env.type,
+                    env_name = env_params$env.name,
+                    python_version = env_params$env.python_verion,
+                    packages = env_params$env.packages,
+                    recreate = env_params$env.recreate,
+                    verbose = env_params$env.verbose,
+                    ...
+                ),
+                if (env_params$env.type == "conda") {
                     list(
-                        env_type = env_params$env.type,
-                        env_name = env_params$env.name,
-                        python_version = env_params$env.python_verion,
-                        packages = env_params$env.packages,
-                        recreate = env_params$env.recreate,
-                        verbose = env_params$env.verbose,
-                        ...
-                    ),
-                    if (env_params$env.type == "conda") {
-                        list(
-                            use_conda_forge = env_params$env.use_conda_forge,
-                            env_file = env_params$env.file,
-                            method = env_params$env.method
-                        )
-                    } else {
-                        list()
-                    }
-                )
+                        use_conda_forge = env_params$env.use_conda_forge,
+                        env_file = env_params$env.file,
+                        method = env_params$env.method
+                    )
+                } else {
+                    list()
+                }
             )
-        }
-
-        if (is.null(degas_params$DEGAS.pyloc)) {
-            degas_params$DEGAS.pyloc <- existing_envs$python[
-                existing_envs$name == env_params$env.name
-            ]
-        }
-        reticulate::use_python(
-            degas_params$DEGAS.pyloc,
-            required = TRUE
         )
+    } else {
+        cli::cli_alert_info(
+            "Existing environment {.val {env_params$env.name}} found"
+        )
+    }
 
-        DEGAS::set_seed_term(2)
+    if (is.null(degas_params$DEGAS.pyloc)) {
+        degas_params$DEGAS.pyloc <- existing_envs$python[
+            existing_envs$name == env_params$env.name
+        ]
+    }
+    reticulate::use_python(
+        degas_params$DEGAS.pyloc,
+        required = TRUE
+    )
 
-        list2env(degas_params, envir = environment())
+    # DEGAS needs some global variables to be set up
+    list2env(degas_params, envir = .GlobalEnv)
 
-        cli::cli_alert_info(c("[{TimeStamp()}] ", "Training DEGAS model..."))
+    ts_cli$cli_alert_info("Training DEGAS model...")
 
-        ccModel1 <- DEGAS::runCCMTLBag(
+    # Train DEGAS model
+    ccModel1 <- do.call(
+        runCCMTLBag.optimized,
+        list(
             scExp = t_sc_mat,
             scLab = sc_pheno,
             patExp = t_matched_bulk,
@@ -315,75 +350,78 @@ DoDEGAS <- function(
             model_type = DEGAS.model_type,
             architecture = DEGAS.architecture,
             FFdepth = DEGAS.ff_depth,
-            Bagdepth = DEGAS.bag_depth
+            Bagdepth = DEGAS.bag_depth,
+            DEGAS.seed = DEGAS.seed
         )
+    )
+    names(ccModel1) <- glue::glue("ccModel_{seq_len(DEGAS.bag_depth)}")
 
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
-            "Predicting with DEGAS model..."
-        ))
+    ts_cli$cli_alert_info("Predicting and Labeling...")
 
-        t_sc_preds <- data.table::as.data.table(DEGAS::predClassBag(
-            ccModel1,
-            t_sc_mat,
-            'pat'
-        ))
+    # Predict with DEGAS model
+    t_sc_preds <- data.table::as.data.table(predClassBag.optimized(
+        ccModel = ccModel1,
+        Exp = t_sc_mat,
+        scORpat = 'pat'
+    ))
 
-        if (phenotype_class == "survival") {
-            data.table::setnames(t_sc_preds, "Hazard")
+    if (phenotype_class == "survival") {
+        data.table::setnames(t_sc_preds, "Hazard")
+    } else {
+        pheno_df_colnames <- if (!is.null(pheno_df)) {
+            colnames(pheno_df)
         } else {
-            pheno_df_colnames <- if (!is.null(pheno_df)) {
-                colnames(pheno_df)
-            } else {
-                NULL
-            }
-            if (!is.null(pheno_df_colnames)) {
-                data.table::setnames(t_sc_preds, pheno_df_colnames)
-            }
+            NULL
         }
-        t_sc_preds[, "cell_id" := rownames(t_sc_mat)]
-
-        if (length(normality_test_method) != 1) {
-            normality_test_method = "jarque-bera"
+        if (!is.null(pheno_df_colnames)) {
+            data.table::setnames(t_sc_preds, pheno_df_colnames)
         }
+    }
+    t_sc_preds[, "cell_id" := rownames(t_sc_mat)]
 
-        cli::cli_alert_info(c("[{TimeStamp()}] ", "Labeling screened cells..."))
+    ts_cli$cli_alert_info("Labeling screened cells...")
 
-        t_sc_preds <- switch(
-            phenotype_class,
-            "binary" = LabelBinaryCells(
-                pred_dt = t_sc_preds,
-                pheno_colnames = pheno_df_colnames,
-                select_fraction = select_fraction,
-                test_method = normality_test_method
-            ),
-            "continuous" = LabelContinuousCells(pred_dt = t_sc_preds),
-            "survival" = LabelSurvivalCells(
-                pred_dt = t_sc_preds,
-                select_fraction = select_fraction,
-                test_method = normality_test_method
-            )
+    # What we get from DEGAS are the probabilities of the cells belonging to each class.
+    # We need to convert these to labels.
+    t_sc_preds <- switch(
+        phenotype_class,
+        "binary" = LabelBinaryCells(
+            pred_dt = t_sc_preds,
+            pheno_colnames = pheno_df_colnames,
+            select_fraction = select_fraction,
+            test_method = normality_test_method,
+            min_threshold = min_thresh
+        ),
+        "continuous" = LabelContinuousCells(pred_dt = t_sc_preds),
+        "survival" = LabelSurvivalCells(
+            pred_dt = t_sc_preds,
+            select_fraction = select_fraction,
+            test_method = normality_test_method,
+            min_threshold = min_thresh
         )
+    )
 
-        sc_data <- Seurat::AddMetaData(
-            object = sc_data,
-            metadata = t_sc_preds[["label"]],
-            col.name = "DEGAS"
-        ) %>%
-            AddMisc(DEGAS_type = label_type)
+    # Record screening results
+    sc_data <- Seurat::AddMetaData(
+        object = sc_data,
+        metadata = t_sc_preds[["label"]],
+        col.name = "DEGAS"
+    ) %>%
+        AddMisc(DEGAS_type = label_type)
 
-        cli::cli_alert_info(c(
-            "[{TimeStamp()}] ",
-            crayon::green("DEGAS Screen done.")
-        ))
+    ts_cli$cli_alert_info(cli::col_green("DEGAS Screen done."))
 
-        list(
-            scRNA_data = sc_data,
-            DEGAS_prediction = t_sc_preds
-        )
+    on.exit({
+        # Clean up global variables
+        rm(list = names(degas_params), envir = .GlobalEnv)
     })
 
-    return(result)
+    # result
+    return(list(
+        scRNA_data = sc_data,
+        model = ccModel1,
+        DEGAS_prediction = t_sc_preds
+    ))
 }
 
 
@@ -429,7 +467,7 @@ Vec2sparse <- function(x, col_prefix = "") {
     if (nzchar(col_prefix)) {
         col_names <- paste0(col_prefix, col_names)
     }
-    sparseMatrix(
+    Matrix::sparseMatrix(
         i = rows,
         j = as.integer(cols),
         dims = c(length(x), nlevels(cols)),
@@ -437,497 +475,660 @@ Vec2sparse <- function(x, col_prefix = "") {
     )
 }
 
-#' @title Modified Jarque-Bera Test for Normailty
+#' @title Optimized Cross-Condition Multi-Task Learning Model Training
 #'
 #' @description
-#' Performs a modified version of the Jarque-Bera test for normality that
-#' provides enhanced sensitivity to departures from normal distribution.
-#' This implementation includes four different test statistics based on
-#' whether population mean and standard deviation are known or estimated.
+#' An optimized wrapper function for training cross-condition multi-task learning
+#' (CCMTL) models in the DEGAS framework. This function handles the complete
+#' training pipeline including data preparation, model configuration, and
+#' execution with enhanced performance and error handling.
 #'
-#' @param x A numeric vector of data values to test for normality.
-#' @param mean An optional numeric value specifying the known population mean.
-#'   If `NA` (default), the sample mean is used.
-#' @param sd An optional numeric value specifying the known population standard
-#'   deviation. If `NA` (default), the sample standard deviation is used.
+#' @param scExp A matrix or data frame containing single-cell expression data
+#'   for model training.
+#' @param scLab A  matrix containing single-cell labels corresponding
+#'   to the expression data.
+#' @param patExp A matrix or data frame containing patient-level expression data
+#'   for multi-task learning.
+#' @param patLab A matrix containing patient-level labels corresponding
+#'   to the patient expression data.
+#' @param tmpDir Character string specifying the temporary directory path for
+#'   storing intermediate files and model outputs.
+#' @param model_type Character string specifying the type of model to train.
+#'   Should match available DEGAS model types.
+#' @param architecture Character string specifying the neural network architecture.
+#'   One of: "DenseNet", "Standard".
+#' @param FFdepth Integer specifying the number of layers in the feed-forward
+#'   network architecture.
+#' @param DEGAS.seed Integer specifying the random seed for reproducible
+#'   model training.
+#' @param force_rewrite Logical indicating whether to force rewriting of input
+#'   files even if they already exist. Default: FALSE.
 #'
 #' @return
-#' An object of class `"htest"` containing the following components:
-#' \itemize{
-#'   \item `statistic` - The test statistic (chi-squared distributed)
-#'   \item `parameter` - Degrees of freedom (always 2)
-#'   \item `p.value` - The p-value for the test
-#'   \item `method` - Description of the test method
-#'   \item `data.name` - Name of the data vector
-#' }
+#' Returns a trained CCMTL model object that can be used for predictions and
+#' further analysis.
 #'
 #' @details
-#' The modified Jarque-Bera test evaluates normality by testing whether
-#' the sample data has the skewness and kurtosis matching a normal distribution.
-#' The test statistic is based on the sample size, skewness, and kurtosis,
-#' and follows a chi-squared distribution with 2 degrees of freedom.
+#' ## Workflow:
+#' 1. **File Management**: Efficient handling of temporary directories and
+#'    input files with optional forced rewriting
+#' 2. **Architecture Configuration**: Supports multiple neural network
+#'    architectures (DenseNet, Standard) with customizable depth
+#' 3. **Python Environment**: Validates Python availability and executes
+#'    training scripts with proper error handling
+#' 4. **Model Training**: Executes the DEGAS training process with specified
+#'    hyperparameters and architecture choices
 #'
-#' ## Test Variants:
-#' The function implements four different test statistics depending on
-#' whether the population mean and standard deviation are specified:
+#' @note
+#' This function requires a properly configured Python environment with DEGAS
+#' dependencies installed. The temporary directory (`tmpDir`) should have
+#' sufficient disk space for model files and intermediate data.
 #'
-#' - **Both unknown**: Uses sample estimates for mean and variance
-#' - **Mean known, SD unknown**: Uses known mean but estimates variance
-#' - **Mean unknown, SD known**: Uses sample mean with known variance
-#' - **Both known**: Uses known population parameters
+#' @seealso
+#' [runCCMTLBag.optimized()] for bootstrap aggregated model training,
 #'
-#' Each variant uses different coefficients in the test statistic calculation
-#' to account for the uncertainty in parameter estimation.
+#' @keywords internal
+#' @family DEGAS_in_SigBridgeR
 #'
-#' ## Mathematical Formulation:
-#' The test statistic is calculated as:
-#' \deqn{JB = n \times \left( \frac{S^2}{6} + \frac{(K - 3)^2}{24} \right)}
-#' where \eqn{S} is skewness, \eqn{K} is kurtosis, and \eqn{n} is sample size,
-#' with modified coefficients for different parameter knowledge scenarios.
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
-#' @section Reference:
-#' KhrushchevSergey/modified_jarque_bera_test Internet. cited 2025 Sep 28.
-#' Available from: \url{https://github.com/KhrushchevSergey/Modified-Jarque-Bera-test/blob/main/modified_jarque_bera_test.R}
+runCCMTL.optimized <- function(
+    scExp,
+    scLab,
+    patExp,
+    patLab,
+    tmpDir,
+    model_type,
+    architecture,
+    FFdepth,
+    DEGAS.seed,
+    force_rewrite = FALSE,
+    verbose = TRUE
+) {
+    # Only write files if explicitly requested
+    if (force_rewrite) {
+        if (dir.exists(tmpDir)) {
+            unlink(tmpDir, recursive = TRUE, force = TRUE)
+        }
+        dir.create(tmpDir, recursive = TRUE, showWarnings = FALSE)
+        # Write input files
+        writeInputFiles.optimized(
+            scExp = scExp,
+            scLab = scLab,
+            patExp = patExp,
+            patLab = patLab,
+            tmpDir = tmpDir
+        )
+    }
+
+    # create python files
+    if (!architecture %chin% c("DenseNet", "Standard")) {
+        cli::cli_abort(c("x" = 'Incorrect architecture argument'))
+    } else if (architecture == "DenseNet") {
+        DEGAS::makeExec2(
+            tmpDir = tmpDir,
+            FFdepth = FFdepth,
+            model_type = model_type
+        )
+    } else {
+        DEGAS::makeExec(
+            tmpDir = tmpDir,
+            FFdepth = FFdepth,
+            model_type = model_type
+        )
+    }
+
+    # Check Python with error handling
+    py_check <- processx::run(command = DEGAS.pyloc, args = "--version")
+    if (!is.null(py_check$error)) {
+        cli::cli_abort("Python check failed: ", py_check$error$message)
+    } else {
+        ts_cli$cli_alert_info(glue::glue(
+            "Python check passed, using {py_check$stdout}"
+        ))
+    }
+
+    cmd <- paste0(
+        DEGAS.pyloc,
+        " ",
+        tmpDir,
+        model_type,
+        "MTL.py",
+        paste(
+            "",
+            tmpDir,
+            DEGAS.train_steps,
+            DEGAS.scbatch_sz,
+            DEGAS.patbatch_sz,
+            DEGAS.hidden_feats,
+            DEGAS.do_prc,
+            DEGAS.lambda1,
+            DEGAS.lambda2,
+            DEGAS.lambda3,
+            DEGAS.seed
+        )
+    )
+
+    if (verbose) {
+        ts_cli$cli_alert_info("Training...")
+    }
+
+    # Execute system command
+    system(command = cmd)
+
+    ccModel1 <- readOutputFiles.optimized(
+        tmpDir = tmpDir,
+        model_type = model_type,
+        architecture = architecture
+    )
+    return(ccModel1)
+}
+
+#' @title ccModel Object
+#'
+#' @slot Bias A list containing bias terms for each layer of the model.
+#' @slot Theta A list of parameter matrices/vectors for the model.
+#' @slot Activation A list of activation functions for each layer.
+#' @slot Depth Numeric. The number of layers in the model architecture.
+#'   Must be a positive integer.
+#' @slot Model_type Character. The type of model
+#' @slot Architecture Character. Description of the model architecture
+#'
+#' @examples
+#' # Create a simple ccModel object
+#' model <- new("ccModel",
+#'   Bias = list(c(0.1, 0.2), c(0.3)),
+#'   Theta = list(matrix(c(0.5, 0.6), nrow=1), matrix(c(0.7), nrow=1)),
+#'   Activation = list("relu", "sigmoid"),
+#'   Depth = 2,
+#'   Model_type = "neural_network",
+#'   Architecture = "feedforward"
+#' )
+#' @keywords internal
+#' @family DEGAS_in_SigBridgeR
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
+#'
+setClass(
+    "ccModel",
+    slots = list(
+        Bias = "list",
+        Theta = "list",
+        Activation = "list",
+        Depth = "numeric",
+        Model_type = "character",
+        Architecture = "character"
+    )
+)
+
+
+#' @title Optimized Bootstrap Aggregation for Cross-Condition Multi-Task Learning
+#'
+#' @description
+#' Performs bootstrap aggregated training of multiple CCMTL models to enhance
+#' robustness and reduce variance in predictions. This function trains an
+#' ensemble of models with different random seeds and aggregates the results.
+#'
+#' @param scExp A matrix or data frame containing single-cell expression data
+#'   for model training.
+#' @param scLab A matrix containing single-cell labels corresponding
+#'   to the expression data.
+#' @param patExp A matrix or data frame containing patient-level expression data
+#'   for multi-task learning.
+#' @param patLab A matrix containing patient-level labels corresponding
+#'   to the patient expression data.
+#' @param tmpDir Character string specifying the temporary directory path for
+#'   storing intermediate files and model outputs.
+#' @param model_type Character string specifying the type of model to train.
+#'   Should match available DEGAS model types.
+#' @param architecture Character string specifying the neural network architecture.
+#'   One of: "DenseNet", "Standard".
+#' @param FFdepth Integer specifying the number of layers in the feed-forward
+#'   network architecture.
+#' @param Bagdepth Integer specifying the number of bootstrap models to train
+#'   in the ensemble.
+#' @param DEGAS.seed Integer specifying the base random seed for reproducible
+#'   model training. Each model in the ensemble uses a derived seed.
+#'
+#' @return
+#' Returns a list of trained CCMTL model objects from the bootstrap aggregation
+#' process. The list contains successful model results with proper error handling
+#' for failed training attempts.
+#'
+#' @details
+#' This function implements bootstrap aggregated training (bagging) for CCMTL
+#' models with the following features:
+#'
+#' ## Ensemble Training:
+#' - Trains multiple models with different random seeds derived from the base seed
+#' - Uses parallel-safe file management to avoid I/O conflicts
+#' - Implements comprehensive error handling to continue training even if
+#'   individual models fail
+#'
+#' ## Error Handling:
+#' - Continues training even if individual models fail
+#' - Returns only successfully trained models
+#' - Provides progress feedback for long-running ensemble training
+#'
+#' @note
+#' The bootstrap aggregation process can be computationally intensive, especially
+#' for large datasets or deep architectures. The function creates derived seeds
+#' for each model (base seed + model index) to ensure reproducibility while
+#' maintaining diversity in the ensemble.
 #'
 #' @examples
 #' \dontrun{
-#' # Test with sample data (both parameters unknown)
-#' x <- rnorm(100)
-#' test_result <- jb.test.modified(x)
-#' print(test_result)
+#' # Train an ensemble of 10 CCMTL models
+#' ensemble_models <- runCCMTLBag.optimized(
+#'   scExp = sc_expression,
+#'   scLab = sc_labels,
+#'   patExp = patient_expression,
+#'   patLab = patient_labels,
+#'   tmpDir = "/tmp/degas_models",
+#'   model_type = "classification",
+#'   architecture = "DenseNet",
+#'   FFdepth = 3,
+#'   Bagdepth = 10,
+#'   DEGAS.seed = 42
+#' )
 #'
-#' # Test with known population parameters
-#' x <- rnorm(100, mean = 5, sd = 2)
-#' test_result <- jb.test.modified(x, mean = 5, sd = 2)
-#' print(test_result)
-#'
-#' # Test with only known mean
-#' test_result <- jb.test.modified(x, mean = 5)
-#' print(test_result)
+#' # Access individual models from the ensemble
+#' first_model <- ensemble_models[[1]]
 #' }
 #'
 #' @seealso
-#' [stats::shapiro.test()] for the Shapiro-Wilk test
+#' [runCCMTL.optimized] for single model training,
+#' [purrr::map()] for the iterative execution pattern.
 #'
 #' @keywords internal
-jb.test.modified <- function(x, mean = NA, sd = NA) {
-    if ((NCOL(x) > 1) || is.data.frame(x)) {
-        cli::cli_abort(c("x" = "x is not a vector or univariate time series"))
-    }
-    if (anyNA(x)) {
-        cli::cli_abort(c("x" = "x contains {.val NA}"))
-    }
-    DNAME <- deparse(substitute(x))
-    n <- length(x)
+#' @family DEGAS_in_SigBridgeR
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
+#'
+runCCMTLBag.optimized <- function(
+    scExp,
+    scLab,
+    patExp,
+    patLab,
+    tmpDir,
+    model_type,
+    architecture,
+    FFdepth,
+    Bagdepth,
+    DEGAS.seed
+) {
+    ts_cli$cli_alert_info(glue::glue(
+        "{FFdepth}-layer {architecture} {model_type} DEGAS model"
+    ))
 
-    if (is.na(mean) & is.na(sd)) {
-        m1 <- sum(x) / n
-        m2 <- sum((x - m1)^2) / n
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
-        b1 <- (m3 / m2^(3 / 2))^2
-        b2 <- (m4 / m2^2)
-        STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 24)
+    if (!dir.exists(tmpDir)) {
+        dir.create(tmpDir, recursive = TRUE)
     }
-
-    if (!is.na(mean) & is.na(sd)) {
-        m1 <- mean
-        m2 <- sum((x - m1)^2) / n
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
-        b1 <- (m3 / m2^(3 / 2))^2
-        b2 <- (m4 / m2^2)
-        STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 24)
-    }
-
-    if (is.na(mean) & !is.na(sd)) {
-        m1 <- mean(x)
-        m2 <- sd^2
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
-        b1 <- (m3 / m2^(3 / 2))^2
-        b2 <- (m4 / m2^2)
-        STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 96)
-    }
-
-    if (!is.na(mean) & !is.na(sd)) {
-        m1 <- mean
-        m2 <- sd^2
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
-        b1 <- (m3 / m2^(3 / 2))^2
-        b2 <- (m4 / m2^2)
-        STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 96)
-    }
-
-    PVAL <- 1 - stats::pchisq(STATISTIC, df = 2)
-    PARAMETER <- 2
-    METHOD <- "Modified Jarque Bera Test"
-    names(STATISTIC) <- "X-squared"
-    names(PARAMETER) <- "df"
-    structure(
-        list(
-            statistic = STATISTIC,
-            parameter = PARAMETER,
-            p.value = PVAL,
-            method = METHOD,
-            data.name = DNAME
-        ),
-        class = "htest"
+    # Write files once at the beginning
+    writeInputFiles.optimized(
+        scExp = scExp,
+        scLab = scLab,
+        patExp = patExp,
+        patLab = patLab,
+        tmpDir = tmpDir
     )
+
+    results <- purrr::map(
+        seq_len(Bagdepth),
+        function(i) {
+            DEGAS.seed_i <- DEGAS.seed + (i - 1)
+
+            result <- runCCMTL.optimized(
+                scExp = scExp,
+                scLab = scLab,
+                patExp = patExp,
+                patLab = patLab,
+                tmpDir = tmpDir,
+                model_type = model_type,
+                architecture = architecture,
+                FFdepth = FFdepth,
+                DEGAS.seed = DEGAS.seed_i,
+                # Alreadt written files will not be rewritten
+                force_rewrite = FALSE
+            )
+            class(result) <- "ccModel"
+            return(result)
+        },
+        .progress = TRUE
+    )
+
+    return(results)
 }
 
-
-#' @title D'Agostino Test of Normality
+#' @title Optimized Input File Writing for DEGAS Models
 #'
 #' @description
-#' Performs the D'Agostino test for normality, which is particularly suitable
-#' for large sample sizes where other tests like Shapiro-Wilk may be too sensitive.
+#' Efficiently writes input data files for DEGAS model training using optimized
+#' data handling and fast I/O operations. This function converts various data
+#' types to efficient CSV format using data.table's fwrite for rapid file
+#' operations with comprehensive error handling.
 #'
-#' @param x a numeric vector of data values. Missing values are allowed and will be removed.
+#' @param scExp A matrix, data frame, or Matrix object containing single-cell
+#'   expression data. Rows typically represent genes and columns represent cells.
+#' @param scLab A matrix, or data frame containing single-cell labels
+#'   corresponding to the expression data. Can be NULL if no labels are available.
+#' @param patExp A data frame, or Matrix object containing patient-level
+#'   expression data. Rows typically represent genes and columns represent patients.
+#' @param patLab A matrix, or data frame containing patient-level labels
+#'   corresponding to the patient expression data. Can be NULL if no labels are available.
+#' @param tmpDir Character string specifying the directory path where input
+#'   files will be written. The directory will be created if it doesn't exist.
 #'
-#' @return A list with class `"htest"` containing the following components:
-#' \item{statistic}{a named vector containing three test statistics:
-#'   \describe{
-#'     \item{Skewness}{the Z statistic for skewness test}
-#'     \item{Kurtosis}{the Z statistic for kurtosis test}
-#'     \item{Omnibus}{the chi-squared statistic combining both tests}
-#'   }
-#' }
-#' \item{parameter}{the degrees of freedom for the omnibus test}
-#' \item{p.value}{a named vector containing three p-values corresponding to the statistics}
-#' \item{method}{the character string "D'Agostino Normality Test"}
-#' \item{data.name}{a character string giving the name(s) of the data}
-#' \item{alternative}{a character string describing the alternative hypothesis}
-#' \item{estimates}{a named vector containing sample statistics:
-#'   \describe{
-#'     \item{n}{sample size}
-#'     \item{Skewness}{sample skewness coefficient}
-#'     \item{Kurtosis}{sample kurtosis coefficient (excess kurtosis)}
-#'     \item{Mean}{sample mean}
-#'     \item{SD}{sample standard deviation}
-#'   }
-#' }
+#' @return
+#' Invisibly returns TRUE if all files are successfully written. If any error
+#' occurs during file writing, the function will abort with an informative error message.
 #'
 #' @details
-#' The D'Agostino test is a powerful omnibus test for normality that combines
-#' separate tests for skewness and kurtosis. It is based on the transformation
-#' of the sample skewness and kurtosis to approximate normal distributions,
-#' which are then combined into a chi-squared statistic.
+#' This function provides an optimized pipeline for writing input files required
+#' by DEGAS models with the following features:
 #'
-#' This test is particularly recommended for:
-#' \itemize{
-#'   \item Large sample sizes (n > 50)
-#'   \item Situations where Shapiro-Wilk test is overly sensitive
-#'   \item Testing both tail behavior and symmetry simultaneously
-#' }
+#' ## File Output:
+#' The function creates four CSV files in the specified temporary directory:
+#' - `scExp.csv`: Single-cell expression data
+#' - `scLab.csv`: Single-cell labels (if provided)
+#' - `patExp.csv`: Patient-level expression data
 #'
-#' The test has good power against a wide range of alternative distributions
-#' and is less sensitive to sample size fluctuations than many other normality tests.
+#'
+#' @note
+#' The function uses comma-separated values (CSV) format without row names to
+#' ensure compatibility with Python-based DEGAS training scripts. All input
+#' data is converted to dense format during writing, so ensure sufficient
+#' memory is available for large datasets.
 #'
 #' @examples
 #' \dontrun{
-#' # Test normally distributed data
-#' set.seed(123)
-#' normal_data <- rnorm(100)
-#' result <- dagostino.test(normal_data)
-#' print(result)
-#'
-#' # Test non-normal data (exponential distribution)
-#' non_normal_data <- rexp(100)
-#' result2 <- dagostino.test(non_normal_data)
-#' print(result2)
-#'
-#' # Access specific components
-#' result$p.value["Omnibus"]  # Overall test p-value
-#' result$estimates["Skewness"]  # Sample skewness
-#' result$statistic["Kurtosis"]  # Kurtosis test statistic
-#'
-#' # Large sample performance
-#' large_sample <- rnorm(5000)
-#' dagostino.test(large_sample)
+#' # Write input files for DEGAS training
+#' writeInputFiles.optimized(
+#'   scExp = single_cell_expression,
+#'   scLab = single_cell_labels,
+#'   patExp = patient_expression,
+#'   patLab = patient_labels,
+#'   tmpDir = "/tmp/degas_input"
+#' )
 #' }
 #'
+#' @seealso
+#' [data.table::fwrite()] for the underlying fast writing implementation,
+#' [purrr::safely()] for the error handling mechanism.
 #'
-#' @keywords htest
 #' @keywords internal
+#' @family DEGAS_in_SigBridgeR
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
-dagostino.test <- function(x) {
-    if (!is.numeric(x)) {
-        stop("'x' must be a numeric vector")
-    }
-    if (length(x) < 8) {
-        stop("'x' must have at least 8 elements")
-    }
-
-    x <- x[!is.na(x)]
-    n <- as.double(length(x))
-
-    x_mean <- mean(x)
-    x_centered <- x - x_mean
-    m2 <- sum(x_centered^2) / n
-    m3 <- sum(x_centered^3) / n
-    m4 <- sum(x_centered^4) / n
-
-    g1 <- m3 / (m2^(3 / 2))
-
-    n_dbl <- as.double(n)
-    n2 <- n_dbl * n_dbl
-    n3 <- n2 * n_dbl
-
-    Y <- g1 * sqrt((n_dbl + 1) * (n_dbl + 3) / (6 * (n_dbl - 2)))
-    beta2 <- 3 *
-        (n2 + 27 * n_dbl - 70) *
-        (n_dbl + 1) *
-        (n_dbl + 3) /
-        ((n_dbl - 2) * (n_dbl + 5) * (n_dbl + 7) * (n_dbl + 9))
-
-    if (beta2 <= 1) {
-        W_sq <- 1.0
-    } else {
-        W_sq <- sqrt(2 * beta2 - 2)
+writeInputFiles.optimized <- function(
+    scExp,
+    scLab = NULL,
+    patExp,
+    patLab = NULL,
+    tmpDir
+) {
+    if (!dir.exists(tmpDir)) {
+        dir.create(tmpDir, recursive = TRUE)
     }
 
-    if (W_sq <= 1) {
-        Z_g1 <- 0
-    } else {
-        delta <- 1 / sqrt(log(W_sq))
-        alpha <- sqrt(2 / (W_sq - 1))
-
-        ratio <- Y / alpha
-        Z_g1 <- delta * log(ratio + sqrt(ratio^2 + 1))
-    }
-
-    g2 <- m4 / (m2^2) - 3
-
-    E_g2 <- -6 / (n_dbl + 1)
-    Var_g2 <- 24 *
-        n_dbl *
-        (n_dbl - 2) *
-        (n_dbl - 3) /
-        ((n_dbl + 1)^2 * (n_dbl + 3) * (n_dbl + 5))
-
-    if (Var_g2 <= 0) {
-        standardized_g2 <- 0
-    } else {
-        standardized_g2 <- (g2 - E_g2) / sqrt(Var_g2)
-    }
-
-    if (n_dbl <= 3) {
-        beta2_kurt <- 1.0
-    } else {
-        beta2_kurt <- 6 *
-            (n2 - 5 * n_dbl + 2) /
-            ((n_dbl + 7) * (n_dbl + 9)) *
-            sqrt(
-                6 *
-                    (n_dbl + 3) *
-                    (n_dbl + 5) /
-                    (n_dbl * (n_dbl - 2) * (n_dbl - 3))
-            )
-    }
-
-    if (beta2_kurt <= 0 || is.infinite(beta2_kurt)) {
-        Z_g2 <- 0
-    } else {
-        A <- 6 +
-            (8 / beta2_kurt) * (2 / beta2_kurt + sqrt(1 + 4 / (beta2_kurt^2)))
-
-        if (A <= 4) {
-            Z_g2 <- 0
-        } else {
-            term1 <- 1 - 2 / (9 * A)
-            term2 <- (1 - 2 / A) / (1 + standardized_g2 * sqrt(2 / (A - 4)))
-            if (term2 <= 0) {
-                Z_g2 <- 0
+    file_writing_ops <- purrr::safely(
+        ~ {
+            # Convert scExp to data.table for fast writing
+            if (inherits(scExp, "matrix") || inherits(scExp, "Matrix")) {
+                scExp_dt <- data.table::as.data.table(as.matrix(scExp))
             } else {
-                Z_g2 <- (term1 - term2^(1 / 3)) / sqrt(2 / (9 * A))
+                scExp_dt <- data.table::as.data.table(scExp)
+            }
+
+            # Write scExp using data.table's fwrite (much faster than write.table)
+            data.table::fwrite(
+                scExp_dt,
+                file = file.path(tmpDir, 'scExp.csv'),
+                row.names = FALSE,
+                sep = ',',
+                showProgress = FALSE
+            )
+
+            # Process scLab if not NULL
+            if (!is.null(scLab)) {
+                if (inherits(scLab, "matrix") || inherits(scLab, "Matrix")) {
+                    scLab_dt <- data.table::as.data.table(as.matrix(scLab))
+                } else {
+                    scLab_dt <- data.table::as.data.table(scLab)
+                }
+                scLab_dt[, names(scLab_dt) := lapply(.SD, as.integer)] # Convert to integer from boolean
+
+                data.table::fwrite(
+                    scLab_dt,
+                    file = file.path(tmpDir, 'scLab.csv'),
+                    row.names = FALSE,
+                    sep = ',',
+                    showProgress = FALSE
+                )
+            }
+
+            # Convert patExp to data.table
+            if (inherits(patExp, "matrix") || inherits(patExp, "Matrix")) {
+                patExp_dt <- data.table::as.data.table(as.matrix(patExp))
+            } else {
+                patExp_dt <- data.table::as.data.table(patExp)
+            }
+
+            # Write patExp
+            data.table::fwrite(
+                patExp_dt,
+                file = file.path(tmpDir, 'patExp.csv'),
+                row.names = FALSE,
+                sep = ',',
+                showProgress = FALSE
+            )
+
+            # Process patLab if not NULL
+            if (!is.null(patLab)) {
+                if (inherits(patLab, "matrix") || inherits(patLab, "Matrix")) {
+                    patLab_dt <- data.table::as.data.table(as.matrix(patLab))
+                } else {
+                    patLab_dt <- data.table::as.data.table(patLab)
+                }
+                patLab_dt[, names(patLab_dt) := lapply(.SD, as.integer)] # Convert to integer from boolean
+
+                data.table::fwrite(
+                    patLab_dt,
+                    file = file.path(tmpDir, 'patLab.csv'),
+                    row.names = FALSE,
+                    sep = ',',
+                    showProgress = FALSE
+                )
             }
         }
+    )
+
+    # Execute file writing operations with error handling
+    result <- file_writing_ops()
+
+    if (!is.null(result$error)) {
+        cli::cli_abort("Failed to write input files: ", result$error$message)
     }
 
-    K_sq <- Z_g1^2 + Z_g2^2
-
-    p_value_skew <- 2 * stats::pnorm(-abs(Z_g1))
-    p_value_kurt <- 2 * stats::pnorm(-abs(Z_g2))
-    p_value_combined <- stats::pchisq(K_sq, df = 2, lower.tail = FALSE)
-
-    p_value_skew <- max(0, min(1, p_value_skew))
-    p_value_kurt <- max(0, min(1, p_value_kurt))
-    p_value_combined <- max(0, min(1, p_value_combined))
-
-    DNAME <- deparse(substitute(x))
-    METHOD <- "D'Agostino Normality Test"
-
-    result <- structure(
-        list(
-            statistic = c(
-                Skewness = Z_g1,
-                Kurtosis = Z_g2,
-                Omnibus = K_sq
-            ),
-            parameter = c(df = 2),
-            p.value = c(
-                Skewness = p_value_skew,
-                Kurtosis = p_value_kurt,
-                Omnibus = p_value_combined
-            ),
-            method = METHOD,
-            data.name = DNAME,
-            alternative = "data are not normally distributed",
-            estimates = c(
-                n = n,
-                Skewness = g1,
-                Kurtosis = g2,
-                Mean = x_mean,
-                SD = sqrt(m2 * n / (n - 1))
-            )
-        ),
-        class = "htest"
-    )
-    return(result)
+    invisible(TRUE)
 }
 
 
-#' @title outlier detection using Median Absolute Deviation (MAD)
+#' @title Read Model Output Files
 #'
 #' @description
-#' This function identifies outliers in a numeric vector using Median Absolute
-#' Deviation (MAD) method, with specialized handling for very small samples.
-#' Returns results in htest format for consistency with statistical tests.
+#' Reads neural network parameters (weights, biases, activation functions) from
+#' output files generated by an optimized training process and constructs a
+#' complete model object.
 #'
-#' @param x A numeric vector. Missing values (`NA`) are allowed and will be
-#'          excluded from calculations.
-#' @param na.rm Logical. Should missing values be removed? Default is `TRUE`.
+#' @param tmpDir Character string specifying the temporary directory path where
+#'               the model output files are stored.
+#' @param model_type Character string describing the type of model.
+#' @param architecture Character string describing the neural network architecture.
 #'
-#' @return An object of class "htest" containing:
-#'   \item{statistic}{The test statistic (MAD-based z-score of most extreme outlier)}
-#'   \item{parameter}{Named vector with: n, median, mad, threshold}
-#'   \item{p.value}{Approximate p-value based on outlier probability}
-#'   \item{method}{Description of the method used}
-#'   \item{data.name}{Name of the data vector}
-#'   \item{alternative}{Character string describing the alternative hypothesis}
-#'   \item{outlier.indices}{Indices of detected outliers (as additional element)}
+#' @return Returns an object of class \code{ccModel} containing:
+#' \itemize{
+#'   \item \code{Bias} - List of bias matrices for each layer
+#'   \item \code{Theta} - List of weight matrices for each layer
+#'   \item \code{Activation} - List of activation functions for each layer
+#'   \item \code{Depth} - Integer specifying the number of layers
+#'   \item \code{Model_type} - The input model type
+#'   \item \code{Architecture} - The input architecture description
+#' }
 #'
 #' @details
-#' For samples with n > 5, uses standard MAD method with threshold of 3.
-#' For very small samples (n <= 5), uses MAD with adjusted thresholds:
-#' - n = 3-4: threshold = 2.5
-#' - n = 5: threshold = 2.8
+#' This function reads the following files from the specified directory:
+#' \itemize{
+#'   \item \code{Activations.csv} - Contains activation function names (one per line)
+#'   \item \code{Bias{i}.csv} - Bias values for layer i (where i = 1, 2, ...)
+#'   \item \code{Theta{i}.csv} - Weight values for layer i (where i = 1, 2, ...)
+#' }
 #'
-#' The test statistic is calculated as the maximum absolute deviation from median
-#' divided by adjusted MAD.
+#' The function automatically determines the network depth from the number of
+#' activation functions and loads the corresponding parameters for each layer.
+#' All CSV files are expected to be comma-separated without row names.
 #'
 #' @examples
 #' \dontrun{
-#' # Basic usage
-#' x <- c(1, 2, 3, 100, 4, 5, 3)
-#' mad.test(x)
-#'
-#' # Small sample
-#' x3 <- c(1, 2, 10)
-#' mad.test(x3)
+#' # Read model files from temporary directory
+#' model <- readOutputFiles.optimized(
+#'   tmpDir = "/path/to/model/files",
+#'   Model_type = "Classification",
+#'   architecture = "12"
+#' )
 #' }
 #'
-#' @import data.table
-#' @importFrom chk chk_length chk_numeric chk_not_any_na
-#'
 #' @keywords internal
+#' @family DEGAS_in_SigBridgeR
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
-mad.test <- function(x, na.rm = TRUE) {
-    # Store data name for htest output
-    dna <- deparse(substitute(x))
+readOutputFiles.optimized <- function(tmpDir, model_type, architecture) {
+    activations <- data.table::fread(
+        file.path(tmpDir, 'Activations.csv'),
+        header = FALSE,
+        sep = "\n",
+        showProgress = FALSE
+    )[[1]]
 
-    # Input validation
-    chk::chk_numeric(x)
+    depth <- length(activations)
+    file_indices <- seq_len(depth)
 
-    # Handle missing values
-    if (na.rm) {
-        complete_cases <- !is.na(x)
-        x_clean <- x[complete_cases]
-        original_indices <- which(complete_cases)
-    } else {
-        chk::chk_not_any_na(x)
-        x_clean <- x
-        original_indices <- seq_along(x)
-    }
-
-    n <- length(x_clean)
-
-    chk::chk_length(n)
-
-    # Create data.table for efficient computation
-    dt <- data.table::data.table(
-        index = original_indices,
-        value = x_clean
+    # Read Bias files using purrr and data.table
+    Biases <- purrr::map(
+        file_indices,
+        ~ {
+            bias_file <- file.path(tmpDir, paste0('Bias', .x, '.csv'))
+            bias_data <- data.table::fread(
+                bias_file,
+                header = FALSE,
+                sep = ',',
+                showProgress = FALSE
+            )
+            as.matrix(bias_data)
+        }
     )
 
-    # Calculate median and MAD
-    median_val <- dt[, median(`value`)]
-    abs_dev <- abs(dt$`value` - median_val)
-    mad_val <- median(abs_dev)
-    mad_adjusted <- mad_val * 1.4826
-
-    # Determine threshold based on sample size
-    if (n <= 4) {
-        threshold <- 2.5
-        method_used <- "MAD-based outlier detection (small sample n<=4, threshold=2.5)"
-    } else if (n == 5) {
-        threshold <- 2.8
-        method_used <- "MAD-based outlier detection (small sample n=5, threshold=2.8)"
-    } else {
-        threshold <- 3.0
-        method_used <- "MAD-based outlier detection (threshold=3.0)"
-    }
-
-    # Calculate MAD-based z-scores
-    dt[, `z_score` := abs(`value` - `median_val`) / `mad_adjusted`] # id mad_adjusted == 0, z_score will be NA
-
-    # Identify outliers
-    dt[, `is_outlier` := `z_score` > `threshold`]
-
-    # Get outlier information
-    outliers_dt <- dt[`is_outlier` == TRUE]
-    n_outliers <- nrow(outliers_dt)
-
-    # Calculate test statistic (z-score of most extreme outlier)
-    if (n_outliers > 0) {
-        statistic_val <- max(dt$z_score)
-        # Get indices of outliers in original data (before NA removal)
-        outlier_indices <- dt[`is_outlier` == TRUE, `index`]
-    } else {
-        statistic_val <- max(dt$z_score)
-        outlier_indices <- integer(0)
-    }
-
-    # Calculate approximate p-value
-    # Based on probability of observing such extreme value in normal distribution
-    if (mad_adjusted > 0) {
-        pval <- 2 * (1 - stats::pnorm(statistic_val))
-        # Adjust for multiple testing (Bonferroni correction)
-        pval <- min(pval * n, 1.0)
-    } else {
-        pval <- NA_real_
-    }
-
-    # Create htest structure
-    result <- list(
-        statistic = c("MAD z-score" = statistic_val),
-        parameter = c(
-            "n" = n,
-            "median" = median_val,
-            "mad" = mad_adjusted,
-            "threshold" = threshold
-        ),
-        p.value = pval,
-        method = method_used,
-        data.name = dna,
-        alternative = "at least one value is an outlier",
-        outlier.indices = outlier_indices
+    # Read Theta files using purrr and data.table
+    Thetas <- purrr::map(
+        file_indices,
+        ~ {
+            theta_file <- file.path(tmpDir, paste0('Theta', .x, '.csv'))
+            theta_data <- data.table::fread(
+                theta_file,
+                header = FALSE,
+                sep = ',',
+                showProgress = FALSE
+            )
+            as.matrix(theta_data)
+        }
     )
 
-    class(result) <- "htest"
-    return(result)
+    Activations <- as.list(activations)
+
+    return(methods::new(
+        'ccModel',
+        Bias = Biases,
+        Theta = Thetas,
+        Activation = Activations,
+        Depth = depth,
+        Model_type = model_type,
+        Architecture = architecture
+    ))
+}
+
+
+#' @title Bagged Prediction for Classification Models
+#'
+#' @description
+#' Performs bagged (bootstrap aggregating) predictions using an ensemble of
+#' ccModel objects. This function averages predictions from multiple models
+#' to improve stability and accuracy.
+#'
+#' @param ccModel A list of `ccModel` objects representing the ensemble of
+#'               models to use for bagged prediction. Each model should be
+#'               a valid ccModel instance.
+#' @param Exp A matrix or data frame containing the expression data to be
+#'            classified.
+#' @param scORpat A character string specifying whether the data represents
+#'               single-cell ("sc") or phenotype ("pat") data. This parameter
+#'               is passed to the underlying prediction functions.
+#'
+#' @return A matrix of averaged predictions where each element represents the
+#'         aggregated probability or classification score across all models
+#'         in the ensemble. The output is computed as the mean of all individual
+#'         model predictions.
+#'
+#' @details
+#' This function implements model bagging by:
+#' \itemize{
+#'   \item Iterating over each model in the `ccModel` list using `purrr::map`
+#'   \item Selecting the appropriate prediction function based on the model's
+#'         architecture ("DenseNet" vs "Standard")
+#'   \item Averaging all predictions using `Reduce("+", out) / length(out)`
+#' }
+#'
+#' The function supports two architectures:
+#' \itemize{
+#'   \item **"DenseNet"**: Uses `DEGAS::predClass2` for prediction
+#'   \item **"Standard"**: Uses `DEGAS::predClass1` for prediction
+#' }
+#'
+#' If an unsupported architecture is encountered, the function will abort
+#' with an informative error message.
+#'
+#' @examples
+#' \dontrun{
+#' # Create an ensemble of models
+#' model_list <- list(model1, model2, model3)
+#'
+#' # Perform bagged prediction on expression data
+#' predictions <- predClassBag(
+#'   ccModel = model_list,
+#'   Exp = expression_matrix,
+#'   scORpat = "sc"
+#' )
+#'
+#' # Use the averaged predictions for downstream analysis
+#' class_assignments <- ifelse(predictions > 0.5, "Class1", "Class2")
+#' }
+#'
+#' @importFrom purrr map
+#' @keywords internal
+#' @family DEGAS_in_SigBridgeR
+#' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
+#'
+predClassBag.optimized <- function(ccModel, Exp, scORpat) {
+    out <- purrr::map(ccModel, function(ccmodel) {
+        switch(
+            ccmodel@Architecture,
+            "DenseNet" = DEGAS::predClass2(ccmodel, Exp, scORpat),
+            "Standard" = DEGAS::predClass1(ccmodel, Exp, scORpat),
+            cli::cli_abort(c(
+                "x" = "Incorrect architecture argument: ",
+                ">" = ccmodel@Architecture
+            ))
+        )
+    })
+    out = Reduce("+", out) / length(out)
+    return(out)
 }
 
 
@@ -1030,10 +1231,11 @@ LabelBinaryCells <- function(
     # Try to find the reference group in the column names
     # If not found, use the second column as the reference group
     ctrl_col <- grep(
-        "[Nn]on|[Nn]ormal|[Cc]ontrol|[Rr]ef|[Cc]trl",
-        pheno_colnames
+        "[Nn]on|[Nn]ormal|[Cc]ontrol|[Rr]ef|[Cc]trl|0",
+        pheno_colnames,
+        value = TRUE
     )
-    if (is.null(ctrl_col)) {
+    if (nchar(ctrl_col) == 0) {
         cli::cli_alert_info(
             "Using {.val {pheno_colnames[2]}} as reference group"
         )
@@ -1198,10 +1400,7 @@ LabelBinaryCells <- function(
 #' @keywords internal
 #'
 LabelContinuousCells <- function(pred_dt) {
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
-        "Searching for various phenotype-associated cells..."
-    ))
+    ts_cli$cli_alert_info("Searching for various phenotype-associated cells...")
 
     # Use matrix operations for efficient MAD testing across predictions
     label_cols <- setdiff(names(pred_dt), "cell_id")
@@ -1318,10 +1517,7 @@ LabelSurvivalCells <- function(
     test_method,
     min_threshold = 0.7 # Added minimum threshold parameter
 ) {
-    cli::cli_alert_info(c(
-        "[{TimeStamp()}] ",
-        "Searching for phenotype-associated cells..."
-    ))
+    ts_cli$cli_alert_info("Searching for survival-associated cells...")
 
     pred_vec = pred_dt[["Hazard"]]
     normality_test_pval <- switch(
