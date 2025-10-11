@@ -42,7 +42,7 @@ jobs:
             - name: Install dependencies
               run: |
                   if [ ! -d "~/R/Library/rmarkdown" ] || [ ! -d "~/R/Library/knitr" ]; then
-                    Rscript -e 'install.packages(c("rmarkdown", "knitr"))'
+                    Rscript -e 'install.packages(c("rmarkdown", "knitr", "reticulate"))'
                   fi
 
             - name: Render Rmd files
