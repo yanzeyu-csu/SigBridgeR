@@ -139,10 +139,10 @@ This is due to the presence of genes with zero variance in the bulk expression d
 
 This issue arises from the single-cell processing, which filtered out too many genes and cells. Consider Adjusting `min_cells` and `min_features` to a smaller value.:
 
-``` r
+```{r,eval=FALSE}
 seurat = SCPreProcess(
   sc = mat_exam,
-  min_cells = 200, 
+  min_cells = 200,
   min_features = 3,
   quality_control.pattern = "^MT-",
   scale_features = rownames(mat_exam),
@@ -197,7 +197,7 @@ reticulate::use_condaenv(py_path)
 
 This is due to the issue with the tensorflow package. Use the following method to check if the tensorflow package can be imported.
 
-```{python,check_tensorflow,eval=FALSE}
+```python
 # ! python 
 
 # make sure you are using the correct python, i.e. r-reticulate-degas
@@ -210,7 +210,7 @@ import tensorflow as tf
 tf.__version__
 ```
 
-```{shell,check_tensorflow_shell,eval=FALSE}
+```shell
 # ! shell
 
 # make sure you've entered the Conda environment you want to check, i.e. r-reticulate-degas

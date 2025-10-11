@@ -80,6 +80,9 @@ jobs:
         needs: setup-matrix
         runs-on: ${{ matrix.os }}
         name: ${{ matrix.os }} (R ${{ matrix.r }})
+        defaults:
+            run:
+                shell: bash
         strategy:
             fail-fast: false
             matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
