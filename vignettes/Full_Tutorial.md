@@ -44,8 +44,7 @@
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
         -   [3.5 (Option E) DEGAS
             Screening](#35-option-e-degas-screening)
-        -   [3.8 (Optional) Merge screening
-            results](#38-optional-merge-screening-results)
+        -   [3.8 Merge screening results](#38-merge-screening-results)
     -   [4. Visualization](#4-visualization)
         -   [4.1 UMAP for screening
             results](#41-umap-for-screening-results)
@@ -68,7 +67,8 @@
         -   [6.2 Load reference data](#62-load-reference-data)
         -   [6.3 Setting up Python
             Environment](#63-setting-up-python-environment)
-    -   [7. References](#7-references)
+    -   [7. Troubleshooting](#7-troubleshooting)
+    -   [8. References](#8-references)
 
 ### 0.1 Introduction to SigBridgeR
 
@@ -77,11 +77,10 @@ SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in
 phenotype data using single-cell RNA-seq, bulk expression and
 sample\_related phenotype data at a pan-cancer level. It integrates
 functionality from these R packages:
-[Github-sunduanchen/Scissor](https://github.com/sunduanchen/Scissor),
-[Github-Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/),
-[Github-WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP),[Github-aiminXie/scPAS](https://github.com/aiminXie/scPAS)
-and
-[Github-tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
+[sunduanchen/Scissor](https://github.com/sunduanchen/Scissor),
+[Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/),
+[WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP),[aiminXie/scPAS](https://github.com/aiminXie/scPAS)
+and [tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
 
 ------------------------------------------------------------------------
 
@@ -348,7 +347,10 @@ Key parameters for `BulkPreProcess`:
 -   `data`: Expression matrix with genes as rows and samples as columns,
     or a list containing count\_matrix and sample\_info.
 -   `sample_info`: Sample information data frame (optional), ignored if
-    data is a list.
+    data is a list. A qualified `sample_info` should contain both
+    `sample` and `condition` columns (case-sensitive), and there are no
+    specific requirements for the data type stored in the `condition`
+    column.
 -   `gene_symbol_conversion`: Whether to convert Ensembl version IDs and
     TCGA version IDs to genes with [SymbolConvert in Section
     2.2.2](#222-gene-symbol-conversion), default TRUE.
@@ -747,6 +749,8 @@ from the `scPAS`’s documentation):
 **returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
+-   `stats`: A data.frame the significance of scPAS screening results
+-   `para`: A list containing the parameters used in scPAS screening
 
 ### 3.3 (Option C) scAB Screening
 
@@ -802,11 +806,13 @@ Parameters pass to `...` when using `scPP` method :
 **returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
+-   `gene_list`: A list containing positive genes and negative genes
+-   `AUC`: A data.frame with area under the ROC curve
 
 ### 3.5 (Option E) DEGAS Screening
 
-**This method is not recommended because of low performance and
-intractable dependence control.**
+**This method is not recommended because of intractable dependence
+control.**
 
 Parameters pass to `...` when using `DEGAS` method
 
@@ -829,10 +835,11 @@ Parameters pass to `...` when using `DEGAS` method
       matched_bulk = your_matched_bulk,
       sc_data = A_Seurat_object,
       phenotype = your_matched_phenotype,
-      label_type = "TP53", # The filtering labels are stored in the `@misc`
+      label_type = "TP53", # The labels are stored in the `@misc` and are used to identify the screening results.
       screen_method = "DEGAS",
-      phenotype_class = "binary",
-      # Environment parameters   
+      # The type of phenotype
+      phenotype_class = c("binary", "continuous", "survival"),
+      # Environment parameters
       env_params = list(
         env.name = "r-reticulate-degas",
         env.type = "conda",
@@ -840,13 +847,13 @@ Parameters pass to `...` when using `DEGAS` method
         env.method = "environment",
         # The path of the environment.yml file
         env.file = system.file(
-            "conda/DEGAS_environment.yml",
-            package = "SigBridgeR"
+          "conda/DEGAS_environment.yml",
+          package = "SigBridgeR"
         ),
         env.python_verion = "3.9.15",
         env.packages = c(
-            "tensorflow" = "2.4.1",
-            "numpy" = "any"
+          "tensorflow" = "2.4.1",
+          "protobuf" = "3.20.3"
         ),
         env.recreate = FALSE,
         env.use_conda_forge = TRUE,
@@ -854,28 +861,29 @@ Parameters pass to `...` when using `DEGAS` method
       ),
       # DEGAS parameters
       degas_params = list(
-        # DEGAS.model_type will be automatically determined by the phenotype_class
+        # DEGAS.model_type will be automatically determined by the `phenotype_class`
         DEGAS.model_type = c(
-            "BlankClass", # only bulk level phenotype specified
-            "ClassBlank", # only single cell level phenotype specified
-            "ClassClass", # when both single cell level phenotype and bulk level phenotype specified
-            "ClassCox", # when both single cell level phenotype and bulk level survival data specified
-            "BlankCox" # only bulk level survival data specified
+          "BlankClass", # only bulk level phenotype specified
+          "ClassBlank", # only single cell level phenotype specified
+          "ClassClass", # when both single cell level phenotype and bulk level phenotype specified
+          "ClassCox", # when both single cell level phenotype and bulk level survival data specified
+          "BlankCox" # only bulk level survival data specified
         ),
         # DEGAS.architecture will be `DenseNet` in default
         DEGAS.architecture = c(
-            "DenseNet", # a dense net network
-            "Standard" # a feed forward network
+          "DenseNet", # a dense net network
+          "Standard" # a feed forward network
         ),
-        DEGAS.ff_depth = 3,
-        DEGAS.bag_depth = 5,
+        # The path to save intermediate data
         path.data = '',
         path.result = '',
         # The python executable path of the conda environment, auto detected in default
         DEGAS.pyloc = NULL,
-        # Some python functions will be called in the DEGAS algorithm
-        DEGAS.toolsPath = paste0(.libPaths()[1], "/DEGAS/tools/"),
+        # Some functions will be called in the DEGAS algorithm
+        DEGAS.toolsPath = paste0(.libPaths()[1], "/DEGAS/tools/"), # or `file.path(.libaPaths()[1], "SigBridgeR/DEGAS_tools/")`
         # Screening parameters
+        DEGAS.ff_depth = 3,
+        DEGAS.bag_depth = 5,
         DEGAS.train_steps = 2000,
         DEGAS.scbatch_sz = 200,
         DEGAS.patbatch_sz = 50,
@@ -886,6 +894,7 @@ Parameters pass to `...` when using `DEGAS` method
         DEGAS.lambda3 = 3.0,
         DEGAS.seed = 2
       ),
+      # default: "jarque-bera".
       normality_test_method = c(
         "jarque-bera",
         "d'agostino",
@@ -901,7 +910,8 @@ specified `env_params = list(env.recreate=TRUE)`).
 
 You can use `ListPyEnvs()` to list all the python environments in your
 system, including virtual environments. Both Windows and Unix-like
-systems are supported.
+systems are supported. More information can be found in [Section
+6.3](#63-setting-up-python-environment)
 
     # * On Unix-like system it goes like this
     ListPyEnv()
@@ -914,7 +924,16 @@ Please note that the environmental dependencies required for DEGAS to
 run are quite stringent, and conflicts are highly likely to occur. This
 is why the use of this screening method is not recommended.
 
-### 3.8 (Optional) Merge screening results
+**returning structure**: A list containing:
+
+-   `scRNA_data`: A Seurat object after screening
+-   `model`: A model trained using single-cell RNA expression matrix,
+    tissue bulk RNA sequencing expression matrix, and phenotypic data.
+-   `DEGAS_prediction`: Using the model to conduct prediction for each
+    cell, resulting in a data.frame where each phenotype has a predicted
+    probability score.
+
+### 3.8 Merge screening results
 
 If you have performed multiple screening methods one the same
 single-cell data, you can use the `MergeResult` to merge the screening
@@ -1213,6 +1232,7 @@ https://github.com/const-ae/ggupset](https://github.com/const-ae/ggupset)
 Here we use the example data LUAD to demonstrate how to use the
 functions in `SigBridgeR` to screen cells associated with phenotype.
 
+    # Set working directory
     if (requireNamespace("here", quietly = TRUE)) {
       setwd(here::here())         
       knitr::opts_knit$set(root.dir = here::here())  
@@ -1253,7 +1273,8 @@ This single-cell RNA data is from humans. We set many parameters to
 analyses and capture a broader range of biological signals, so as to
 avoid insignificant results caused by too small a dataset.
 
-Now we use `SCPreProcess()` to pre-process the data.
+Now we use `SCPreProcess()` to pre-process the single-cell RNA
+expression matrix data.
 
     seurat = SCPreProcess(
       sc = mat_exam,
@@ -1273,12 +1294,68 @@ reflect the most accurate situation. You can choose whether to filter or
 retain based on your own needs. See also [2.2 Bulk expression
 data](#22-bulk-expression-data) for more details.
 
+To facilitate the demonstration of the use of the sample\_info
+parameter, we will divide the `pheno` based on its survival status into
+two groups, which will be stored in the `condition` column.
+
+    sample_info <- tibble::rownames_to_column(pheno, var = "sample") %>%
+      dplyr::rename(condition = status)
+
+    head(sample_info)
+    #         sample  time condition
+    # 1 TCGA-69-7978  4.40         0
+    # 2 TCGA-62-8399 88.57         0
+    # 3 TCGA-78-7539 25.99         0
+    # 4 TCGA-73-4658 52.56         1
+    # 5 TCGA-44-6775 23.16         0
+    # 6 TCGA-44-2655 43.50         0
+
+    bulk = BulkPreProcess(
+      data = bulk,
+      sample_info = sample_info,
+      min_count_threshold = 0,
+      min_gene_expressed = 0,
+      min_total_reads = 0,
+      min_genes_detected = 0,
+      min_correlation = 0.1
+    )
+    # ℹ [2025/10/11 09:17:46] Starting data preprocessing...
+    # ✔ [2025/10/11 09:17:47] Data loaded: 4071 genes * 506 samples
+    # ℹ [2025/10/11 09:17:47] Computing basic statistics...
+    # ✔ [2025/10/11 09:17:47] 4071 genes pass expression filter
+    # ℹ [2025/10/11 09:17:47] Starting detailed quality checks...
+    # ℹ [2025/10/11 09:17:47] Computing sample correlations...
+    # ✔ [2025/10/11 09:17:49] Correlation analysis completed: min correlation = 0.288
+    # ℹ [2025/10/11 09:17:49] Performing principal component analysis...
+    # ℹ [2025/10/11 09:17:49] PCA completed: PC1(9.54%) PC2(7.46%), 7 outlier samples
+    # Warning: Outlier samples detected: TCGA-49-6742, TCGA-55-8513, TCGA-55-8094, TCGA-78-7150, TCGA-78-7220, TCGA-MP-A4TA, TCGA-50-5072
+    # ℹ [2025/10/11 09:17:49] Generating visualization plots...
+    # ✔ [2025/10/11 09:17:49] Plot generation completed
+    # ℹ [2025/10/11 09:17:50] Performing data filtering...
+    # ✔ [2025/10/11 09:17:50] Data filtering completed:
+    # ℹ   Genes: 4071 -> 4071 (removed 0)
+    # ℹ   Samples: 506 -> 506 (removed 0)
+    # ℹ Quality Assessment Summary:
+    # ✔ Data integrity: No missing values
+    # ✔ Sample read depth: All samples pass threshold (>=0)
+    # ✔ Gene detection: All samples pass threshold (>=0)
+    # ✔ Sample correlation: Good (minimum = 0.288)
+    # Warning: Sample outliers: 7 sample(s) detected
+    # ✔ [2025/10/11 09:17:50] BulkPreProcess completed
+
+And we will see a principle component analysis plot.
+
+    knitr::include_graphics("vignettes/example_figures/bulk_preprocess_pca.png")
+
+[<img src="example_figures/bulk_preprocess_pca.png"
+data-fig-align="center" width="400" alt="pca" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/bulk_preprocess_pca.png))
+
 Thus far, we have completed all the data preprocessing. We are now ready
 to formally employ various single-cell phenotypic screening algorithms.
 
 First, we use `scissor` to screen cells associated with survival.
 
-    scissor_result = Screen(
+    scissor_result <- Screen(
         matched_bulk = bulk,
         sc_data = seurat,
         phenotype = pheno,
@@ -1317,7 +1394,7 @@ directory. This is the intermediate data generated by the Scissor
 method, which we can use to save running time. Meanwhile, we set
 `reliability_test=TRUE`, which will run an additional reliability test.
 
-    scissor_result = Screen(
+    scissor_result <- Screen(
         matched_bulk = bulk, # doesn't need to be provided Since the intermediate data is provided
         sc_data = seurat,
         phenotype = pheno_ok, # doesn't need to be provided Since the intermediate data is provided
@@ -1380,7 +1457,7 @@ Next, we use scPAS, scAB and scPP to do the same screening. Generally
 you only need to change the `screen_method`, as long as you have not
 specified any particular parameters.
 
-    scpas_result = Screen(
+    scpas_result <- Screen(
         matched_bulk = bulk,
         sc_data = seurat,
         phenotype = pheno,
@@ -1420,7 +1497,7 @@ make scPAS iterate alpha until the result is significant (or judged as
 having no significant cell subpopulations). See also [3.2 (Option B)
 scPAS Screening](#32-option-b-scpas-screening)
 
-    scpas_result = Screen(
+    scpas_result <- Screen(
         matched_bulk = bulk,
         sc_data = seurat,
         phenotype = pheno,
@@ -1514,7 +1591,7 @@ Now there may be some significant cells appearing.
     # Negative  Neutral Positive 
     #        2     1086        5 
 
-Now we use scAB and scPP to screen cells.
+Now we use scAB, scPP and DEGAS to screen cells.
 
     scab_result = Screen(
         matched_bulk = bulk,
@@ -1558,6 +1635,34 @@ Now we use scAB and scPP to screen cells.
     # Negative  Neutral Positive 
     #       52      993       48 
 
+    # I recommend running this code in the background.
+    degas_result = Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "This_is_a_DEGAS_test",
+        phenotype_class = "survival",
+        screen_method = "DEGAS"
+    )
+    # ℹ [2025/10/09 18:41:00] Starting DEGAS Screen
+    # ℹ [2025/10/09 18:41:01] Setting up Environment...
+    # ℹ [2025/10/09 18:41:08] Training DEGAS model...
+    # ℹ [2025/10/09 18:41:08] 3-layer DenseNet BlankCox DEGAS model
+    # ℹ [2025/10/09 18:41:10] Python check passed, using Python 3.9.15
+    # ℹ [2025/10/09 18:41:10] Training...
+    ######################
+    # Many python output #
+    ######################
+    # ℹ [2025/10/10 17:35:04] Predicting and Labeling...
+    # ℹ [2025/10/10 17:35:04] Labeling screened cells...
+    # ℹ [2025/10/10 17:35:04] Searching for survival-associated cells...
+    # ℹ Scores over 0.499 are considered `Positive`.
+    # ℹ [2025/10/10 17:35:04] DEGAS Screen done.
+
+    table(degas_result$scRNA_data$DEGAS)
+    #    Other Positive 
+    #     1038       55 
+
 After these algorithms have been run, the four sets of data can be
 merged since screening methods performed on the same data.
 
@@ -1565,9 +1670,10 @@ merged since screening methods performed on the same data.
         scissor_result,
         scpas_result,
         scab_result,
-        scpp_result
+        scpp_result,
+        degas_result
     )
-    # ✔ Successfully merged 4 objects.
+    # ✔ Successfully merged 5 objects.
 
     class(screen_result)
     # [1] "Seurat"
@@ -1575,8 +1681,8 @@ merged since screening methods performed on the same data.
     # [1] "SeuratObject"
 
     colnames(screen_result@meta.data)
-    #  [1] "orig.ident"      "nCount_RNA"      "nFeature_RNA"    "percent.mt"      "RNA_snn_res.0.1" "seurat_clusters" "scissor"         "scPAS_RS"        "scPAS_NRS"       "scPAS_Pvalue"   
-    # [11] "scPAS_FDR"       "scPAS"           "scAB"            "scAB_Subset1"    "Subset1_loading" "scAB_Subset2"    "Subset2_loading" "scAB_Subset3"    "Subset3_loading" "scPP"           
+    #  [1] "orig.ident"      "nCount_RNA"      "nFeature_RNA"    "RNA_snn_res.0.1" "seurat_clusters" "scissor"         "scPAS_RS"        "scPAS_NRS"       "scPAS_Pvalue"    "scPAS_FDR"      
+    # [11] "scPAS"           "scAB"            "scAB_Subset1"    "Subset1_loading" "scAB_Subset2"    "Subset2_loading" "scPP_AUCup"      "scPP_AUCdown"    "scPP"            "DEGAS"            
 
 Finally, we can visualize the screening results. Let’s start with a Venn
 diagram to see the situation.
@@ -1586,83 +1692,104 @@ diagram to see the situation.
 
     # color palette
     set.seed(123)
-    my_colors = randomcoloR::distinctColorPalette(length(unique(screen_result$seurat_clusters)),runTsne = TRUE)
+    my_colors <- randomcoloR::distinctColorPalette(
+      length(unique(screen_result$seurat_clusters)),
+      runTsne = TRUE
+    )
 
-    c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
-        purrr::map(
-            c("scissor", "scAB", "scPAS", "scPP"),
-            ~ colnames(screen_result)[
-                which(screen_result[[.x]] == "Positive")
-            ]
-        )
+    c(scissor_pos, scab_pos, scpas_pos, scpp_pos, degas_pos) %<-%
+      purrr::map(
+        c("scissor", "scAB", "scPAS", "scPP", "DEGAS"),
+        ~ colnames(screen_result)[
+          which(screen_result[[.x]] == "Positive")
+        ]
+      )
 
-    all_cells <- colnames(screen_result) 
+    all_cells <- colnames(screen_result)
 
     # * create a list of cell vectors
     pos_venn = list(
-        scissor = scissor_pos,
-        scpas = scpas_pos,
-        scab = scab_pos,
-        scpp = scpp_pos,
-        all_cells = all_cells
+      scissor = scissor_pos,
+      scpas = scpas_pos,
+      scab = scab_pos,
+      scpp = scpp_pos,
+      degas = degas_pos,
+      all_cells = all_cells
     )
 
     set.seed(123)
 
     venn = ggVennDiagram::ggVennDiagram(
-        x = pos_venn,
-        # * the labels of each group to be shown on the diagram
-        category.names = c(
-            "Scissor",
-            "scPAS",
-            "scAB",
-            "scPP",
-            "All cells"
-        ),
-        # * the colors of each group
-        set_color = c(
-            "#a33333ff",
-            "#37ae00ff", 
-            "#2a2a94ff",
-            "#9c8200ff",
-            "#008383ff"
-        )
+      x = pos_venn,
+      # * the labels of each group to be shown on the diagram
+      category.names = c(
+        "Scissor",
+        "scPAS",
+        "scAB",
+        "scPP",
+        "DEGAS",
+        "All cells"
+      ),
+      # * the colors of each group
+      set_color = c(
+        "#a33333ff",
+        "#37ae00ff",
+        "#0000f5ff",
+        "#d4b100ff",
+        "#e600eeff",
+        "#008383ff"
+      ),
+      label_geom = "text"
     ) +
-        ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
-        ggplot2::ggtitle("Screening Venn Diagram")
+      ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
+      ggplot2::ggtitle("Screening Venn Diagram")
 
     venn
 
-    ggplot2::ggsave("vignettes/example_figures/venn.png",plot=venn, width = 10, height = 10)
+    # ggplot2::ggsave(
+    #   "vignettes/example_figures/venn.png",
+    #   plot = venn,
+    #   width = 10,
+    #   height = 10
+    # )
 
     knitr::include_graphics("vignettes/example_figures/venn.png")
 
-[<img src="example_figures/venn.png" data-fig-align="center" width="400"
+[<img src="example_figures/venn.png" data-fig-align="center" width="600"
 alt="venn" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/venn.png))
 
 When there are too many sets, the visualization effect of the Venn
 diagram is not very good. We can use a set plot instead. Only positive
 cells are shown in the set plot.
 
-    upset <- ScreenUpset(screened_seurat = screen_result,screen_type = c("scissor", "scPAS", "scAB", "scPP"))
+    upset <- ScreenUpset(
+      screened_seurat = screen_result,
+      screen_type = c("scissor", "scPAS", "scAB", "scPP", "DEGAS"),
+      n_intersections = 40
+    )
 
     # * show the cell numbers of each set
     head(upset$stats)
     # # A tibble: 6 × 3
     #   intersection    sets         count
     #   <chr>           <named list> <dbl>
-    # 1 scissor         <chr [1]>      246
-    # 2 scPAS           <chr [1]>        0
-    # 3 scAB            <chr [1]>       87
+    # 1 scissor         <chr [1]>      265
+    # 2 scPAS           <chr [1]>        2
+    # 3 scAB            <chr [1]>       75
     # 4 scPP            <chr [1]>       49
-    # 5 scissor & scPAS <chr [2]>        0
-    # 6 scissor & scAB  <chr [2]>       11
+    # 5 DEGAS           <chr [1]>       55
+    # 6 scissor & scPAS <chr [2]>        1
 
-    ggplot2::ggsave("vignettes/example_figures/upset.png",plot=upset$plot, width = 10, height = 10)
+    # ggplot2::ggsave(
+    #   "vignettes/example_figures/upset.png",
+    #   plot = upset$plot,
+    #   width = 10,
+    #   height = 10
+    # )
 
     knitr::include_graphics("vignettes/example_figures/upset.png")
 
-[<img src="example_figures/upset.png" data-fig-align="center" width="600"
+[<img src="example_figures/upset.png" data-fig-align="center" width="700"
 alt="upset" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/upset.png))
 
 A bar chart showing proportions can also be used to examine the
@@ -1671,21 +1798,32 @@ we have created a fictional `Sample` column.
 
     set.seed(123)
     # *fictional sample column
-    screen_result$Sample <- sample(paste0("Sample", 1:10), ncol(screen_result), replace = TRUE)
+    screen_result$Sample <- sample(
+      paste0("Sample", 1:10),
+      ncol(screen_result),
+      replace = TRUE
+    )
 
     table(screen_result$Sample)
-    #  Sample1 Sample10  Sample2  Sample3  Sample4  Sample5  Sample6  Sample7  Sample8  Sample9 
-    #       98      117       96      119       95      100      101      131      115      121 
+    #  Sample1 Sample10  Sample2  Sample3  Sample4  Sample5  Sample6  Sample7  Sample8  Sample9
+    #       98      117       96      119       95      100      101      131      115      121
 
     fraction_list = ScreenFractionPlot(
-        screened_seurat = screen_result,
-        group_by = "Sample",
-        screen_type = c("scissor", "scPP", "scAB","scPAS"),
-        show_null = FALSE,
-        plot_color = NULL,
-        show_plot = TRUE
+      screened_seurat = screen_result,
+      group_by = "Sample",
+      screen_type = c("scissor", "scPP", "scAB", "scPAS", "DEGAS"),
+      show_null = FALSE,
+      plot_color = NULL,
+      show_plot = TRUE
     )
-    # Creating plots for 3 screen types...
+    # Creating plots for 5 screen types...
+
+    # ggplot2::ggsave(
+    #   "vignettes/example_figures/fraction.png",
+    #   plot = fraction_list$combined_plot,
+    #   width = 10,
+    #   height = 10
+    # )
 
     knitr::include_graphics("vignettes/example_figures/fraction.png")
 
@@ -1699,21 +1837,51 @@ The `fraction_list` contains the statistical data and charts for each
 screening algorithm. The title of each plot will be appended with the
 method name as an identifier.
 
-fraction\_list ├── stats │ ├── scissor │ ├── scAB │ ├── scPAS │ └── scPP
-├── plots │ ├── scissor │ ├── scAB │ ├── scPAS │ └── scPP  
-└── combined\_plot \# show 4 plots in one plot
+fraction\_list
+
+    ├── stats
+
+    │   ├── scissor
+
+    │   ├── scAB
+
+    │   ├── scPAS
+
+    │   ├── scPP   
+
+    │   └── DEGAS
+
+    ├── plots
+
+    │   ├── scissor
+
+    │   ├── scAB
+
+    │   ├── scPAS
+
+    │   ├── scPP
+
+    │   └── DEGAS   
+
+    └── combined_plot # show 5 plots in one plot
 
 UMAP is the most commonly used type of plot in academic literature.
 
     library(patchwork)
     library(zeallot)
 
+    my_palette <- randomcoloR::distinctColorPalette(
+      k = length(unique(screen_result$Sample)),
+      runTsne = TRUE
+    )
+
     sample_umap = Seurat::DimPlot(
       screen_result,
       group.by = "Sample",
-      pt.size = 0.2,
+      pt.size = 1.2,
+      alpha = 0.8,
       reduction = "umap",
-      cols = my_colors
+      cols = my_palette
     ) +
       ggplot2::ggtitle("Sample")
 
@@ -1722,14 +1890,16 @@ UMAP is the most commonly used type of plot in academic literature.
       scissor_umap,
       scab_umap,
       scpas_umap,
-      scpp_umap
+      scpp_umap,
+      degas_umap
     ) %<-%
       purrr::map(
-        c("scissor", "scAB", "scPAS", "scPP"), # make sure these column names exist
+        c("scissor", "scAB", "scPAS", "scPP", "DEGAS"), # make sure these column names exist
         ~ Seurat::DimPlot(
           screen_result,
           group.by = .x,
-          pt.size = 0.2,
+          pt.size = 1.2,
+          alpha = 0.8,
           reduction = "umap",
           cols = c(
             "Neutral" = "#CECECE",
@@ -1747,13 +1917,21 @@ UMAP is the most commonly used type of plot in academic literature.
       scab_umap +
       scpas_umap +
       scpp_umap +
+      degas_umap +
       plot_layout(ncol = 2)
 
     umaps
 
+    # ggsave(
+    #      "vignettes/example_figures/umaps.png",
+    #      plot = umaps,
+    #      width = 10,
+    #      height = 10
+    # )
+
     knitr::include_graphics("vignettes/example_figures/umaps.png")
 
-[<img src="example_figures/umaps.png" data-fig-align="center" width="600"
+[<img src="example_figures/umaps.png" data-fig-align="center" width="400"
 alt="umaps" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps.png))
 
 ### 5.2 Continuous phenotype associated cell screening
@@ -1834,7 +2012,7 @@ convert it to a `named vector`:
 
     pheno = mutate(
         pheno,
-        data = case_when(
+        data = dplyr::case_when(
             data == "Tumor" ~ 1,
             data == "Normal" ~ 0
         )
@@ -1880,7 +2058,7 @@ When loading the example data, the single-cell RNA expression matrix,
 the bulk RNA expression matrix, and the clinical phenotype data are
 loaded all at once. These data are combined into a list and returned.
 
-    mydata = LoadRefData(
+    mydata <- LoadRefData(
         data_type = c("survival"),
         path = tempdir(),
         cache = TRUE,
@@ -1917,7 +2095,7 @@ loaded all at once. These data are combined into a list and returned.
     # TCGA-44-6775 23.16      0
     # TCGA-44-2655 43.50      0
 
-I recommend using the `zeallot` package’s `%<-%` function to assign
+We recommend using the `zeallot` package’s `%<-%` function to assign
 values and rename them simultaneously.
 
     library(zeallot)
@@ -1931,7 +2109,8 @@ values and rename them simultaneously.
 
 ### 6.3 Setting up Python Environment
 
-Some screening methods (e.g. DEGAS) are built using Python and require
+Some screening methods (e.g. [Section 3.5
+DEGAS](#35-option-e-degas-screening)) are built using Python and require
 an execution environment. Here is a function to help you set up a Python
 environment. Both Windows and Unix-like systems are supported.
 
@@ -1939,7 +2118,7 @@ environment. Both Windows and Unix-like systems are supported.
     SetupPyEnv(
         env_type = "conda",
         env_name = "test-condaenv",
-        method = c("reticulate", "system","environment"), # choose one of the two, default is "reticulate"
+        method = c("reticulate", "system","environment"), # choose one of them, default is "reticulate"
         env_file = NULL # path to environment.yml file, used when method = "environment"
         python_version = NULL,
         packages = c(
@@ -1951,16 +2130,20 @@ environment. Both Windows and Unix-like systems are supported.
         verbose = TRUE
     ) 
 
+    reticualte::use_condaenv("test-condaenv")
+
     # * Or use virtualenv via reticulate
     SetupPyEnv(
         env_type = "venv", 
         env_name = "test-venv", 
         python_version = "3.9.15",
-        packages = c("tensorflow" = "2.4.1", "numpy" = "any"),
+        packages = c("tensorflow" = "2.4.1", "protobuf" = "3.20.3"),
         python_path = NULL,
         recreate = FALSE,
         verbose = TRUE
     )
+
+    reticulate::use_virtualenv("test-venv")
 
 You can use `ListPyEnv()` to list all the Python environments you have
 set up. Both conda and virtual environments are supported.
@@ -1988,7 +2171,15 @@ can specify the location of the virtual environment with the
 
 ------------------------------------------------------------------------
 
-## 7. References
+## 7. Troubleshooting
+
+View
+[\[Troubleshooting\](https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html)
+for troubleshooting, especially for the environment setup.
+
+------------------------------------------------------------------------
+
+## 8. References
 
 > 1.  Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et
 >     al. Identifying phenotype-associated subpopulations by integrating

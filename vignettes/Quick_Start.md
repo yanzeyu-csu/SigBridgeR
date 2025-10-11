@@ -220,5 +220,5 @@ width="400" alt="upset_q" />]((https://github.com/WangLabCSU/SigBridgeR/blob/mai
     knitr::include_graphics("vignettes/example_figures/umaps_q.png")
 
 [<img src="example_figures/umaps_q.png" title="umaps_q"
-data-fig-alt="umaps_q" data-fig-align="center" width="400"
+data-fig-alt="umaps_q" data-fig-align="center" width="600"
 alt="umaps_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)
