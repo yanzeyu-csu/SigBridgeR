@@ -12,3 +12,4 @@ inst/doc
 Tmp/*
 docs
 *.qs
+figures/**

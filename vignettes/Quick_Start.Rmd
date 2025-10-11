@@ -245,4 +245,4 @@ umaps
 knitr::include_graphics("vignettes/example_figures/umaps_q.png")
 ```
 
-[![umaps_q](example_figures/umaps_q.png "umaps_q"){fig-alt="umaps_q" fig-align="center" width="400"}](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)
+[![umaps_q](example_figures/umaps_q.png "umaps_q"){fig-alt="umaps_q" fig-align="center" width="600"}](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)

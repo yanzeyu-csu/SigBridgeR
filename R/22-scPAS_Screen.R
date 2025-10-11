@@ -36,6 +36,7 @@
 #' @importFrom Matrix rowSums as.matrix
 #'
 #' @family screen_method
+#' @family scPAS
 #'
 #' @keywords internal
 #'
@@ -290,6 +291,7 @@ DoscPAS = function(
 #' @importFrom methods as
 #'
 #' @keywords internal
+#' @family scPAS
 #'
 scPAS.optimized <- function(
     bulk_dataset,

@@ -271,6 +271,7 @@ DoscPP = function(
 #' @importFrom cli cli_abort
 #'
 #' @keywords internal
+#' @family scPP
 #'
 Check0VarRows <- function(mat, call = rlang::caller_env()) {
     if (inherits(mat, "dgCMatrix")) {

@@ -104,6 +104,7 @@
 #'
 #' @keywords internal
 #' @family screen_method
+#' @family scissor
 #'
 DoScissor = function(
     path2load_scissor_cache = NULL,
@@ -261,9 +262,7 @@ DoScissor = function(
 #' Licensed under the GNU General Public License version 3 (GPL-3.0).
 #' A copy of the license is available at <https://www.gnu.org/licenses/gpl-3.0.en.html>.
 #'
-#'
-#' @family screen_method
-#'
+#' @family scissor
 #' @keywords internal
 #'
 Scissor.v5.optimized <- function(

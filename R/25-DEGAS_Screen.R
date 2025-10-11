@@ -110,6 +110,7 @@
 #' @importFrom stats ks.test qnorm median
 #' @keywords internal
 #' @family screen_method
+#' @family DEGAS
 #'
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
@@ -453,8 +454,10 @@ DoDEGAS <- function(
 #' print(mat2)
 #' }
 #'
-#' @import Matrix
+#' @importFrom Matrix sparseMatrix
+#' @importFrom chk chk_vector chk_character chk_not_any_na
 #' @keywords internal
+#' @family DEGAS
 #'
 Vec2sparse <- function(x, col_prefix = "") {
     chk::chk_vector(x)
@@ -528,7 +531,7 @@ Vec2sparse <- function(x, col_prefix = "") {
 #' [runCCMTLBag.optimized()] for bootstrap aggregated model training,
 #'
 #' @keywords internal
-#' @family DEGAS_in_SigBridgeR
+#' @family DEGAS
 #'
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
@@ -740,7 +743,7 @@ setClass(
 #' [purrr::map()] for the iterative execution pattern.
 #'
 #' @keywords internal
-#' @family DEGAS_in_SigBridgeR
+#' @family DEGAS
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
 runCCMTLBag.optimized <- function(
@@ -855,7 +858,7 @@ runCCMTLBag.optimized <- function(
 #' [purrr::safely()] for the error handling mechanism.
 #'
 #' @keywords internal
-#' @family DEGAS_in_SigBridgeR
+#' @family DEGAS
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
 writeInputFiles.optimized <- function(
@@ -997,7 +1000,7 @@ writeInputFiles.optimized <- function(
 #' }
 #'
 #' @keywords internal
-#' @family DEGAS_in_SigBridgeR
+#' @family DEGAS
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
 readOutputFiles.optimized <- function(tmpDir, model_type, architecture) {
@@ -1112,7 +1115,7 @@ readOutputFiles.optimized <- function(tmpDir, model_type, architecture) {
 #'
 #' @importFrom purrr map
 #' @keywords internal
-#' @family DEGAS_in_SigBridgeR
+#' @family DEGAS
 #' @references Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 #'
 predClassBag.optimized <- function(ccModel, Exp, scORpat) {
@@ -1219,6 +1222,7 @@ predClassBag.optimized <- function(ccModel, Exp, scORpat) {
 #' normality tests used in the classification process.
 #'
 #' @keywords internal
+#' @family DEGAS
 #'
 LabelBinaryCells <- function(
     pred_dt,
@@ -1398,6 +1402,7 @@ LabelBinaryCells <- function(
 #' significance assessment.
 #'
 #' @keywords internal
+#' @family DEGAS
 #'
 LabelContinuousCells <- function(pred_dt) {
     ts_cli$cli_alert_info("Searching for various phenotype-associated cells...")
@@ -1510,6 +1515,7 @@ LabelContinuousCells <- function(pred_dt) {
 #' normality tests used in the classification process.
 #'
 #' @keywords internal
+#' @family DEGAS
 #'
 LabelSurvivalCells <- function(
     pred_dt,

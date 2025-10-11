@@ -10,7 +10,42 @@
 # Determines when the action is triggered                  #
 # ======================================================== #
 
-on: [push, pull_request]
+on:
+    push:
+    pull_request:
+    # 添加手动触发器
+    workflow_dispatch:
+        inputs:
+            os_selection:
+                description: "Operating system to test"
+                required: false
+                type: choice
+                options:
+                    - "all"
+                    - "ubuntu-latest"
+                    - "windows-latest"
+                    - "macOS-latest"
+                default: "all"
+            r_version:
+                description: "R version to test"
+                required: false
+                type: choice
+                options:
+                    - "release"
+                    - "devel"
+                    - "oldrel-1"
+                default: "release"
+            run_examples:
+                description: "Run package examples"
+                required: false
+                type: boolean
+                default: true
+            run_tests:
+                description: "Run package tests"
+                required: false
+                type: boolean
+                default: true
+
 name: R-CMD-check
 
 # ======================================================== #
@@ -18,36 +53,66 @@ name: R-CMD-check
 # ======================================================== #
 
 jobs:
+    # 动态配置矩阵
+    setup-matrix:
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            - name: Set up test matrix
+              id: set-matrix
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    OS="${{ inputs.os_selection }}"
+                    R_VERSION="${{ inputs.r_version }}"
+                    
+                    if [ "$OS" = "all" ]; then
+                      echo 'matrix={"os":["ubuntu-latest","windows-latest","macOS-latest"],"r":["'"$R_VERSION"'"]}' >> $GITHUB_OUTPUT
+                    else
+                      echo 'matrix={"os":["'"$OS"'"],"r":["'"$R_VERSION"'"]}' >> $GITHUB_OUTPUT
+                    fi
+                  else
+                    # 默认配置（push/PR 触发）
+                    echo 'matrix={"os":["ubuntu-latest","windows-latest","macOS-latest"],"r":["release"]}' >> $GITHUB_OUTPUT
+                  fi
+
     R-CMD-check:
-        runs-on: ${{ matrix.config.os }}
-        name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+        needs: setup-matrix
+        runs-on: ${{ matrix.os }}
+        name: ${{ matrix.os }} (R ${{ matrix.r }})
         strategy:
             fail-fast: false
-            matrix:
-                config:
-                    - { os: windows-latest, r: "release" }
-                    - { os: macOS-latest, r: "release" }
-                    - { os: ubuntu-latest, r: "release" }
+            matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
         env:
             GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
             R_KEEP_PKG_SOURCE: yes
         steps:
+            - name: Display trigger information
+              run: |
+                  echo "Triggered by: ${{ github.event_name }}"
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "OS selection: ${{ inputs.os_selection }}"
+                    echo "R version: ${{ inputs.r_version }}"
+                    echo "Run examples: ${{ inputs.run_examples }}"
+                    echo "Run tests: ${{ inputs.run_tests }}"
+                  fi
+
             - name: Checking out the repository
               uses: actions/checkout@v4
 
             - name: Setting up pandoc
               uses: r-lib/actions/setup-pandoc@v2
 
-            - name: Setting up R ${{ matrix.config.r }} on ${{ matrix.config.os }}
+            - name: Setting up R ${{ matrix.r }} on ${{ matrix.os }}
               uses: r-lib/actions/setup-r@v2
               with:
-                  r-version: ${{ matrix.config.r }}
+                  r-version: ${{ matrix.r }}
                   http-user-agent: ${{ matrix.config.http-user-agent }}
                   use-public-rspm: true
 
             # 对于 macOS，使用替代方法安装依赖
             - name: Install dependencies (macOS - alternative method)
-              if: matrix.config.os == 'macOS-latest'
+              if: runner.os == 'macOS'
               run: |
                   # 安装 remotes 包
                   Rscript -e 'install.packages("remotes")'
@@ -59,7 +124,7 @@ jobs:
                   '
 
                   Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
-                  
+
                   Rscript -e 'BiocManager::install(c("AUCell", "edgeR"))'
 
                   Rscript -e 'remotes::install_github("WangX-Lab/ScPP")'  
@@ -68,7 +133,7 @@ jobs:
 
             # 对于非 macOS 系统，继续使用标准方法
             - name: Querying dependencies (non-macOS)
-              if: matrix.config.os != 'macOS-latest'
+              if: runner.os != 'macOS'
               uses: r-lib/actions/setup-r-dependencies@v2
               with:
                   extra-packages: any::rcmdcheck
@@ -78,3 +143,4 @@ jobs:
               uses: r-lib/actions/check-r-package@v2
               with:
                   upload-snapshots: true
+                  args: 'c("--no-manual", "--as-cran"${{ github.event_name == ''workflow_dispatch'' && inputs.run_examples == false && '', "--no-examples"'' || '''' }}${{ github.event_name == ''workflow_dispatch'' && inputs.run_tests == false && '', "--no-tests"'' || '''' }})'

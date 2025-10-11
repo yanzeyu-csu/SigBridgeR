@@ -23,6 +23,7 @@ This vignette provides solutions to common problems you might encounter when usi
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
 
 ```{shell,eval=FALSE}
+# ! shell
 git clone https://github.com/bmbolstad/preprocessCore.git
 cd preprocessCore
 R CMD INSTALL --configure-args="--disable-threading"  .
@@ -197,6 +198,8 @@ reticulate::use_condaenv(py_path)
 This is due to the issue with the tensorflow package. Use the following method to check if the tensorflow package can be imported.
 
 ```{python,check_tensorflow,eval=FALSE}
+# ! python 
+
 # make sure you are using the correct python, i.e. r-reticulate-degas
 import sys
 
@@ -208,6 +211,8 @@ tf.__version__
 ```
 
 ```{shell,check_tensorflow_shell,eval=FALSE}
+# ! shell
+
 # make sure you've entered the Conda environment you want to check, i.e. r-reticulate-degas
 conda list tensorflow
 

@@ -5,6 +5,23 @@ on:
         branches: [main]
         paths: ["vignettes/**.Rmd"]
 
+    # 添加手动触发器
+    workflow_dispatch:
+        inputs:
+            target_directory:
+                description: "Target directory to render (leave empty for all)"
+                required: false
+                type: choice
+                options:
+                    - "all"
+                    - "vignettes"
+                default: "all"
+            force_render:
+                description: "Force re-render all files (ignore cache)"
+                required: false
+                type: boolean
+                default: false
+
 permissions:
     contents: write
 
@@ -45,20 +62,42 @@ jobs:
                     Rscript -e 'install.packages(c("rmarkdown", "knitr", "reticulate"))'
                   fi
 
+            - name: Display trigger info
+              run: |
+                  echo "Triggered by: ${{ github.event_name }}"
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "Target directory: ${{ inputs.target_directory }}"
+                    echo "Force render: ${{ inputs.force_render }}"
+                  fi
+
             - name: Render Rmd files
               run: |
-                  # 1. 处理 vignettes 目录
-                  if [ -d "vignettes" ]; then
-                    echo "Processing vignettes directory..."
-                    find vignettes -type f \( -iname "*.rmd" \) | while read -r file; do
-                      output_file="$(basename "${file%.*}.md")"
-                      echo "Rendering $file -> $output_file"
-                      Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')" || {
-                        echo "Failed to render $file"; exit 1
-                      }
-                    done
-                  else
-                    echo "vignettes/ 不存在，跳过渲染 vignettes。"
+                  TARGET_DIR="${{ inputs.target_directory }}"
+
+                  # 如果是 push 触发，默认渲染 vignettes
+                  if [ "${{ github.event_name }}" = "push" ]; then
+                    TARGET_DIR="vignettes"
+                  fi
+
+                  # 如果是手动触发且选择 all，或者未指定，渲染 vignettes
+                  if [ -z "$TARGET_DIR" ] || [ "$TARGET_DIR" = "all" ]; then
+                    TARGET_DIR="vignettes"
+                  fi
+
+                  # 处理 vignettes 目录
+                  if [ "$TARGET_DIR" = "vignettes" ] || [ "$TARGET_DIR" = "all" ]; then
+                    if [ -d "vignettes" ]; then
+                      echo "Processing vignettes directory..."
+                      find vignettes -type f \( -iname "*.rmd" \) | while read -r file; do
+                        output_file="$(basename "${file%.*}.md")"
+                        echo "Rendering $file -> $output_file"
+                        Rscript -e "library(knitr); opts_chunk\$set(eval = FALSE); rmarkdown::render('$file', output_format = 'md_document', output_file = '$output_file')" || {
+                          echo "Failed to render $file"; exit 1
+                        }
+                      done
+                    else
+                      echo "vignettes/ 不存在，跳过渲染 vignettes。"
+                    fi
                   fi
 
             - name: Configure Git
@@ -83,7 +122,11 @@ jobs:
                   if git diff --staged --quiet; then
                     echo "No changes to commit."
                   else
-                    git commit -m "Re-build vignettes and README from Rmd to Md"
+                    COMMIT_MSG="Re-build vignettes and README from Rmd to Md"
+                    if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                      COMMIT_MSG="$COMMIT_MSG [manual trigger]"
+                    fi
+                    git commit -m "$COMMIT_MSG"
                     git push origin main
                     echo "Changes pushed to repository."
                   fi

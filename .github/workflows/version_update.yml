@@ -6,6 +6,23 @@ on:
     pull_request:
         branches: [main]
 
+    # 添加手动触发器
+    workflow_dispatch:
+        inputs:
+            version_type:
+                description: "Version bump type"
+                required: false
+                default: "patch"
+                type: choice
+                options:
+                    - major
+                    - minor
+                    - patch
+            custom_version:
+                description: "Custom version (optional, overrides version_type)"
+                required: false
+                type: string
+
 jobs:
     update-version:
         runs-on: ubuntu-latest
