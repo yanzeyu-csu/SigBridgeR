@@ -77,8 +77,11 @@ Other screen_method:
 \code{\link{DoDEGAS}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
-\code{\link{DoscPP}()},
-\code{\link{Scissor.v5.optimized}()}
+\code{\link{DoscPP}()}
+
+Other scPAS: 
+\code{\link{scPAS.optimized}()}
 }
+\concept{scPAS}
 \concept{screen_method}
 \keyword{internal}

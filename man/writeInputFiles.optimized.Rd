@@ -71,12 +71,16 @@ Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAu
 \code{\link[data.table:fwrite]{data.table::fwrite()}} for the underlying fast writing implementation,
 \code{\link[purrr:safely]{purrr::safely()}} for the error handling mechanism.
 
-Other DEGAS_in_SigBridgeR: 
-\code{\link{ccModel-class}},
+Other DEGAS: 
+\code{\link{DoDEGAS}()},
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelContinuousCells}()},
+\code{\link{LabelSurvivalCells}()},
+\code{\link{Vec2sparse}()},
 \code{\link{predClassBag.optimized}()},
 \code{\link{readOutputFiles.optimized}()},
 \code{\link{runCCMTL.optimized}()},
 \code{\link{runCCMTLBag.optimized}()}
 }
-\concept{DEGAS_in_SigBridgeR}
+\concept{DEGAS}
 \keyword{internal}

@@ -38,13 +38,5 @@ model <- new("ccModel",
 \references{
 Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 }
-\seealso{
-Other DEGAS_in_SigBridgeR: 
-\code{\link{predClassBag.optimized}()},
-\code{\link{readOutputFiles.optimized}()},
-\code{\link{runCCMTL.optimized}()},
-\code{\link{runCCMTLBag.optimized}()},
-\code{\link{writeInputFiles.optimized}()}
-}
 \concept{DEGAS_in_SigBridgeR}
 \keyword{internal}

@@ -85,8 +85,7 @@ Other screen_method:
 \code{\link{DoDEGAS}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscPAS}()},
-\code{\link{DoscPP}()},
-\code{\link{Scissor.v5.optimized}()}
+\code{\link{DoscPP}()}
 
 Other scAB: 
 \code{\link{create_scAB.v5}()}

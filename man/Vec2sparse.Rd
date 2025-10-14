@@ -36,4 +36,17 @@ print(mat2)
 }
 
 }
+\seealso{
+Other DEGAS: 
+\code{\link{DoDEGAS}()},
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelContinuousCells}()},
+\code{\link{LabelSurvivalCells}()},
+\code{\link{predClassBag.optimized}()},
+\code{\link{readOutputFiles.optimized}()},
+\code{\link{runCCMTL.optimized}()},
+\code{\link{runCCMTLBag.optimized}()},
+\code{\link{writeInputFiles.optimized}()}
+}
+\concept{DEGAS}
 \keyword{internal}

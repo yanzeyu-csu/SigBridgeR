@@ -63,8 +63,7 @@ DoscPAS = function(
     chk::chk_character(label_type)
     chk::chk_flag(imputation)
     if (imputation) {
-        chk::chk_length(imputation_method, 1)
-        chk::chk_subset(imputation_method, c("KNN", "ALRA"))
+        imputation_method <- match.arg()
     }
     if (!is.null(alpha)) {
         chk::chk_range(alpha)

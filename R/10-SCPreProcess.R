@@ -13,9 +13,9 @@
 #' SCPreProcess(sc, ...)
 #'
 #' @param sc Input data, one of:
-#'        - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
-#'        - `AnnDataR6`: Python AnnData object via reticulate
-#'        - `Seurat`: Preprocessed Seurat object
+#'    - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
+#'    - `AnnDataR6`: Python AnnData object via reticulate
+#'    - `Seurat`: Preprocessed Seurat object
 #' @param ... Method-specific arguments (see below)
 #'
 #' @return A Seurat object containing:

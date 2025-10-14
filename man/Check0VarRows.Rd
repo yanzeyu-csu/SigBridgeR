@@ -53,4 +53,10 @@ Check0VarRows(mat_sparse)
 }
 
 }
+\seealso{
+Other scPP: 
+\code{\link{DoscPP}()},
+\code{\link{ScPP.optimized}()}
+}
+\concept{scPP}
 \keyword{internal}

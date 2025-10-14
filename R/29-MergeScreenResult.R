@@ -35,7 +35,7 @@
 #' combined <- MergeResult(scissor_output, scAB_output, scPP_output)
 #'
 #' # Merge list-containing objects
-#' merged_list <- MergeResult(list1, list2, seurat_obj)
+#' combined2 <- MergeResult(list1, list2, seurat_obj)
 #' }
 #'
 #' @export

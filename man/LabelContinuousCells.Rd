@@ -51,5 +51,17 @@ prop.table(table(result$label))
 \seealso{
 \code{\link[=mad.test]{mad.test()}} for the underlying statistical test used for phenotype
 significance assessment.
+
+Other DEGAS: 
+\code{\link{DoDEGAS}()},
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelSurvivalCells}()},
+\code{\link{Vec2sparse}()},
+\code{\link{predClassBag.optimized}()},
+\code{\link{readOutputFiles.optimized}()},
+\code{\link{runCCMTL.optimized}()},
+\code{\link{runCCMTLBag.optimized}()},
+\code{\link{writeInputFiles.optimized}()}
 }
+\concept{DEGAS}
 \keyword{internal}

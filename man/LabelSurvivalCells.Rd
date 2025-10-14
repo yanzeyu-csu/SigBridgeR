@@ -86,5 +86,17 @@ summary(result[label == "Positive", Hazard])
 \seealso{
 \code{\link[=jb.test.modified]{jb.test.modified()}}, \code{\link[=dagostino.test]{dagostino.test()}}, \code{\link[=ks.test]{ks.test()}} for the underlying
 normality tests used in the classification process.
+
+Other DEGAS: 
+\code{\link{DoDEGAS}()},
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelContinuousCells}()},
+\code{\link{Vec2sparse}()},
+\code{\link{predClassBag.optimized}()},
+\code{\link{readOutputFiles.optimized}()},
+\code{\link{runCCMTL.optimized}()},
+\code{\link{runCCMTLBag.optimized}()},
+\code{\link{writeInputFiles.optimized}()}
 }
+\concept{DEGAS}
 \keyword{internal}

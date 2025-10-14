@@ -105,6 +105,7 @@ result$Genes_neg
 \code{\link[Seurat:FindMarkers]{Seurat::FindMarkers()}}
 
 Other scPP: 
+\code{\link{Check0VarRows}()},
 \code{\link{DoscPP}()}
 }
 \concept{scPP}

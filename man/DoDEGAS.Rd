@@ -153,8 +153,19 @@ Other screen_method:
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
-\code{\link{DoscPP}()},
-\code{\link{Scissor.v5.optimized}()}
+\code{\link{DoscPP}()}
+
+Other DEGAS: 
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelContinuousCells}()},
+\code{\link{LabelSurvivalCells}()},
+\code{\link{Vec2sparse}()},
+\code{\link{predClassBag.optimized}()},
+\code{\link{readOutputFiles.optimized}()},
+\code{\link{runCCMTL.optimized}()},
+\code{\link{runCCMTLBag.optimized}()},
+\code{\link{writeInputFiles.optimized}()}
 }
+\concept{DEGAS}
 \concept{screen_method}
 \keyword{internal}

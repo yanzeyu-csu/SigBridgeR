@@ -22,9 +22,7 @@ LoadRefData <- function(
     cache = TRUE,
     timeout = 60
 ) {
-    data_type = tolower(data_type)
-    chk::chk_subset(data_type, c("survival", "binary", "continuous"))
-    chk::chk_length(data_type, 1)
+    data_type <- match.arg(data_type)
     chk::chk_dir(path)
     chk::chk_flag(cache)
     chk::chk_whole_number(timeout)

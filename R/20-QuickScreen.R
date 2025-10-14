@@ -127,103 +127,99 @@ Screen <- function(
         ))
         label_type = screen_method
     }
-    if (!screen_method %in% c("scPP", "scPAS", "scAB", "DEGAS", "Scissor")) {
+    if (!screen_method %chin% c("scPP", "scPAS", "scAB", "DEGAS", "Scissor")) {
         cli::cli_abort(c(
             "x" = "{.strong {screen_method}} is not supported.",
             "i" = "Please use one of the following methods: {.val {c('scPP', 'scPAS', 'scAB', 'DEGAS','Scissor')}}"
         ))
     }
-    if (!phenotype_class %in% c("binary", "survival", "continuous")) {
+    if (!phenotype_class %chin% c("binary", "survival", "continuous")) {
         cli::cli_abort(c(
             "x" = "{.strong {phenotype_class}} is not supported.",
             "i" = "Please use one of the following methods: {.val {c('binary', 'survival', 'continuous')}}"
         ))
     }
 
-    screened_result =
-        switch(
-            screen_method,
-            "Scissor" = {
-                family = switch(
-                    phenotype_class,
-                    "binary" = "binomial",
-                    "survival" = "cox",
-                    "continuous" = "gaussian"
-                )
+    switch(
+        screen_method,
+        "Scissor" = {
+            family = switch(
+                phenotype_class,
+                "binary" = "binomial",
+                "survival" = "cox",
+                "continuous" = "gaussian"
+            )
 
-                DoScissor(
-                    sc_data = sc_data,
-                    matched_bulk = matched_bulk,
-                    phenotype = phenotype,
-                    label_type = label_type,
-                    scissor_family = family, # "gaussian", "binomial", "cox"
-                    ...
-                )
-            },
-            "scPAS" = {
-                family = switch(
-                    phenotype_class,
-                    "binary" = "binomial",
-                    "survival" = "cox",
-                    "continuous" = "gaussian",
-                )
+            DoScissor(
+                sc_data = sc_data,
+                matched_bulk = matched_bulk,
+                phenotype = phenotype,
+                label_type = label_type,
+                scissor_family = family, # "gaussian", "binomial", "cox"
+                ...
+            )
+        },
+        "scPAS" = {
+            family = switch(
+                phenotype_class,
+                "binary" = "binomial",
+                "survival" = "cox",
+                "continuous" = "gaussian",
+            )
 
-                DoscPAS(
-                    sc_data = sc_data,
-                    matched_bulk = matched_bulk,
-                    phenotype = phenotype,
-                    label_type = label_type,
-                    scPAS_family = family, # "gaussian", "binomial", "cox"
-                    ...
-                )
-            },
-            "scPP" = {
-                phenotype_class = glue::glue(
-                    toupper(substr(phenotype_class, 1, 1)),
-                    tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
-                )
+            DoscPAS(
+                sc_data = sc_data,
+                matched_bulk = matched_bulk,
+                phenotype = phenotype,
+                label_type = label_type,
+                scPAS_family = family, # "gaussian", "binomial", "cox"
+                ...
+            )
+        },
+        "scPP" = {
+            phenotype_class = glue::glue(
+                toupper(substr(phenotype_class, 1, 1)),
+                tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
+            )
 
-                DoscPP(
-                    sc_data = sc_data,
-                    matched_bulk = matched_bulk,
-                    phenotype = phenotype,
-                    label_type = label_type,
-                    phenotype_class = phenotype_class, # "Binary", "Continuous", "Survival"
-                    ...
-                )
-            },
-            "scAB" = {
-                if (phenotype_class == "continuous") {
-                    cli::cli_abort(c(
-                        "x" = "{.strong scAB} does not support continuous phenotype."
-                    ))
-                }
+            DoscPP(
+                sc_data = sc_data,
+                matched_bulk = matched_bulk,
+                phenotype = phenotype,
+                label_type = label_type,
+                phenotype_class = phenotype_class, # "Binary", "Continuous", "Survival"
+                ...
+            )
+        },
+        "scAB" = {
+            if (phenotype_class == "continuous") {
+                cli::cli_abort(c(
+                    "x" = "{.strong scAB} does not support continuous phenotype."
+                ))
+            }
 
-                DoscAB(
-                    sc_data = sc_data,
-                    matched_bulk = matched_bulk,
-                    phenotype = phenotype,
-                    label_type = label_type,
-                    phenotype_class = phenotype_class, # "Binary", "Survival"
-                    ...
-                )
-            },
-            "DEGAS" = {
-                DoDEGAS(
-                    sc_data = sc_data,
-                    matched_bulk = matched_bulk,
-                    phenotype = phenotype,
-                    label_type = label_type,
-                    phenotype_class = phenotype_class, # "Binary", "Survival", "Continuous"
-                    ...
-                )
-            },
-
-            cli::cli_abort(c(
-                "x" = "Screen method not found.",
-                "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
-            ))
-        )
-
-    return(screened_result)
+            DoscAB(
+                sc_data = sc_data,
+                matched_bulk = matched_bulk,
+                phenotype = phenotype,
+                label_type = label_type,
+                phenotype_class = phenotype_class, # "Binary", "Survival"
+                ...
+            )
+        },
+        "DEGAS" = {
+            DoDEGAS(
+                sc_data = sc_data,
+                matched_bulk = matched_bulk,
+                phenotype = phenotype,
+                label_type = label_type,
+                phenotype_class = phenotype_class, # "Binary", "Survival", "Continuous"
+                ...
+            )
+        },
+        cli::cli_abort(c(
+            "x" = "Screen method not found.",
+            "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
+        ))
+    )
 }

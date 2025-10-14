@@ -196,21 +196,21 @@ DoDEGAS <- function(
             "DenseNet", # a dense net network
             "Standard" # a feed forward network
         ),
-        DEGAS.ff_depth = 3,
-        DEGAS.bag_depth = 5,
+        DEGAS.ff_depth = 3L,
+        DEGAS.bag_depth = 5L,
         path.data = '',
         path.result = '',
         DEGAS.pyloc = NULL,
-        DEGAS.toolsPath = file.path(.libPaths()[1], "DEGAS/tools/"),
-        DEGAS.train_steps = 2000,
-        DEGAS.scbatch_sz = 200,
-        DEGAS.patbatch_sz = 50,
-        DEGAS.hidden_feats = 50,
+        DEGAS.toolsPath = file.path(.libPaths()[1], "SigBridgeR/DEGAS_tools/"),
+        DEGAS.train_steps = 2000L,
+        DEGAS.scbatch_sz = 200L,
+        DEGAS.patbatch_sz = 50L,
+        DEGAS.hidden_feats = 50L,
         DEGAS.do_prc = 0.5,
         DEGAS.lambda1 = 3.0,
         DEGAS.lambda2 = 3.0,
         DEGAS.lambda3 = 3.0,
-        DEGAS.seed = 2
+        DEGAS.seed = 2L
     )
     env_params <- utils::modifyList(
         default_env_params,
@@ -284,8 +284,8 @@ DoDEGAS <- function(
         sc_data@assays$RNA@data
     }
     cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
-    t_sc_mat <- t(sc_mat[cm_genes, ])
-    t_matched_bulk <- t(matched_bulk[cm_genes, ])
+    t_sc_mat <- Matrix::t(sc_mat[cm_genes, ])
+    t_matched_bulk <- Matrix::t(matched_bulk[cm_genes, ])
 
     ts_cli$cli_alert_info("Setting up Environment...")
 

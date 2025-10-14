@@ -112,12 +112,16 @@ Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAu
 \link{runCCMTL.optimized} for single model training,
 \code{\link[purrr:map]{purrr::map()}} for the iterative execution pattern.
 
-Other DEGAS_in_SigBridgeR: 
-\code{\link{ccModel-class}},
+Other DEGAS: 
+\code{\link{DoDEGAS}()},
+\code{\link{LabelBinaryCells}()},
+\code{\link{LabelContinuousCells}()},
+\code{\link{LabelSurvivalCells}()},
+\code{\link{Vec2sparse}()},
 \code{\link{predClassBag.optimized}()},
 \code{\link{readOutputFiles.optimized}()},
 \code{\link{runCCMTL.optimized}()},
 \code{\link{writeInputFiles.optimized}()}
 }
-\concept{DEGAS_in_SigBridgeR}
+\concept{DEGAS}
 \keyword{internal}

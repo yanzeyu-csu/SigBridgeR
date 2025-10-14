@@ -1,0 +1,84 @@
+"""
+ClassCoxMTL Initialization Script (Part 1) - Source Version
+
+This model is for: Single-cell data with classification labels, patient data for survival analysis
+
+Model Type: ClassCox MTL
+- Class: Single-cell data with classification labels
+- Cox: Patient survival data for Cox proportional hazards survival analysis
+
+This file will be processed by `build_scripts.py`
+Utils functions from `mtl_utils.py` will be automatically inlined
+"""
+
+# INLINE_UTILS_HERE
+
+# ***********************************************************************
+# Set random seed
+# ***********************************************************************
+
+if sys.argv[10] != "NULL":
+    np.random.seed(int(sys.argv[10]))
+    tf.compat.v1.set_random_seed(int(sys.argv[10]))
+
+
+# ***********************************************************************
+# Data loading
+# ***********************************************************************
+
+data_folder = sys.argv[1]
+
+# Load single-cell expression data and labels
+Xsc = np.loadtxt(data_folder + "scExp.csv", delimiter=",", skiprows=1)
+Ysc = np.loadtxt(data_folder + "scLab.csv", delimiter=",", skiprows=1)
+Nsc = Ysc.shape[0]
+Fsc = Xsc.shape[1]
+Lsc = Ysc.shape[1]
+idx_sc = np.arange(Nsc)
+np.random.shuffle(idx_sc)
+
+# Load patient expression data and survival labels
+Xpat = np.loadtxt(data_folder + "patExp.csv", delimiter=",", skiprows=1)
+Ypat = np.loadtxt(data_folder + "patLab.csv", delimiter=",", skiprows=1)
+Npat = Ypat.shape[0]
+Fpat = Xpat.shape[1]
+Lpat = 1  # Lpat is 1 because it is a proportional hazards model
+idx_pat = np.arange(Npat)
+np.random.shuffle(idx_pat)
+
+# Extract survival time and censoring indicator
+survtime = Ypat[:, 0]
+censor = Ypat[:, 1]
+
+
+# ***********************************************************************
+# Hyperparameters
+# ***********************************************************************
+
+train_steps = int(sys.argv[2])
+scbatch_sz = int(sys.argv[3])
+patbatch_sz = int(sys.argv[4])
+hidden_feats = int(sys.argv[5])
+do_prc = float(sys.argv[6])
+lambda1 = float(sys.argv[7])
+lambda2 = float(sys.argv[8])
+lambda3 = float(sys.argv[9])
+
+
+# ***********************************************************************
+# Build network - Define placeholders
+# ***********************************************************************
+
+kprob = tf.placeholder(tf.float32)
+xs = tf.placeholder(tf.float32, [None, Fsc])
+ys_sc = tf.placeholder(tf.float32, [None, Lsc])
+r_pat = tf.placeholder(tf.float32, [None, None])  # Risk set matrix
+c_pat = tf.placeholder(tf.float32, [None])  # Censoring indicator
+es = tf.placeholder(tf.float32, [None, Lsc])  # For autoencoder
+ps = tf.placeholder(tf.float32, [None, Lpat])
+lsc = tf.placeholder(tf.int32, shape=())
+lpat = tf.placeholder(tf.int32, shape=())
+
+# ***********************************************************************
+
+

@@ -32,12 +32,8 @@ A copy of the license is available at \url{https://www.gnu.org/licenses/gpl-3.0.
 Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype-associated subpopulations by integrating bulk and single-cell sequencing data. Nat Biotechnol. 2022 Apr;40(4):527–38.
 }
 \seealso{
-Other screen_method: 
-\code{\link{DoDEGAS}()},
-\code{\link{DoScissor}()},
-\code{\link{DoscAB}()},
-\code{\link{DoscPAS}()},
-\code{\link{DoscPP}()}
+Other scissor: 
+\code{\link{DoScissor}()}
 }
-\concept{screen_method}
+\concept{scissor}
 \keyword{internal}

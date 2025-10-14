@@ -190,4 +190,9 @@ result <- scPAS.optimized(
 \references{
 Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associated subpopulation identifier. Briefings in Bioinformatics. 2024 Nov 22;26(1):bbae655.
 }
+\seealso{
+Other scPAS: 
+\code{\link{DoscPAS}()}
+}
+\concept{scPAS}
 \keyword{internal}

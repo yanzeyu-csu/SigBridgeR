@@ -105,10 +105,10 @@ Other screen_method:
 \code{\link{DoDEGAS}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
-\code{\link{DoscPAS}()},
-\code{\link{Scissor.v5.optimized}()}
+\code{\link{DoscPAS}()}
 
 Other scPP: 
+\code{\link{Check0VarRows}()},
 \code{\link{ScPP.optimized}()}
 }
 \concept{scPP}

@@ -108,9 +108,11 @@ SCPreProcess(sc, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
-- \code{data.frame/matrix/dgCMatrix}: Raw count matrix (features x cells)
-- \code{AnnDataR6}: Python AnnData object via reticulate
-- \code{Seurat}: Preprocessed Seurat object}
+\itemize{
+\item \code{data.frame/matrix/dgCMatrix}: Raw count matrix (features x cells)
+\item \code{AnnDataR6}: Python AnnData object via reticulate
+\item \code{Seurat}: Preprocessed Seurat object
+}}
 
 \item{...}{Method-specific arguments (see below)}
 
