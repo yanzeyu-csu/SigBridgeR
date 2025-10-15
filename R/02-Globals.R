@@ -50,6 +50,7 @@ utils::globalVariables(c(
     "nFeature_RNA",
     "p_value",
     "percent.mt",
+    "PC",
     "PC1",
     "PC2",
     "scAB_select",
@@ -57,5 +58,6 @@ utils::globalVariables(c(
     "suffix",
     "Total",
     "value",
+    "Variance",
     "z_score"
 ))

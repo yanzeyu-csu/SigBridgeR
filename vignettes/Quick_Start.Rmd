@@ -1,7 +1,9 @@
 ---
 title: "Quick Start Guide for SigBridgeR"
 date: '`r Sys.Date()`'
-output: rmarkdown::html_vignette
+output: 
+    html_vignette:
+        theme: united
 knit: knitted
 vignette: >
   %\VignetteIndexEntry{Quick Start Guide for SigBridgeR}

@@ -5,7 +5,7 @@
 #' If not, it downloads the file from the remote repository using multiple sources with fallback.
 #'
 #' @param data_type The type of data to download. Must be one of "survival", "binary", or "continuous".
-#' @param path Optional path to save the downloaded file.
+#' @param path Optional path to save the downloaded file, default: NULL, saving in package.
 #' @param cache Logical. If TRUE (default), saves the data for future sessions.
 #' @param timeout Integer. Connection timeout in seconds (default: 60).
 #' @return The requested datasets, stored in a list.
@@ -18,16 +18,22 @@
 #'
 LoadRefData <- function(
     data_type = c("survival", "binary", "continuous"),
-    path = tempdir(),
+    path = NULL,
     cache = TRUE,
     timeout = 60
 ) {
     data_type <- match.arg(data_type)
-    chk::chk_dir(path)
+    if (!is.null(path)) {
+        chk::chk_dir(path)
+    } else {
+        path <- tools::R_user_dir("SigBridgeR", which = "cache")
+        dir.create(path, recursive = TRUE, showWarnings = FALSE)
+    }
     chk::chk_flag(cache)
     chk::chk_whole_number(timeout)
 
     local_file <- file.path(path, glue::glue("{data_type}_ref_data.rds"))
+    old_timeout <- getOption("timeout")
 
     if (!file.exists(local_file)) {
         cli::cli_alert_info("Downloading reference data...")
@@ -103,6 +109,7 @@ LoadRefData <- function(
 
             if (success) break
         }
+        options(timeout = old_timeout)
     } else {
         cli::cli_alert_info("Found cached data.")
     }
@@ -121,17 +128,8 @@ LoadRefData <- function(
     )
     cli::cli_alert_success(cli::col_green("Data loaded successfully."))
 
-    if (!cache) {
-        on.exit(
-            {
-                options(timeout = old_timeout)
-
-                if (file.exists(local_file)) {
-                    unlink(local_file)
-                }
-            },
-            add = TRUE
-        )
+    if (!cache && file.exists(local_file)) {
+        unlink(local_file)
     }
 
     return(data)
