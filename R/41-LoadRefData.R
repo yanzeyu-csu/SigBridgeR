@@ -26,7 +26,11 @@ LoadRefData <- function(
     if (!is.null(path)) {
         chk::chk_dir(path)
     } else {
-        path <- tools::R_user_dir("SigBridgeR", which = "cache")
+        path <- if (.Platform$OS.type == "windows") {
+            file.path(Sys.getenv("LOCALAPPDATA"), "SigBridgeR", "cache")
+        } else {
+            file.path(Sys.getenv("HOME"), ".cache", "SigBridgeR")
+        }
         dir.create(path, recursive = TRUE, showWarnings = FALSE)
     }
     chk::chk_flag(cache)
