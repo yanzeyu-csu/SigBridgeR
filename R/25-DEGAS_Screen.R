@@ -220,6 +220,10 @@ DoDEGAS <- function(
         default_degas_params,
         degas_params
     )
+    on.exit({
+        # Clean up global variables
+        rm(list = names(degas_params), envir = .GlobalEnv)
+    })
 
     # model.type auto-detection
     model_type.first <- ifelse(
@@ -263,7 +267,7 @@ DoDEGAS <- function(
     }
 
     # Check if single-cell level phenotype is specified
-    meta_data = sc_data@meta.data
+    meta_data <- sc_data[[]]
     sc_pheno <- if (!is.null(sc_data.pheno_colname)) {
         if (any(grepl(sc_data.pheno_colname, colnames(meta_data)))) {
             Vec2sparse(meta_data[[sc_data.pheno_colname]])
@@ -411,11 +415,6 @@ DoDEGAS <- function(
         AddMisc(DEGAS_type = label_type)
 
     ts_cli$cli_alert_info(cli::col_green("DEGAS Screen done."))
-
-    on.exit({
-        # Clean up global variables
-        rm(list = names(degas_params), envir = .GlobalEnv)
-    })
 
     # result
     return(list(

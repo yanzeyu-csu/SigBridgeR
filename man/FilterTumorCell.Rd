@@ -4,14 +4,23 @@
 \alias{FilterTumorCell}
 \title{Filter tumor cells (internal)}
 \usage{
-FilterTumorCell(obj, column2only_tumor = NULL)
+FilterTumorCell(obj, column2only_tumor = NULL, verbose = TRUE)
 }
 \arguments{
 \item{obj}{Seurat object with a column to filter out tumor cells.}
 
 \item{column2only_tumor}{Name of the column to filter out tumor cells.}
+
+\item{verbose}{logical, whether to print progress messages}
 }
 \description{
 Filter tumor cells from Seurat object.
 }
+\seealso{
+Other single_cell_preprocess: 
+\code{\link{ClusterAndReduce}()},
+\code{\link{FindRobustElbow}()},
+\code{\link{ProcessSeuratObject}()}
+}
+\concept{single_cell_preprocess}
 \keyword{internal}

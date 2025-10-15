@@ -21,4 +21,11 @@ Seurat object
 \description{
 FindNeighbors, FindClusters, RunTSNE, RunUMAP
 }
+\seealso{
+Other single_cell_preprocess: 
+\code{\link{FilterTumorCell}()},
+\code{\link{FindRobustElbow}()},
+\code{\link{ProcessSeuratObject}()}
+}
+\concept{single_cell_preprocess}
 \keyword{internal}

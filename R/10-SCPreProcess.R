@@ -85,8 +85,12 @@ SCPreProcess.matrix <- function(
     verbose = TRUE,
     ...
 ) {
-    chk::chk_is(meta_data, c("NULL", "data.frame", "matrix"))
-    chk::chk_is(column2only_tumor, c("NULL", "character"))
+    if (!is.null(meta_data)) {
+        chk::chk_data(meta_data)
+    }
+    if (!is.null(column2only_tumor)) {
+        chk::chk_character(column2only_tumor)
+    }
 
     # sc is a count matrix
     if (verbose) {
@@ -151,7 +155,8 @@ SCPreProcess.matrix <- function(
 
     FilterTumorCell(
         obj = sc_seurat,
-        column2only_tumor = column2only_tumor
+        column2only_tumor = column2only_tumor,
+        verbose = verbose
     )
 }
 
@@ -291,8 +296,12 @@ SCPreProcess.AnnDataR6 <- function(
     verbose = TRUE,
     ...
 ) {
-    chk::chk_is(meta_data, c("NULL", "data.frame", "matrix"))
-    chk::chk_is(column2only_tumor, c("NULL", "character"))
+    if (!is.null(meta_data)) {
+        chk::chk_data(meta_data)
+    }
+    if (!is.null(column2only_tumor)) {
+        chk::chk_character(column2only_tumor)
+    }
 
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
@@ -301,7 +310,7 @@ SCPreProcess.AnnDataR6 <- function(
         ts_cli$cli_alert_info("Start from anndata object")
     }
 
-    sc_matrix <- t(sc$X)
+    sc_matrix <- Matrix::t(sc$X)
 
     sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc_matrix,
@@ -367,7 +376,8 @@ SCPreProcess.AnnDataR6 <- function(
 
     FilterTumorCell(
         obj = sc_seurat,
-        column2only_tumor = column2only_tumor
+        column2only_tumor = column2only_tumor,
+        verbose = verbose
     )
 }
 
@@ -380,10 +390,61 @@ SCPreProcess.Seurat <- function(
     verbose = TRUE,
     ...
 ) {
-    FilterTumorCell(
-        obj = sc,
-        column2only_tumor = column2only_tumor
+    # Validation message can be TRUE or message vector
+    valid_msg <- methods::validObject(object = sc, test = TRUE)
+
+    # * Successful validation
+    if (is.logical(valid_msg)) {
+        return(FilterTumorCell(
+            obj = sc,
+            column2only_tumor = column2only_tumor,
+            verbose = verbose
+        ))
+    }
+
+    # * Failure to validate the Seurat object
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Seurat object validation failed, try repairing it..."
+        )
+        cli::cli_h3(cli::style_bold("Validation message:"))
+        purrr::walk(valid_msg, cli::cli_alert_danger)
+        cli::cli_h3(cli::style_bold(
+            "Try repairing with {.fn UpdateSeuratObject}:"
+        ))
+    }
+
+    # Decorator function to wrap the UpdateSeuratObject function
+    SafelyUpdateSeuratObject <- purrr::safely(
+        SeuratObject::UpdateSeuratObject
     )
+    updated_res <- SafelyUpdateSeuratObject(sc)
+    # Successful repair
+    if (is.null(updated_res$error)) {
+        if (verbose) {
+            ts_cli$cli_alert_success(cli::col_green(
+                "Successfully repaired the Seurat object"
+            ))
+        }
+        return(FilterTumorCell(
+            obj = updated_res$result,
+            column2only_tumor = column2only_tumor,
+            verbose = verbose
+        ))
+    }
+    # Failure to repair
+    if (verbose) {
+        cli::cli_alert_danger(updated_res$error)
+        cli::cli_warn(
+            "Seurat object repair failed. It is recommended to rebuild the Seurat object. Filtering is still being performed but may not be reliable."
+        )
+    }
+
+    return(FilterTumorCell(
+        obj = sc,
+        column2only_tumor = column2only_tumor,
+        verbose = verbose
+    ))
 }
 
 #' @title Process a Seurat object (internal)
@@ -400,6 +461,7 @@ SCPreProcess.Seurat <- function(
 #' @return Seurat object
 #'
 #' @keywords internal
+#' @family single_cell_preprocess
 #'
 ProcessSeuratObject <- function(
     obj,
@@ -409,12 +471,12 @@ ProcessSeuratObject <- function(
     selection_method = "vst",
     verbose = TRUE
 ) {
-    obj %>%
-        Seurat::NormalizeData(
-            normalization.method = normalization_method,
-            scale.factor = scale_factor,
-            verbose = verbose
-        ) %>%
+    Seurat::NormalizeData(
+        object = obj,
+        normalization.method = normalization_method,
+        scale.factor = scale_factor,
+        verbose = verbose
+    ) %>%
         Seurat::FindVariableFeatures(
             selection.method = selection_method,
             verbose = verbose
@@ -426,7 +488,7 @@ ProcessSeuratObject <- function(
         )
 }
 
-#' Cluster and reduce dimensions (internal)
+#' @title Cluster and reduce dimensions (internal)
 #'
 #' @description
 #' FindNeighbors, FindClusters, RunTSNE, RunUMAP
@@ -438,7 +500,7 @@ ProcessSeuratObject <- function(
 #' @return Seurat object
 #'
 #' @keywords internal
-#'
+#' @family single_cell_preprocess
 ClusterAndReduce <- function(
     obj,
     dims = 1:10,
@@ -446,15 +508,17 @@ ClusterAndReduce <- function(
     verbose = TRUE
 ) {
     n_pcs <- ncol(obj@reductions$pca)
-    if (is.null(dims) || max(dims) > n_pcs) {
-        dims <- 1:min(max(dims), n_pcs)
+    if (is.null(dims)) {
+        dims <- seq_len(FindRobustElbow(obj, verbose = verbose, ndims = 50))
+    }
+    if (max(dims) > n_pcs) {
+        dims <- seq_len(min(max(dims), n_pcs))
         cli::cli_warn(
             "The input dimension is greater than the dimension in PCA. It is now set to the maximum dimension in PCA."
         )
     }
 
-    obj %>%
-        Seurat::FindNeighbors(dims = dims, verbose = verbose) %>%
+    Seurat::FindNeighbors(object = obj, dims = dims, verbose = verbose) %>%
         Seurat::FindClusters(
             resolution = resolution,
             verbose = verbose
@@ -463,47 +527,53 @@ ClusterAndReduce <- function(
         Seurat::RunUMAP(dims = dims, verbose = verbose)
 }
 
-#' Filter tumor cells (internal)
+#' @title Filter tumor cells (internal)
 #'
 #' @description
 #' Filter tumor cells from Seurat object.
 #'
 #' @param obj Seurat object with a column to filter out tumor cells.
 #' @param column2only_tumor Name of the column to filter out tumor cells.
+#' @param verbose logical, whether to print progress messages
 #'
 #' @keywords internal
-#'
+#' @family single_cell_preprocess
 #'
 FilterTumorCell <- function(
     obj,
-    column2only_tumor = NULL
+    column2only_tumor = NULL,
+    verbose = TRUE
 ) {
     obj = AddMisc(obj, self_dim = dim(obj), cover = TRUE)
 
-    if (!is.null(column2only_tumor)) {
-        if (!column2only_tumor %chin% colnames(obj@meta.data)) {
-            cli::cli_warn(
-                "Column '{.emph column2only_tumor}' not found, skip tumor cell filtering"
-            )
-            return(obj)
-        } else {
-            labels <- obj[[column2only_tumor]][[1]]
-            tumor_cells <- grepl(
-                "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm",
-                labels
-            )
-
-            tumor_seurat <- obj[, tumor_cells] %>%
-                AddMisc(
-                    raw_dim = dim(obj),
-                    self_dim = dim(.),
-                    column2only_tumor = column2only_tumor,
-                    cover = TRUE
-                )
-
-            return(list(tumor_seurat = tumor_seurat, raw_seurat = obj))
-        }
-    } else {
+    if (is.null(column2only_tumor)) {
         return(obj)
     }
+    if (!column2only_tumor %chin% colnames(obj[[]])) {
+        cli::cli_warn(
+            "Column '{.emph column2only_tumor}' not found, skip tumor cell filtering"
+        )
+        return(obj)
+    }
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Filtering tumor cells from '{.emph column2only_tumor}'..."
+        )
+    }
+
+    labels <- obj[[column2only_tumor]][[1]]
+    tumor_cells <- grepl(
+        "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm",
+        labels
+    )
+
+    tumor_seurat <- obj[, tumor_cells] %>%
+        AddMisc(
+            raw_dim = dim(obj),
+            self_dim = dim(.),
+            column2only_tumor = column2only_tumor,
+            cover = TRUE
+        )
+
+    return(list(tumor_seurat = tumor_seurat, raw_seurat = obj))
 }

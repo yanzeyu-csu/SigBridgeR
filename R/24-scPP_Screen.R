@@ -199,7 +199,7 @@ DoscPP = function(
             cli::cli_abort("scPP screening exits 1.")
         }
     )
-    sc_data@meta.data <- scPP_result$metadata
+    sc_data[[]] <- scPP_result$metadata
     sc_data <- AddMisc(sc_data, scPP_type = label_type, cover = FALSE)
 
     ts_cli$cli_alert_success(cli::col_green("scPP screening done."))
@@ -417,7 +417,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     auc_down <- as.numeric(auc_matrix["gene_neg", ])
 
     metadata_dt <- data.table::as.data.table(
-        sc_dataset@meta.data,
+        sc_dataset[[]],
         keep.rownames = "cell_id"
     )
     metadata_dt[, `:=`(
