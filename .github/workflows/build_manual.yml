@@ -20,8 +20,8 @@ jobs:
 
             - name: Configure Git
               run: |
-                  git config user.name "GitHub Actions"
-                  git config user.email "actions@github.com"
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
 
             - name: Pull latest changes
               run: |
@@ -32,22 +32,33 @@ jobs:
               uses: r-lib/actions/setup-r@v2
               with:
                   r-version: "release"
+                  use-public-rspm: true
 
             - name: Install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+                  sudo apt-get install -y \
+                    texlive-latex-base \
+                    texlive-fonts-recommended \
+                    texlive-fonts-extra \
+                    texlive-latex-extra \
+                    libcurl4-openssl-dev \
+                    libssl-dev \
+                    libxml2-dev
 
-            - name: Install R packages
-              run: |
-                  install.packages(c("devtools", "roxygen2"), repos = "https://cloud.r-project.org")
-              shell: Rscript {0}
+            - name: Setup R dependencies
+              uses: r-lib/actions/setup-r-dependencies@v2
+              with:
+                  extra-packages: |
+                      any::devtools
+                      any::roxygen2
+                  needs: build
 
             - name: Delete old manual PDFs in vignettes
               run: |
                   if [ -d "vignettes" ]; then
                     find vignettes -name "*.pdf" -type f -delete
-                    echo "Deleted old manual PDF files in vignettes/"
+                    echo "Deleted old PDF files in vignettes/"
                   else
                     mkdir -p vignettes
                     echo "Created vignettes directory"
@@ -78,7 +89,7 @@ jobs:
                   if git diff --staged --quiet; then
                     echo "No changes to commit"
                   else
-                    git commit -m "Auto-update package manual [ci skip]"
+                    git commit -m "Auto-update package manual [skip ci]"
                     git push
                   fi
               env:
