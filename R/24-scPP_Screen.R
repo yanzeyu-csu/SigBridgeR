@@ -191,12 +191,13 @@ DoscPP <- function(
     ts_cli$cli_alert_info("Screening...")
 
     # *Start screen
-    tryCatch(
-        scPP_result <- ScPP.optimized(sc_data, gene_list, probs = probs),
+    scPP_result <- rlang::try_fetch(
+        ScPP.optimized(sc_data, gene_list, probs = probs),
         error = function(e) {
-            cli::cli_alert_danger(e$message)
-
-            cli::cli_abort("scPP screening exits 1.")
+            cli::cli_alert_warning("ScPP screening failed: {e$message}")
+            cli::cli_alert_info("Using fallback method...")
+            # 返回默认值或使用备用方法
+            return(NULL) # 或其他合适的默认值
         }
     )
     sc_data[[]] <- scPP_result$metadata

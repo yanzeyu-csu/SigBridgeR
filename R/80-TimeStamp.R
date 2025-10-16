@@ -18,10 +18,13 @@
 #' @family TimeStamp
 #'
 TimeStamp <- function() {
-    time <- tryCatch(
-        Sys.time(),
-        error = function(e) as.POSIXct("1970/01/01 00:00:00", tz = "UTC")
-    )
+    safely_time <- purrr::safely(Sys.time)
+    time_res <- safely_time()
+    time <- if (!is.null(time_res$error)) {
+        as.POSIXct("1970/01/01 00:00:00", tz = "UTC")
+    } else {
+        time_res$result
+    }
     format(time, "%Y/%m/%d %H:%M:%S")
 }
 

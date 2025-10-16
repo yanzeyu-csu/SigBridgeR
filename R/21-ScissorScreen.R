@@ -459,8 +459,10 @@ Scissor.v5.optimized <- function(
     alpha <- alpha %||%
         c(0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 
+    results <- list()
+
     for (i in seq_along(alpha)) {
-        tryCatch(
+        result <- rlang::try_fetch(
             {
                 set.seed(123)
 
@@ -474,6 +476,7 @@ Scissor.v5.optimized <- function(
                     nlambda = 100,
                     nfolds = min(10, nrow(X))
                 )
+
                 fit1 <- Scissor::APML1(
                     X,
                     Y,
@@ -483,33 +486,29 @@ Scissor.v5.optimized <- function(
                     Omega = network,
                     lambda = fit0$lambda.min
                 )
+
                 if (family == "binomial") {
                     Coefs <- as.numeric(fit1$Beta[2:(ncol(X) + 1)])
                 } else {
                     Coefs <- as.numeric(fit1$Beta)
                 }
+
                 pos_mask <- Coefs > 0
                 neg_mask <- Coefs < 0
                 Cell1 <- colnames(X)[pos_mask]
                 Cell2 <- colnames(X)[neg_mask]
                 percentage <- (length(Cell1) + length(Cell2)) / ncol(X)
-                cli::cli_h2("At alpha = {.val {alpha[i]}}")
-                cli::cli_text(sprintf(
-                    "Scissor identified {.val {%d}} Scissor+ cells and {.val {%d}} Scissor- cells.",
-                    length(Cell1),
-                    length(Cell2)
-                ))
-                cli::cli_text(sprintf(
-                    "The percentage of selected cell is: {.val {%s}}%%",
-                    round(percentage * 100, digits = 3)
-                ))
-                if (percentage < cutoff) {
-                    ts_cli$cli_alert_info(
-                        cli::col_green("Scissor Ended.")
-                    )
-                    break
-                }
-                cat("\n")
+
+                list(
+                    alpha = alpha[i],
+                    success = TRUE,
+                    Cell1 = Cell1,
+                    Cell2 = Cell2,
+                    percentage = percentage,
+                    Coefs = Coefs,
+                    fit0 = fit0,
+                    fit1 = fit1
+                )
             },
             error = function(e) {
                 cli::cli_alert_danger(e$message)
@@ -519,16 +518,39 @@ Scissor.v5.optimized <- function(
                 )
             }
         )
+
+        results[[i]] <- result
+
+        if (result$success) {
+            cli::cli_h2("At alpha = {.val {alpha[i]}}")
+            cli::cli_text(sprintf(
+                "Scissor identified {.val {%d}} Scissor+ cells and {.val {%d}} Scissor- cells.",
+                length(result$Cell1),
+                length(result$Cell2)
+            ))
+            cli::cli_text(sprintf(
+                "The percentage of selected cell is: {.val {%s}}%%",
+                round(result$percentage * 100, digits = 3)
+            ))
+
+            if (result$percentage < cutoff) {
+                ts_cli$cli_alert_info(cli::col_green("Scissor Ended."))
+                break
+            }
+            cat("\n")
+        }
     }
+
+    last_success <- results[[length(results)]]
     return(list(
         para = list(
-            alpha = alpha[i],
-            lambda = fit0$lambda.min,
+            alpha = last_success$alpha,
+            lambda = last_success$fit0$lambda.min,
             family = family
         ),
-        Coefs = Coefs,
-        Scissor_pos = Cell1,
-        Scissor_neg = Cell2,
+        Coefs = last_success$Coefs,
+        Scissor_pos = last_success$Cell1,
+        Scissor_neg = last_success$Cell2,
         X = X,
         Y = Y,
         network = network

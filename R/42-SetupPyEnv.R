@@ -201,6 +201,9 @@ SetupPyEnv.conda <- function(
         env_exists <- FALSE
     }
 
+    safely_run <- purrr::safely(processx::run)
+    safely_create <- purrr::safely(reticulate::conda_create)
+
     # Create new conda environment
     if (!env_exists) {
         if (verbose) {
@@ -212,24 +215,22 @@ SetupPyEnv.conda <- function(
         switch(
             method,
             "reticulate" = {
-                tryCatch(
-                    reticulate::conda_create(
-                        envname = env_name,
-                        python_version = python_version,
-                        channels = if (use_conda_forge) {
-                            "conda-forge"
-                        } else {
-                            NULL
-                        },
-                        conda = "auto"
-                    ),
-                    error = function(e) {
-                        cli::cli_abort(c(
-                            "x" = "Environment creation failed via `reticulate`:",
-                            ">" = e$message
-                        ))
-                    }
+                res <- safely_create(
+                    envname = env_name,
+                    python_version = python_version,
+                    channels = if (use_conda_forge) {
+                        "conda-forge"
+                    } else {
+                        NULL
+                    },
+                    conda = "auto"
                 )
+                if (!is.null(res$error)) {
+                    cli::cli_abort(c(
+                        "x" = "Environment creation failed via `reticulate`:",
+                        ">" = res$error
+                    ))
+                }
             },
             "system" = {
                 args <- c(
@@ -242,91 +243,60 @@ SetupPyEnv.conda <- function(
                     if (verbose) "-v"
                 )
 
-                tryCatch(
-                    {
-                        result <- processx::run(
-                            command = "conda",
-                            args = args,
-                            error_on_status = FALSE,
-                            timeout = timeout,
-                            cleanup = TRUE,
-                            windows_verbatim_args = FALSE,
-                            echo = verbose,
-                            echo_cmd = verbose
-                        )
-                        # print message
-                        if (verbose && nzchar(result$stdout)) {
-                            cat(result$stdout, sep = "\n")
-                        }
-
-                        # check status
-                        if (result$status != 0) {
-                            error_msg <- if (nzchar(result$stderr)) {
-                                result$stderr
-                            } else {
-                                result$stdout
-                            }
-
-                            cli::cli_abort(c(
-                                "x" = "Environment creation failed via `system` (status {result$status}):",
-                                ">" = "{error_msg}"
-                            ))
-                        }
-
-                        if (verbose && result$status == 0) {
-                            cli::cli_alert_success(
-                                "Conda environment created successfully"
-                            )
-                        }
-                    },
-                    error = function(e) {
-                        if (grepl("timeout", e$message, ignore.case = TRUE)) {
-                            cli::cli_abort(c(
-                                "x" = "Conda environment creation timed out after {.val {timeout/1000/60}} minutes",
-                                ">" = "Consider increasing the timeout parameter or using a different method"
-                            ))
-                        } else {
-                            cli::cli_abort(c(
-                                "x" = "Environment creation failed via `system`:",
-                                ">" = e$message
-                            ))
-                        }
-                    }
+                create_res <- safely_run(
+                    command = "conda",
+                    args = args,
+                    error_on_status = FALSE,
+                    timeout = timeout,
+                    cleanup = TRUE,
+                    windows_verbatim_args = FALSE,
+                    echo = verbose,
+                    echo_cmd = verbose
                 )
+
+                # check status
+                if (!is.null(create_res$error)) {
+                    error_msg <- if (nzchar(create_res$result$stderr)) {
+                        create_res$result$stderr
+                    } else {
+                        create_res$result$stdout
+                    }
+
+                    if (grepl("timeout", error_msg, ignore.case = TRUE)) {
+                        cli::cli_abort(c(
+                            "x" = "Conda environment creation timed out after {.val {timeout/1000/60}} minutes",
+                            ">" = "Consider increasing the timeout parameter or using a different method"
+                        ))
+                    } else {
+                        cli::cli_abort(c(
+                            "x" = "Environment creation failed via `system` (status {result$status}):",
+                            ">" = error_msg
+                        ))
+                    }
+                }
+                # print message
+                if (verbose && nzchar(create_res$result$stdout)) {
+                    cat(create_res$result$stdout, sep = "\n")
+                }
+                if (verbose) {
+                    cli::cli_alert_success(
+                        "Conda environment created successfully"
+                    )
+                }
             },
             "environment" = {
                 chk::chk_file(env_file)
-                tryCatch(
-                    {
-                        # args <- c(
-                        #     "env",
-                        #     "create",
-                        #     "-f",
-                        #     env_file,
-                        #     "-y",
-                        #     if (verbose) "-v"
-                        # )
-                        # msg <- system2(
-                        #     "conda",
-                        #     args = args,
-                        #     stdout = verbose,
-                        #     stderr = TRUE
-                        # )
-                        # cat(msg, sep = "\n")
 
-                        reticulate::conda_create(
-                            envname = env_name,
-                            environment = env_file
-                        )
-                    },
-                    error = function(e) {
-                        cli::cli_abort(c(
-                            "x" = "Environment creation failed via `environment`:",
-                            ">" = e$message
-                            # ,">" = msg
-                        ))
-                    }
+                create_res <- safely_create(
+                    envname = env_name,
+                    environment = env_file
                 )
+                if (!is.null(create_res$error)) {
+                    cli::cli_abort(c(
+                        "x" = "Environment creation failed via `environment`:",
+                        ">" = create_res$error
+                    ))
+                }
             }
         )
     } else if (verbose) {
@@ -358,21 +328,21 @@ SetupPyEnv.conda <- function(
                 ) %>%
                     unique()
 
-                tryCatch(
-                    reticulate::py_install(
-                        packages = packages_to_install_reticulate,
-                        envname = env_name,
-                        method = "auto",
-                        pip = TRUE,
-                        pip_ignore_installed = TRUE
-                    ),
-                    error = function(e) {
-                        cli::cli_abort(c(
-                            "x" = "Failed to install packages in conda environment {.val {env_name}} via `reticulate`",
-                            ">" = e$message
-                        ))
-                    }
+                safely_py_install <- purrr::safely(reticulate::py_install)
+
+                install_res <- reticulate::py_install(
+                    packages = packages_to_install_reticulate,
+                    envname = env_name,
+                    method = "auto",
+                    pip = TRUE,
+                    pip_ignore_installed = TRUE
                 )
+                if (!is.null(install_res$error)) {
+                    cli::cli_abort(c(
+                        "x" = "Failed to install packages in conda environment {.val {env_name}} via `reticulate`",
+                        ">" = install_res$error
+                    ))
+                }
             },
             "system" = {
                 packages_to_install_conda <- purrr::imap_chr(
@@ -390,58 +360,47 @@ SetupPyEnv.conda <- function(
                     if (verbose) "-v"
                 )
 
-                tryCatch(
-                    {
-                        result <- processx::run(
-                            command = "conda",
-                            args = args,
-                            error_on_status = FALSE,
-                            timeout = timeout,
-                            cleanup = TRUE,
-                            windows_verbatim_args = FALSE,
-                            echo = verbose,
-                            echo_cmd = verbose
-                        )
-
-                        # print message
-                        if (verbose && nzchar(result$stdout)) {
-                            cat(result$stdout, sep = "\n")
-                        }
-
-                        # check status
-                        if (result$status != 0) {
-                            error_msg <- if (nzchar(result$stderr)) {
-                                result$stderr
-                            } else {
-                                result$stdout
-                            }
-
-                            cli::cli_abort(c(
-                                "x" = "Package installation failed via `system` (status {result$status}):",
-                                ">" = "{error_msg}"
-                            ))
-                        }
-
-                        if (verbose && result$status == 0) {
-                            cli::cli_alert_success(
-                                "Packages installed successfully"
-                            )
-                        }
-                    },
-                    error = function(e) {
-                        if (grepl("timeout", e$message, ignore.case = TRUE)) {
-                            cli::cli_abort(c(
-                                "x" = "Package installation timed out after {.val {timeout/1000/60}} minutes",
-                                ">" = "Consider increasing the timeout parameter or installing packages separately"
-                            ))
-                        } else {
-                            cli::cli_abort(c(
-                                "x" = "Package installation failed via `system`:",
-                                ">" = e$message
-                            ))
-                        }
-                    }
+                install_res <- safely_run(
+                    command = "conda",
+                    args = args,
+                    error_on_status = FALSE,
+                    timeout = timeout,
+                    cleanup = TRUE,
+                    windows_verbatim_args = FALSE,
+                    echo = verbose,
+                    echo_cmd = verbose
                 )
+
+                # check status
+                if (!is.null(install_res$error)) {
+                    error_msg <- if (nzchar(install_res$error$stderr)) {
+                        install_res$error$stderr
+                    } else {
+                        install_res$error$stdout
+                    }
+
+                    if (grepl("timeout", error_msg, ignore.case = TRUE)) {
+                        cli::cli_abort(c(
+                            "x" = "Package installation timed out after {.val {timeout/1000/60}} minutes",
+                            ">" = "Consider increasing the timeout parameter or installing packages separately"
+                        ))
+                    } else {
+                        cli::cli_abort(c(
+                            "x" = "Package installation failed via `system`:",
+                            ">" = error_msg
+                        ))
+                    }
+                }
+                # print message
+                if (verbose && nzchar(install_res$error$stdout)) {
+                    cat(install_res$error$stdout, sep = "\n")
+                }
+
+                if (verbose) {
+                    cli::cli_alert_success(
+                        "Packages installed successfully"
+                    )
+                }
             }
         )
     }
@@ -451,7 +410,7 @@ SetupPyEnv.conda <- function(
     }
 
     # Use reticulate to verify the environment
-    verification_result <- tryCatch(
+    verification_result <- rlang::try_fetch(
         {
             # Test Python availability
             py_available <- reticulate::py_available(initialize = TRUE)

@@ -175,9 +175,9 @@ BulkPreProcess <- function(
             "Expression matrix must be numeric, converted to numeric now."
         )
         # Attempt to convert to numeric
-        tryCatch(
+        counts_matrix <- rlang::try_fetch(
             {
-                counts_matrix <- apply(counts_matrix, 2, as.numeric)
+                apply(counts_matrix, 2, as.numeric)
             },
             error = function(e) {
                 cli::cli_abort(c(
@@ -364,7 +364,7 @@ BulkPreProcess <- function(
                     if (all(is.na(gene_expression))) {
                         return(1)
                     }
-                    tryCatch(
+                    rlang::try_fetch(
                         {
                             aov_result <- stats::aov(
                                 gene_expression ~ batch_info

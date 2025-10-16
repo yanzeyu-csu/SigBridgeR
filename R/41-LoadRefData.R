@@ -71,7 +71,7 @@ LoadRefData <- function(
 
             cli::cli_alert_info(glue::glue("Trying {source_name}..."))
 
-            tryCatch(
+            success <- rlang::try_fetch(
                 {
                     # Set timeout for the download
                     old_timeout <- getOption("timeout")
@@ -87,8 +87,7 @@ LoadRefData <- function(
                     cli::cli_alert_success(glue::glue(
                         "Successfully downloaded from {source_name}"
                     ))
-                    success <- TRUE
-                    break # Exit loop on success
+                    TRUE
                 },
                 error = function(e) {
                     if (file.exists(local_file)) {
@@ -108,6 +107,7 @@ LoadRefData <- function(
                             "i" = "Error from last attempt: {e$message}"
                         ))
                     }
+                    FALSE
                 }
             )
 
@@ -118,7 +118,7 @@ LoadRefData <- function(
         cli::cli_alert_info("Found cached data.")
     }
 
-    data <- tryCatch(
+    data <- rlang::try_fetch(
         readRDS(local_file),
         error = function(e) {
             if (file.exists(local_file)) {
