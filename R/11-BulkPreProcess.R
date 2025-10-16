@@ -9,8 +9,8 @@
 #'
 #' @export
 #'
-SymbolConvert = function(data) {
-    row_names = gsub("\\..*$", "", rownames(data))
+SymbolConvert <- function(data) {
+    row_names <- gsub("\\..*$", "", rownames(data))
     if (is.null(row_names)) {
         cli::cli_abort(c("x" = "Row names are missing in the data"))
     }
@@ -568,7 +568,7 @@ BulkPreProcess <- function(
 
     if (gene_symbol_conversion) {
         ts_cli$cli_alert_info("Start Gene symbol conversion")
-        filtered_counts = SymbolConvert(filtered_counts)
+        filtered_counts %<>% SymbolConvert()
         ts_cli$cli_alert_success("Gene symbol conversion done")
     }
 

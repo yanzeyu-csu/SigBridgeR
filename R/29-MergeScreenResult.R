@@ -44,7 +44,7 @@
 #' @importFrom data.table merge.data.table
 #' @importFrom purrr map
 #'
-MergeResult = function(...) {
+MergeResult <- function(...) {
     args <- list(...)
 
     if (length(args) == 0) {
@@ -112,7 +112,7 @@ MergeResult = function(...) {
             }
         })
 
-        values <- values[!sapply(values, is.null)]
+        values <- values[!vapply(values, is.null, FUN.VALUE = logical(1))]
 
         misc_list[[key]] <- if (length(values) == 1) values[[1]] else values
     }

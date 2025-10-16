@@ -175,7 +175,7 @@ SetupPyEnv.conda <- function(
         chk::chk_named(packages)
     }
     #   Default method is `reticulate`
-    method = tolower(method)
+    method <- tolower(method)
     if (length(method) > 1) {
         method <- "reticulate"
     }
@@ -881,7 +881,7 @@ ListPyEnv.conda <- function(
                 }
                 return(NA_character_)
             }
-            python_paths <- sapply(env_paths, GetPythonPath)
+            python_paths <- vapply(env_paths, GetPythonPath, character(1))
 
             conda_result <- data.frame(
                 name = env_names,

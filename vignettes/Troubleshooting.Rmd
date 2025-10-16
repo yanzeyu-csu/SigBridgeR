@@ -25,7 +25,7 @@ This vignette provides solutions to common problems you might encounter when usi
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
 
-```{shell,eval=FALSE}
+```shell
 # ! shell
 git clone https://github.com/bmbolstad/preprocessCore.git
 cd preprocessCore

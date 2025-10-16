@@ -4,7 +4,7 @@
 \alias{ClusterAndReduce}
 \title{Cluster and reduce dimensions (internal)}
 \usage{
-ClusterAndReduce(obj, dims = 1:10, resolution = 0.6, verbose = TRUE)
+ClusterAndReduce(obj, dims = seq_len(10), resolution = 0.6, verbose = TRUE)
 }
 \arguments{
 \item{obj}{Seurat object}

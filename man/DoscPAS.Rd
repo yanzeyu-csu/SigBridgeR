@@ -10,7 +10,7 @@ DoscPAS(
   phenotype,
   label_type = "scPAS",
   assay = "RNA",
-  imputation = F,
+  imputation = FALSE,
   imputation_method = c("KNN", "ALRA"),
   nfeature = 3000,
   alpha = c(0.01, NULL),

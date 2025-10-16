@@ -33,7 +33,7 @@ SCPreProcess(sc, ...)
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = 1:10,
+  dims = seq_len(10),
   verbose = TRUE,
   ...
 )
@@ -55,7 +55,7 @@ SCPreProcess(sc, ...)
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = 1:10,
+  dims = seq_len(10),
   verbose = TRUE,
   ...
 )
@@ -77,7 +77,7 @@ SCPreProcess(sc, ...)
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = 1:10,
+  dims = seq_len(10),
   verbose = TRUE,
   ...
 )
@@ -99,7 +99,7 @@ SCPreProcess(sc, ...)
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = 1:10,
+  dims = seq_len(10),
   verbose = TRUE,
   ...
 )

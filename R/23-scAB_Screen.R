@@ -172,7 +172,7 @@ create_scAB.v5 <- function(
     method = c("survival", "binary")
 ) {
     # cell neighbors
-    method = match.arg(method)
+    method <- match.arg(method)
     if ("RNA_snn" %chin% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$RNA_snn)
         cli::cli_alert_info(
@@ -192,7 +192,7 @@ create_scAB.v5 <- function(
     A[which(A != 0)] <- 1
     degrees <- rowSums(A)
     D <- diag(degrees)
-    eps = 2.2204e-256
+    eps <- 2.2204e-256
     D12 <- diag(1 / sqrt(pmax(degrees, eps)))
 
     L <- D12 %*% (D - A) %*% D12 # Normalized Graph Laplacian
@@ -206,10 +206,10 @@ create_scAB.v5 <- function(
     dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after  quantile normalization.
     rownames(dataset1) <- rownames(dataset0)
     colnames(dataset1) <- colnames(dataset0)
-    Expression_bulk <- dataset1[, 1:ncol(bulk_dataset)]
+    Expression_bulk <- dataset1[, seq_len(ncol(bulk_dataset))]
     Expression_cell <- dataset1[, (ncol(bulk_dataset) + 1):ncol(dataset1)]
     X <- stats::cor(Expression_bulk, Expression_cell)
-    X = X / norm(X, "F")
+    X <- X / norm(X, "F")
 
     # phenotype ranking
     if (method == "survival") {

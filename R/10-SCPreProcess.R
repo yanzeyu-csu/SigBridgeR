@@ -81,7 +81,7 @@ SCPreProcess.matrix <- function(
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
-    dims = 1:10,
+    dims = seq_len(10),
     verbose = TRUE,
     ...
 ) {
@@ -130,14 +130,14 @@ SCPreProcess.matrix <- function(
         chk::chk_numeric(data_filter.percent.mt)
         chk::chk_range(data_filter.percent.mt, c(0, 100))
 
-        sc_seurat = subset(
+        sc_seurat <- subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
                 `nFeature_RNA` < data_filter.nFeature_RNA_thresh[2] &
                 `percent.mt` < data_filter.percent.mt
         )
     }
-    sc_seurat = ProcessSeuratObject(
+    sc_seurat <- ProcessSeuratObject(
         obj = sc_seurat,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
@@ -198,7 +198,7 @@ SCPreProcess.data.frame <- function(
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
-    dims = 1:10,
+    dims = seq_len(10),
     verbose = TRUE,
     ...
 ) {
@@ -245,7 +245,7 @@ SCPreProcess.dgCMatrix <- function(
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
-    dims = 1:10,
+    dims = seq_len(10),
     verbose = TRUE,
     ...
 ) {
@@ -292,7 +292,7 @@ SCPreProcess.AnnDataR6 <- function(
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
-    dims = 1:10,
+    dims = seq_len(10),
     verbose = TRUE,
     ...
 ) {
@@ -345,7 +345,7 @@ SCPreProcess.AnnDataR6 <- function(
         chk::chk_numeric(data_filter.percent.mt)
         chk::chk_range(data_filter.percent.mt, c(0, 100))
 
-        sc_seurat = subset(
+        sc_seurat <- subset(
             x = sc_seurat,
             subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
                 `nFeature_RNA` < data_filter.nFeature_RNA_thresh[2] &
@@ -353,7 +353,7 @@ SCPreProcess.AnnDataR6 <- function(
         )
     }
 
-    sc_seurat = ProcessSeuratObject(
+    sc_seurat <- ProcessSeuratObject(
         obj = sc_seurat,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
@@ -503,7 +503,7 @@ ProcessSeuratObject <- function(
 #' @family single_cell_preprocess
 ClusterAndReduce <- function(
     obj,
-    dims = 1:10,
+    dims = seq_len(10),
     resolution = 0.6,
     verbose = TRUE
 ) {
@@ -544,7 +544,7 @@ FilterTumorCell <- function(
     column2only_tumor = NULL,
     verbose = TRUE
 ) {
-    obj = AddMisc(obj, self_dim = dim(obj), cover = TRUE)
+    obj %<>% AddMisc(self_dim = dim(obj), cover = TRUE)
 
     if (is.null(column2only_tumor)) {
         return(obj)

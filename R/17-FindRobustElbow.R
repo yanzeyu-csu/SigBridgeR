@@ -89,22 +89,26 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
         line_start <- c(1, variance[1])
         line_end <- c(ndims, variance[ndims])
 
-        distances <- sapply(seq_len(ndims), function(i) {
-            point <- c(i, variance[i])
-            # Calculate perpendicular distance from point to line
-            numerator <- abs(
-                (line_end[2] - line_start[2]) *
-                    point[1] -
-                    (line_end[1] - line_start[1]) * point[2] +
-                    line_end[1] * line_start[2] -
-                    line_end[2] * line_start[1]
-            )
-            denominator <- sqrt(
-                (line_end[2] - line_start[2])^2 +
-                    (line_end[1] - line_start[1])^2
-            )
-            numerator / denominator
-        })
+        distances <- vapply(
+            seq_len(ndims),
+            function(i) {
+                point <- c(i, variance[i])
+                # Calculate perpendicular distance from point to line
+                numerator <- abs(
+                    (line_end[2] - line_start[2]) *
+                        point[1] -
+                        (line_end[1] - line_start[1]) * point[2] +
+                        line_end[1] * line_start[2] -
+                        line_end[2] * line_start[1]
+                )
+                denominator <- sqrt(
+                    (line_end[2] - line_start[2])^2 +
+                        (line_end[1] - line_start[1])^2
+                )
+                numerator / denominator
+            },
+            FUN.VALUE = numeric(1)
+        )
 
         elbow_point <- which.max(distances)
         return(elbow_point)

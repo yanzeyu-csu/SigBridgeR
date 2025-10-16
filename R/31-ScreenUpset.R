@@ -88,10 +88,10 @@ ScreenUpset <- function(
         ~ chk::chk_character
     )
 
-    meta_data <- screened_seurat@meta.data
-    all_screen_types = colnames(meta_data)
+    meta_data <- screened_seurat[[]]
+    all_screen_types <- colnames(meta_data)
     if (is.null(screen_type)) {
-        screen_type = grep(
+        screen_type <- grep(
             "sc[A-Za-z]+$|DEGAS$",
             all_screen_types,
             value = TRUE
@@ -115,13 +115,17 @@ ScreenUpset <- function(
                 combs <- utils::combn(screen_type, k, simplify = FALSE)
                 stats::setNames(
                     combs,
-                    sapply(combs, function(comb) {
-                        if (length(comb) == 1) {
-                            comb
-                        } else {
-                            paste(comb, collapse = " & ")
-                        }
-                    })
+                    vapply(
+                        combs,
+                        function(comb) {
+                            if (length(comb) == 1) {
+                                comb
+                            } else {
+                                paste(comb, collapse = " & ")
+                            }
+                        },
+                        FUN.VALUE = character(1)
+                    )
                 )
             }
         }),

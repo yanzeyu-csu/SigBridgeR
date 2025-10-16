@@ -106,7 +106,7 @@
 #' @family screen_method
 #' @family scissor
 #'
-DoScissor = function(
+DoScissor <- function(
     path2load_scissor_cache = NULL,
     path2save_scissor_inputs = "Scissor_inputs.RData",
     matched_bulk,
@@ -136,13 +136,13 @@ DoScissor = function(
     chk::chk_flag(cell_evaluation)
 
     if (scissor_family %chin% c("binomial", "cox")) {
-        label_type_scissor = c(
+        label_type_scissor <- c(
             glue::glue("{label_type}_Negative"),
             glue::glue("{label_type}_Positive")
         )
     } else if (scissor_family == "gaussian") {
-        n = length(table(phenotype))
-        label_type_scissor = glue::glue("{label_type}_{seq_len(n)}")
+        n <- length(table(phenotype))
+        label_type_scissor <- glue::glue("{label_type}_{seq_len(n)}")
     } else if (length(scissor_family) != 1) {
         cli::cli_abort(
             c(
@@ -152,7 +152,7 @@ DoScissor = function(
         )
     }
     if (!is.null(path2save_scissor_inputs)) {
-        path = dirname(path2save_scissor_inputs)
+        path <- dirname(path2save_scissor_inputs)
         if (!dir.exists(path)) {
             dir.create(path, recursive = TRUE)
         }
@@ -284,7 +284,7 @@ Scissor.v5.optimized <- function(
 
     if (is.null(Load_file)) {
         ts_cli$cli_alert_info("Start from raw data...")
-        common = intersect(
+        common <- intersect(
             rownames(bulk_dataset),
             rownames(sc_dataset)
         )

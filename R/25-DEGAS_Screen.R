@@ -1129,7 +1129,7 @@ predClassBag.optimized <- function(ccModel, Exp, scORpat) {
             ))
         )
     })
-    out = Reduce("+", out) / length(out)
+    out <- Reduce("+", out) / length(out)
     return(out)
 }
 
@@ -1524,7 +1524,7 @@ LabelSurvivalCells <- function(
 ) {
     ts_cli$cli_alert_info("Searching for survival-associated cells...")
 
-    pred_vec = pred_dt[["Hazard"]]
+    pred_vec <- pred_dt[["Hazard"]]
     normality_test_pval <- switch(
         test_method,
         "jarque-bera" = jb.test.modified(pred_vec)$p.value,

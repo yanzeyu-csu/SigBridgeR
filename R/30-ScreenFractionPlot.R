@@ -102,7 +102,7 @@
 #'
 #' @family visualization_function
 #'
-ScreenFractionPlot = function(
+ScreenFractionPlot <- function(
     screened_seurat,
     group_by = "Source",
     screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
@@ -127,7 +127,7 @@ ScreenFractionPlot = function(
     if (!is.null(plot_color)) {
         chk::chk_vector(plot_color)
     }
-    all_screen_types = colnames(screened_seurat@meta.data)
+    all_screen_types <- colnames(screened_seurat@meta.data)
     if (
         !all(purrr::map_vec(
             screen_type,

@@ -125,7 +125,7 @@ Screen <- function(
         cli::cli_alert_info(c(
             "i" = "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
         ))
-        label_type = screen_method
+        label_type <- screen_method
     }
     if (!screen_method %chin% c("scPP", "scPAS", "scAB", "DEGAS", "Scissor")) {
         cli::cli_abort(c(
@@ -143,7 +143,7 @@ Screen <- function(
     switch(
         screen_method,
         "Scissor" = {
-            family = switch(
+            family <- switch(
                 phenotype_class,
                 "binary" = "binomial",
                 "survival" = "cox",
@@ -160,7 +160,7 @@ Screen <- function(
             )
         },
         "scPAS" = {
-            family = switch(
+            family <- switch(
                 phenotype_class,
                 "binary" = "binomial",
                 "survival" = "cox",
@@ -177,7 +177,7 @@ Screen <- function(
             )
         },
         "scPP" = {
-            phenotype_class = glue::glue(
+            phenotype_class <- glue::glue(
                 toupper(substr(phenotype_class, 1, 1)),
                 tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
             )

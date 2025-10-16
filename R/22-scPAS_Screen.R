@@ -40,13 +40,13 @@
 #'
 #' @keywords internal
 #'
-DoscPAS = function(
+DoscPAS <- function(
     matched_bulk,
     sc_data,
     phenotype,
     label_type = "scPAS",
     assay = 'RNA',
-    imputation = F,
+    imputation = FALSE,
     imputation_method = c("KNN", "ALRA"),
     nfeature = 3000,
     alpha = c(0.01, NULL),
@@ -404,7 +404,12 @@ scPAS.optimized <- function(
 
     # Clean up memory using data.table approach
     rm_vars <- c("sc_exprs", "bulk_dataset")
-    rm_vars <- rm_vars[sapply(rm_vars, exists, inherits = TRUE)]
+    rm_vars <- rm_vars[vapply(
+        rm_vars,
+        exists,
+        inherits = TRUE,
+        FUN.VALUE = logical(1)
+    )]
     if (length(rm_vars) > 0) {
         rm(list = rm_vars)
     }

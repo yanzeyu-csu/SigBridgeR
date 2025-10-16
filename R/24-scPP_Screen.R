@@ -92,7 +92,7 @@
 #' @family scPP
 #' @keywords internal
 #'
-DoscPP = function(
+DoscPP <- function(
     matched_bulk,
     sc_data,
     phenotype,
@@ -134,49 +134,49 @@ DoscPP = function(
 
     ts_cli$cli_alert_info("Finding markers...")
 
-    matched_bulk = as.data.frame(matched_bulk)
+    matched_bulk <- as.data.frame(matched_bulk)
     # decide which type of phenotype data is used
     if (is.vector(phenotype)) {
-        phenotype = as.data.frame(phenotype) %>%
+        phenotype <- as.data.frame(phenotype) %>%
             tibble::rownames_to_column("Sample") %>%
             dplyr::rename("Feature" = 2) %>%
             dplyr::mutate(Feature = as.numeric(`Feature`))
     }
     if (tolower(phenotype_class) == "binary") {
         Check0VarRows(matched_bulk)
-        gene_list = ScPP::marker_Binary(
+        gene_list <- ScPP::marker_Binary(
             bulk_data = matched_bulk,
             features = phenotype,
             ref_group = ref_group,
             Log2FC_cutoff = Log2FC_cutoff
         )
     } else if (tolower(phenotype_class) == "continuous") {
-        gene_list = ScPP::marker_Continuous(
+        gene_list <- ScPP::marker_Continuous(
             bulk_data = matched_bulk,
             features = phenotype$Feature,
             estimate_cutoff = estimate_cutoff
         )
     } else if (tolower(phenotype_class) == "survival") {
-        gene_list = ScPP::marker_Survival(
+        gene_list <- ScPP::marker_Survival(
             bulk_data = matched_bulk,
             survival_data = phenotype
         )
     }
 
-    l = lapply(gene_list, length)
-    pos_null = FALSE
-    neg_null = FALSE
+    l <- lapply(gene_list, length)
+    pos_null <- FALSE
+    neg_null <- FALSE
     if ("gene_pos" %chin% names(l)) {
         # Cannot combine the conditions due to the feature of `gene_list`
         if (l[["gene_pos"]] == 0) {
             ts_cli$cli_alert_info(" No significant positive genes found")
-            pos_null = TRUE
+            pos_null <- TRUE
         }
     }
     if ("gene_neg" %chin% names(l)) {
         if (l[["gene_neg"]] == 0) {
             ts_cli$cli_alert_info(" No significant negative genes found")
-            neg_null = TRUE
+            neg_null <- TRUE
         }
     }
     if (pos_null && neg_null) {
