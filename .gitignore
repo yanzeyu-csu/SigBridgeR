@@ -13,3 +13,5 @@ Tmp/*
 docs
 *.qs
 figures/**
+/doc/
+/Meta/

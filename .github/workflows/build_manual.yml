@@ -1,0 +1,85 @@
+name: Build R Package Manual
+
+on:
+    push:
+        branches:
+            - main
+            - master
+    workflow_dispatch: # 允许手动触发
+
+jobs:
+    build-manual:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # 获取完整历史记录
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Configure Git
+              run: |
+                  git config user.name "GitHub Actions"
+                  git config user.email "actions@github.com"
+
+            - name: Pull latest changes
+              run: |
+                  git fetch origin
+                  git merge origin/${{ github.ref_name }} --no-edit || echo "Already up to date"
+
+            - name: Setup R
+              uses: r-lib/actions/setup-r@v2
+              with:
+                  r-version: "release"
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+
+            - name: Install R packages
+              run: |
+                  install.packages(c("devtools", "roxygen2"), repos = "https://cloud.r-project.org")
+              shell: Rscript {0}
+
+            - name: Delete old manual PDFs in vignettes
+              run: |
+                  if [ -d "vignettes" ]; then
+                    find vignettes -name "*.pdf" -type f -delete
+                    echo "Deleted old manual PDF files in vignettes/"
+                  else
+                    mkdir -p vignettes
+                    echo "Created vignettes directory"
+                  fi
+
+            - name: Build package manual
+              run: |
+                  devtools::build_manual(path = "vignettes")
+              shell: Rscript {0}
+
+            - name: Check if PDF was created
+              id: check_pdf
+              run: |
+                  PDF_COUNT=$(find vignettes -name "*.pdf" -type f | wc -l)
+                  if [ $PDF_COUNT -eq 0 ]; then
+                    echo "Error: No PDF file was created"
+                    exit 1
+                  elif [ $PDF_COUNT -gt 1 ]; then
+                    echo "Warning: Multiple PDF files found"
+                  fi
+                  PDF_FILE=$(find vignettes -name "*.pdf" -type f | head -n 1)
+                  echo "pdf_file=$PDF_FILE" >> $GITHUB_OUTPUT
+                  echo "Created manual: $PDF_FILE"
+
+            - name: Commit and push changes
+              run: |
+                  git add vignettes/*.pdf
+                  if git diff --staged --quiet; then
+                    echo "No changes to commit"
+                  else
+                    git commit -m "Auto-update package manual [ci skip]"
+                    git push
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

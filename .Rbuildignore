@@ -17,3 +17,5 @@ MatchArg*
 ^example_data$
 vignettes/example_data
 ^Tmp
+^doc$
+^Meta$
