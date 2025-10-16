@@ -25,7 +25,7 @@ We will start with a simple example.
 `mat_exam` is a single-cell RNA expression matrix, `bulk_bi` is a bulk
 tissue RNA expression matrix, and `pheno_bi` is the phenotypic data
 associated with `bulk_bi`. When using a binary or continuous phenotype,
-the reference data is a named vector.
+the reference phenotype data is a named vector.
 
     head(pheno_bi)
     # TCGA-CA-5256-01 TCGA-AZ-6599-01 TCGA-AA-3655-01 TCGA-A6-6137-01 TCGA-CK-4952-01 TCGA-A6-5657-01
@@ -222,3 +222,5 @@ width="400" alt="upset_q" />]((https://github.com/WangLabCSU/SigBridgeR/blob/mai
 [<img src="example_figures/umaps_q.png" title="umaps_q"
 data-fig-alt="umaps_q" data-fig-align="center" width="600"
 alt="umaps_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps_q.png)
+
+Session information:
