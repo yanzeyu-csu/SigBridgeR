@@ -102,7 +102,6 @@
 #' @importFrom glue glue
 #' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger col_green
 #'
-#' @keywords internal
 #' @family screen_method
 #' @family scissor
 #'
@@ -130,7 +129,7 @@ DoScissor <- function(
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     chk::chk_range(cutoff)
-    scissor_family <- match.arg(scissor_family)
+    scissor_family %<>% MatchArg(c("gaussian", "binomial", "cox"), NULL)
     chk::chk_character(path2save_scissor_inputs)
     chk::chk_flag(reliability_test)
     chk::chk_flag(cell_evaluation)
@@ -143,14 +142,8 @@ DoScissor <- function(
     } else if (scissor_family == "gaussian") {
         n <- length(table(phenotype))
         label_type_scissor <- glue::glue("{label_type}_{seq_len(n)}")
-    } else if (length(scissor_family) != 1) {
-        cli::cli_abort(
-            c(
-                "x" = "Please choose one scissor family, use parameter {.var scissor_family}."
-            ),
-            class = "FamilyError"
-        )
     }
+
     if (!is.null(path2save_scissor_inputs)) {
         path <- dirname(path2save_scissor_inputs)
         if (!dir.exists(path)) {
@@ -275,7 +268,6 @@ Scissor.v5.optimized <- function(
     family = c("gaussian", "binomial", "cox"),
     Save_file = "Scissor_inputs.RData",
     Load_file = NULL,
-    workers = 4,
     ...
 ) {
     ts_cli$cli_alert_info(
@@ -421,7 +413,6 @@ Scissor.v5.optimized <- function(
             }
         )
 
-        family <- match.arg(family)
         Y <- FamilyProcessor[[family]]()
 
         if (!is.null(Save_file)) {
@@ -495,9 +486,10 @@ Scissor.v5.optimized <- function(
 
                 pos_mask <- Coefs > 0
                 neg_mask <- Coefs < 0
-                Cell1 <- colnames(X)[pos_mask]
-                Cell2 <- colnames(X)[neg_mask]
-                percentage <- (length(Cell1) + length(Cell2)) / ncol(X)
+                cells <- colnames(X)
+                Cell1 <- cells[pos_mask]
+                Cell2 <- cells[neg_mask]
+                percentage <- (length(Cell1) + length(Cell2)) / length(cells)
 
                 list(
                     alpha = alpha[i],
@@ -513,7 +505,7 @@ Scissor.v5.optimized <- function(
             error = function(e) {
                 cli::cli_alert_danger(e$message)
 
-                ts_cli$cli_alert_info(
+                cli::cli_abort(
                     cli::col_yellow("Scissor screening exit 1.")
                 )
             }
@@ -537,7 +529,6 @@ Scissor.v5.optimized <- function(
                 ts_cli$cli_alert_info(cli::col_green("Scissor Ended."))
                 break
             }
-            cat("\n")
         }
     }
 

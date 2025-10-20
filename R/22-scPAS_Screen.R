@@ -38,8 +38,6 @@
 #' @family screen_method
 #' @family scPAS
 #'
-#' @keywords internal
-#'
 DoscPAS <- function(
     matched_bulk,
     sc_data,
@@ -48,12 +46,12 @@ DoscPAS <- function(
     assay = 'RNA',
     imputation = FALSE,
     imputation_method = c("KNN", "ALRA"),
-    nfeature = 3000,
+    nfeature = 3000L,
     alpha = c(0.01, NULL),
     cutoff = 0.2,
     network_class = c("SC", "bulk"),
     scPAS_family = c("cox", "gaussian", "binomial"),
-    permutation_times = 2000,
+    permutation_times = 2000L,
     FDR_threshold = 0.05,
     independent = TRUE,
     ...
@@ -63,16 +61,13 @@ DoscPAS <- function(
     chk::chk_character(label_type)
     chk::chk_flag(imputation)
     if (imputation) {
-        imputation_method <- match.arg()
+        imputation_method %<>% MatchArg(c("KNN", "ALRA"))
     }
     if (!is.null(alpha)) {
         chk::chk_range(alpha)
     }
-    chk::chk_subset(network_class, c("SC", "bulk"))
-    if (length(network_class) > 1) {
-        network_class <- network_class[1]
-    }
-    scPAS_family <- match.arg(scPAS_family)
+    network_class %<>% MatchArg(c("SC", "bulk"))
+    scPAS_family %<>% MatchArg(c("cox", "gaussian", "binomial"), NULL)
     purrr::walk(
         list(nfeature, permutation_times, FDR_threshold),
         ~ chk::chk_number
@@ -106,6 +101,7 @@ DoscPAS <- function(
         imputation_method = imputation_method,
         nfeature = nfeature,
         alpha = alpha,
+        cutoff = cutoff,
         network_class = network_class,
         family = scPAS_family,
         independent = independent,
@@ -116,7 +112,7 @@ DoscPAS <- function(
         AddMisc(scPAS_type = label_type, cover = FALSE)
 
     detailed_info <- dplyr::select(
-        scPAS_result@meta.data,
+        scPAS_result[[]],
         dplyr::contains("scPAS_")
     )
 
@@ -309,10 +305,6 @@ scPAS.optimized <- function(
     permutation_times = 2000,
     FDR.threshold = 0.05
 ) {
-    network_class <- match.arg(network_class)
-    family <- match.arg(family)
-    imputation_method <- match.arg(imputation_method)
-
     # Set default assay
     Seurat::DefaultAssay(sc_dataset) <- assay
 
@@ -351,9 +343,9 @@ scPAS.optimized <- function(
                 nfeatures = nfeature
             )
             var_features <- Seurat::VariableFeatures(sc_dataset)
-            dplyr::intersect(rownames(bulk_dataset), var_features)
+            intersect(rownames(bulk_dataset), var_features)
         } else {
-            dplyr::intersect(rownames(bulk_dataset), nfeature)
+            intersect(rownames(bulk_dataset), nfeature)
         }
     }
 
@@ -394,11 +386,7 @@ scPAS.optimized <- function(
     ts_cli$cli_alert_info(
         "Extracting single-cell expression profiles..."
     )
-    sc_exprs <- if (utils::packageVersion("Seurat") >= "5.0.0") {
-        sc_dataset@assays$RNA$data
-    } else {
-        sc_dataset@assays$RNA@data
-    }
+    sc_exprs <- Seurat::GetAssayData(sc_dataset, slot = "data")
     Expression_cell <- sc_exprs[common_genes, ]
     Expression_cell <- methods::as(Expression_cell, "dgCMatrix")
 
@@ -415,7 +403,7 @@ scPAS.optimized <- function(
     }
 
     # Prepare X matrix
-    x <- t(Expression_bulk)
+    x <- Matrix::t(Expression_bulk)
 
     # Step 3: Network construction with matrix optimizations
     if (network_class == 'bulk') {
@@ -428,7 +416,7 @@ scPAS.optimized <- function(
             "Constructing a gene-gene similarity by single cell data..."
         )
         # Use matrix operations for efficient correlation
-        cor.m <- scPAS::sparse.cor(t(Expression_cell))
+        cor.m <- scPAS::sparse.cor(Matrix::t(Expression_cell))
     }
 
     # Network construction
@@ -534,12 +522,11 @@ scPAS.optimized <- function(
         cli::cli_text(
             "scPAS identified {.val {length(pos_features)}} risk+ features and {.val {length(neg_features)}} risk- features."
         )
-        percentage <- round(percentage * 100, digits = 3)
+        percentage_show <- round(percentage * 100, digits = 3)
         cli::cli_text(
-            "The percentage of selected feature is: {.val {percentage}}%"
+            "The percentage of selected feature is: {.val {percentage_show}}%"
         )
         if (percentage < cutoff) {
-            cat("\n")
             break
         }
     }

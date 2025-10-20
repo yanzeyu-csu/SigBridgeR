@@ -2,6 +2,7 @@
 
 #' @importFrom data.table `:=` `%chin%`
 #' @importFrom magrittr `%>%` `%<>%`
+#' @importFrom Matrix Matrix
 NULL
 
 # Silence R CMD check NOTES

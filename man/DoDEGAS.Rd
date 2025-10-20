@@ -168,4 +168,3 @@ Other DEGAS:
 }
 \concept{DEGAS}
 \concept{screen_method}
-\keyword{internal}

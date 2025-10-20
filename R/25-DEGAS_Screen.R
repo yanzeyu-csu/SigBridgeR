@@ -108,7 +108,6 @@
 #' @importFrom data.table as.data.table fifelse setnames `:=`
 #' @importFrom matrixStats colMeans2 colSds
 #' @importFrom stats ks.test qnorm median
-#' @keywords internal
 #' @family screen_method
 #' @family DEGAS
 #'
@@ -147,19 +146,17 @@ DoDEGAS <- function(
     }
     chk::chk_list(env_params)
     chk::chk_list(degas_params)
-    phenotype_class <- match.arg(phenotype_class)
+    phenotype_class %<>% MatchArg(c("binary", "continuous", "survival"), NULL)
 
     ts_cli$cli_alert_info(cli::col_green("Starting DEGAS Screen"))
 
     # Auto-choose normality test method
-    normality_test_method <- if (length(normality_test_method) > 1) {
-        "jarque-bera"
-    } else {
-        match.arg(
-            normality_test_method,
-            choices = c("jarque-bera", "d'agostino", "kolmogorov-smirnov")
-        )
-    }
+    normality_test_method %<>%
+        MatchArg(c(
+            "jarque-bera",
+            "d'agostino",
+            "kolmogorov-smirnov"
+        ))
 
     # DEGAS path must contain "/"
     if (!grepl("/$", tmp_dir)) {
@@ -282,11 +279,7 @@ DoDEGAS <- function(
     }
 
     # Python-like data formats
-    sc_mat <- if (utils::packageVersion("Seurat") >= "5.0.0") {
-        sc_data@assays$RNA$data
-    } else {
-        sc_data@assays$RNA@data
-    }
+    sc_mat <- Seurat::GetAssayData(sc_dataset, slot = "data")
     cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
     t_sc_mat <- Matrix::t(sc_mat[cm_genes, ])
     t_matched_bulk <- Matrix::t(matched_bulk[cm_genes, ])

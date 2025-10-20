@@ -12,12 +12,12 @@ DoscPAS(
   assay = "RNA",
   imputation = FALSE,
   imputation_method = c("KNN", "ALRA"),
-  nfeature = 3000,
+  nfeature = 3000L,
   alpha = c(0.01, NULL),
   cutoff = 0.2,
   network_class = c("SC", "bulk"),
   scPAS_family = c("cox", "gaussian", "binomial"),
-  permutation_times = 2000,
+  permutation_times = 2000L,
   FDR_threshold = 0.05,
   independent = TRUE,
   ...
@@ -84,4 +84,3 @@ Other scPAS:
 }
 \concept{scPAS}
 \concept{screen_method}
-\keyword{internal}

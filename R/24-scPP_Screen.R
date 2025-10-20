@@ -90,7 +90,6 @@
 #'
 #' @family screen_method
 #' @family scPP
-#' @keywords internal
 #'
 DoscPP <- function(
     matched_bulk,
@@ -106,7 +105,7 @@ DoscPP <- function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    phenotype_class <- match.arg(phenotype_class)
+    phenotype_class %<>% MatchArg(c("Binary", "Continuous", "Survival"), NULL)
     chk::chk_number(ref_group)
     chk::chk_range(Log2FC_cutoff)
     chk::chk_range(estimate_cutoff)
@@ -402,11 +401,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     chk::chk_is(sc_dataset, "Seurat")
     chk::chk_range(probs)
 
-    rna_data <- if (utils::packageVersion("Seurat") >= "5.0.0") {
-        sc_dataset@assays$RNA$data
-    } else {
-        sc_dataset@assays$RNA@data
-    }
+    rna_data <- Seurat::GetAssayData(sc_dataset, slot = "data")
 
     ts_cli$cli_alert_info("Computing AUC scores...")
 

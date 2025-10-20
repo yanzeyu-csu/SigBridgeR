@@ -129,4 +129,3 @@ Other scissor:
 }
 \concept{scissor}
 \concept{screen_method}
-\keyword{internal}

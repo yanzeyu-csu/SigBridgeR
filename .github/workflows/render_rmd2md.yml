@@ -58,9 +58,13 @@ jobs:
 
             - name: Install dependencies
               run: |
-                  if [ ! -d "~/R/Library/rmarkdown" ] || [ ! -d "~/R/Library/knitr" ]; then
-                    Rscript -e 'install.packages(c("rmarkdown", "knitr", "reticulate"))'
-                  fi
+                  Rscript -e '
+                  pkgs <- c("rmarkdown", "knitr", "reticulate")
+                  new_pkgs <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
+                  if(length(new_pkgs)) {
+                      install.packages(new_pkgs, repos="https://cloud.r-project.org")
+                  }
+                  '
 
             - name: Display trigger info
               run: |

@@ -14,97 +14,37 @@ SCPreProcess(sc, ...)
 
 SCPreProcess(sc, ...)
 
-\method{SCPreProcess}{default}(sc, ...)
-
-\method{SCPreProcess}{matrix}(
+\method{SCPreProcess}{default}(
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
   project = glue::glue("SC_Screening_Proj"),
-  min_cells = 400,
-  min_features = 0,
+  min_cells = 400L,
+  min_features = 0L,
   quality_control = TRUE,
   quality_control.pattern = c("^MT-", "^mt-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000),
-  data_filter.percent.mt = 20,
+  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+  data_filter.percent.mt = 20L,
   normalization_method = "LogNormalize",
-  scale_factor = 10000,
+  scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = seq_len(10),
+  dims = seq_len(10L),
   verbose = TRUE,
   ...
 )
 
-\method{SCPreProcess}{data.frame}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = glue::glue("SC_Screening_Proj"),
-  min_cells = 400,
-  min_features = 0,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000),
-  data_filter.percent.mt = 20,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = seq_len(10),
-  verbose = TRUE,
-  ...
-)
+\method{SCPreProcess}{matrix}(sc, ...)
 
-\method{SCPreProcess}{dgCMatrix}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = glue::glue("SC_Screening_Proj"),
-  min_cells = 400,
-  min_features = 0,
-  quality_control = TRUE,
-  quality_control.pattern = "^MT-",
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000),
-  data_filter.percent.mt = 20,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = seq_len(10),
-  verbose = TRUE,
-  ...
-)
+\method{SCPreProcess}{data.frame}(sc, ...)
 
-\method{SCPreProcess}{AnnDataR6}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = glue::glue("SC_Screening_Proj"),
-  min_cells = 400,
-  min_features = 0,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000),
-  data_filter.percent.mt = 20,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = seq_len(10),
-  verbose = TRUE,
-  ...
-)
+\method{SCPreProcess}{dgCMatrix}(sc, ...)
 
-\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, verbose = TRUE, ...)
+\method{SCPreProcess}{AnnDataR6}(sc, meta_data = NULL, ...)
+
+\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
@@ -115,41 +55,6 @@ SCPreProcess(sc, ...)
 }}
 
 \item{...}{Method-specific arguments (see below)}
-
-\item{meta_data}{Optional metadata dataframe (rows = cells, columns = attributes)}
-
-\item{column2only_tumor}{Metadata column used for filtering tumor cells, matching patterns
-such as "tumor" (or "tumour"), "cancer", "malignant", or "neoplasm" (case-insensitive).}
-
-\item{project}{Project name for Seurat object}
-
-\item{min_cells}{Minimum cells per gene to retain (features present in at least this many cells)}
-
-\item{min_features}{Minimum features per cell to retain (cells with at least this many features)}
-
-\item{quality_control}{Logical indicating whether to perform mitochondrial QC}
-
-\item{quality_control.pattern}{Regex pattern to identify mitochondrial genes (e.g., "^MT-" for human)}
-
-\item{data_filter}{Logical indicating whether to filter low-quality cells}
-
-\item{data_filter.nFeature_RNA_thresh}{Numeric vector of length 2 specifying (min, max) features per cell}
-
-\item{data_filter.percent.mt}{Maximum mitochondrial percentage allowed (0-100)}
-
-\item{normalization_method}{Normalization method ("LogNormalize", "CLR", or "RC")}
-
-\item{scale_factor}{Scaling factor for normalization}
-
-\item{scale_features}{Scale features to unit variance}
-
-\item{selection_method}{Variable feature selection method ("vst", "mvp", or "disp")}
-
-\item{resolution}{Cluster resolution (higher for more clusters)}
-
-\item{dims}{PCA dimensions to use}
-
-\item{verbose}{Print progress messages}
 }
 \value{
 A Seurat object containing:

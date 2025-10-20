@@ -127,18 +127,9 @@ Screen <- function(
         ))
         label_type <- screen_method
     }
-    if (!screen_method %chin% c("scPP", "scPAS", "scAB", "DEGAS", "Scissor")) {
-        cli::cli_abort(c(
-            "x" = "{.strong {screen_method}} is not supported.",
-            "i" = "Please use one of the following methods: {.val {c('scPP', 'scPAS', 'scAB', 'DEGAS','Scissor')}}"
-        ))
-    }
-    if (!phenotype_class %chin% c("binary", "survival", "continuous")) {
-        cli::cli_abort(c(
-            "x" = "{.strong {phenotype_class}} is not supported.",
-            "i" = "Please use one of the following methods: {.val {c('binary', 'survival', 'continuous')}}"
-        ))
-    }
+    phenotype_class %<>% MatchArg(c("binary", "survival", "continuous"), NULL)
+    screen_method %<>%
+        MatchArg(c("Scissor", "scPP", "scPAS", "scAB", "DEGAS"), NULL)
 
     switch(
         screen_method,

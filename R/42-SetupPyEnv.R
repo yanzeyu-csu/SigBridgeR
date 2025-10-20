@@ -67,11 +67,10 @@ SetupPyEnv.default <- function(
         tolower(env_type),
         "conda" = SetupPyEnv.conda(env_type = "conda", ...),
         "venv" = SetupPyEnv.venv(env_type = "venv", ...),
-        TRUE ~
-            cli::cli_abort(c(
-                "x" = "Unsupported environment type: {.val {env_type}}",
-                "i" = "Supported environment types are: conda, venv"
-            ))
+        cli::cli_abort(c(
+            "x" = "Unsupported environment type: {.val {env_type}}",
+            "i" = "Supported environment types are: conda, venv"
+        ))
     )
 }
 
@@ -175,10 +174,7 @@ SetupPyEnv.conda <- function(
         chk::chk_named(packages)
     }
     #   Default method is `reticulate`
-    method <- tolower(method)
-    if (length(method) > 1) {
-        method <- "reticulate"
-    }
+    method %<>% MatchArg(., c("reticulate", "system", "environment"))
 
     if (verbose) {
         cli::cli_h1("Setting up Conda Python Environment")
@@ -729,7 +725,7 @@ ListPyEnv.default <- function(
     verbose = TRUE,
     ...
 ) {
-    env_type <- match.arg(env_type)
+    env_type %<>% MatchArg(., c("all", "conda", "venv", "virtualenv"))
     switch(
         env_type,
         "conda" = ListPyEnv.conda(

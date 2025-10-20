@@ -54,7 +54,6 @@
 #' @importFrom scAB create_scAB select_K scAB findSubset
 #' @importFrom cli cli_alert_info col_green
 #'
-#' @keywords internal
 #' @family screen_method
 #' @family scAB
 #'
@@ -72,7 +71,7 @@ DoscAB <- function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    phenotype_class <- match.arg(phenotype_class)
+    phenotype_class %<>% MatchArg(c("binary", "survival"), NULL)
     chk::chk_range(alpha)
     chk::chk_range(alpha_2)
     chk::chk_number(maxiter)
@@ -131,8 +130,7 @@ DoscAB <- function(
     ) %>%
         AddMisc(scAB_type = label_type, cover = FALSE)
 
-    sc_data@meta.data <- sc_data@meta.data %>%
-        dplyr::rename(scAB = `scAB_select`) %>%
+    sc_data[[]] <- dplyr::rename(sc_data[[]], scAB = `scAB_select`) %>%
         dplyr::mutate(
             scAB = dplyr::case_when(
                 scAB == "Other cells" ~ "Other",
@@ -172,7 +170,6 @@ create_scAB.v5 <- function(
     method = c("survival", "binary")
 ) {
     # cell neighbors
-    method <- match.arg(method)
     if ("RNA_snn" %chin% names(Object@graphs)) {
         A <- as.matrix(Object@graphs$RNA_snn)
         cli::cli_alert_info(
@@ -200,11 +197,11 @@ create_scAB.v5 <- function(
     Ahat <- D12 %*% (A) %*% D12
 
     # similarity matrix
-    sc_exprs <- as.data.frame(Object@assays$RNA$data)
+    sc_exprs <- as.data.frame(Seurat::GetAssayData(Object, slot = "data"))
     common <- intersect(rownames(bulk_dataset), rownames(sc_exprs))
     dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ]) # Dataset before quantile normalization.
     dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after  quantile normalization.
-    rownames(dataset1) <- rownames(dataset0)
+    rownames(dataset1) <- common
     colnames(dataset1) <- colnames(dataset0)
     Expression_bulk <- dataset1[, seq_len(ncol(bulk_dataset))]
     Expression_cell <- dataset1[, (ncol(bulk_dataset) + 1):ncol(dataset1)]
