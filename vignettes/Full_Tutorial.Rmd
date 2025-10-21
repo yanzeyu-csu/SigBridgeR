@@ -2094,7 +2094,7 @@ knitr::include_graphics("vignettes/example_figures/elbow.png")
 
 ## 7. Troubleshooting
 
-View [[Troubleshooting](https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html) for troubleshooting, especially for the environment setup.
+View Troubleshooting[(https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html) for troubleshooting, especially for the environment setup.
 
 
 Session information:
