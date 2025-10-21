@@ -197,7 +197,7 @@ reticulate::use_condaenv(py_path)
 
 This is due to the issue with the tensorflow package. Use the following method to check if the tensorflow package can be imported.
 
-```{python,eval=FALSE}
+```python
 # make sure you are using the correct python, i.e. r-reticulate-degas
 import sys
 

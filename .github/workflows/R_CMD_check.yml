@@ -128,7 +128,7 @@ jobs:
 
                   Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
 
-                  Rscript -e 'BiocManager::install(c("AUCell", "edgeR"))'
+                  Rscript -e 'BiocManager::install(c("AUCell", "edgeR", "fgsea"))'
 
                   Rscript -e 'remotes::install_github("WangX-Lab/ScPP")'  
                   # 额外安装检查所需的包
