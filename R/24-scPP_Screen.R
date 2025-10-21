@@ -14,7 +14,7 @@
 #'   ref_group = 0,
 #'   Log2FC_cutoff = 0.585,
 #'   estimate_cutoff = 0.2,
-#'   probs = 0.2
+#'   probs = c(0.2, NULL)
 #' )
 #'
 #' @param matched_bulk Bulk expression data (genes × samples) where:
@@ -32,7 +32,7 @@
 #' @param ref_group Reference group or baseline for **binary** comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. (default: 0)
 #' @param Log2FC_cutoff Minimum log2 fold-change for binary markers (default: 0.585)
 #' @param estimate_cutoff Effect size threshold for **continuous** traits (default: 0.2)
-#' @param probs Quantile cutoff for cell classification (default: 0.2)
+#' @param probs A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)
 #'
 #' @return A list containing:
 #' \describe{
@@ -45,7 +45,7 @@
 #'   \item{AUC}{A data.frame with area under the ROC curve:
 #'     \describe{
 #'         \item{scPP_AUCup}{AUC for positive}
-#'         \item{AUCdown}{AUC for negative}
+#'         \item{scPP_AUCdown}{AUC for negative}
 #'     }
 #'   }
 #' }
@@ -80,13 +80,6 @@
 #' )
 #' }
 #'
-#' @importFrom ScPP marker_Binary marker_Continuous marker_Survival ScPP
-#' @importFrom Seurat AddMetaData
-#' @importFrom dplyr %>% rename
-#' @importFrom glue glue
-#' @importFrom cli cli_abort cli_alert_info cli_alert_success col_green col_yellow
-#' @importFrom tibble rownames_to_column
-#' @importFrom stats quantile
 #'
 #' @family screen_method
 #' @family scPP
@@ -100,7 +93,7 @@ DoscPP <- function(
     ref_group = 0,
     Log2FC_cutoff = 0.585,
     estimate_cutoff = 0.2,
-    probs = 0.2
+    probs = c(0.2, NULL)
 ) {
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
@@ -109,7 +102,9 @@ DoscPP <- function(
     chk::chk_number(ref_group)
     chk::chk_range(Log2FC_cutoff)
     chk::chk_range(estimate_cutoff)
-    chk::chk_number(probs)
+    if (!is.null(probs)) {
+        chk::chk_range(probs)
+    }
     # scPP can't tolerate NA
     chk::chk_not_any_na(matched_bulk)
     chk::chk_not_any_na(phenotype)
@@ -137,7 +132,7 @@ DoscPP <- function(
     # decide which type of phenotype data is used
     if (is.vector(phenotype)) {
         phenotype <- as.data.frame(phenotype) %>%
-            tibble::rownames_to_column("Sample") %>%
+            Rownames2Col("Sample") %>%
             dplyr::rename("Feature" = 2) %>%
             dplyr::mutate(Feature = as.numeric(`Feature`))
     }
@@ -168,13 +163,13 @@ DoscPP <- function(
     if ("gene_pos" %chin% names(l)) {
         # Cannot combine the conditions due to the feature of `gene_list`
         if (l[["gene_pos"]] == 0) {
-            ts_cli$cli_alert_info(" No significant positive genes found")
+            ts_cli$cli_alert_info("No significant positive genes found")
             pos_null <- TRUE
         }
     }
     if ("gene_neg" %chin% names(l)) {
         if (l[["gene_neg"]] == 0) {
-            ts_cli$cli_alert_info(" No significant negative genes found")
+            ts_cli$cli_alert_info("No significant negative genes found")
             neg_null <- TRUE
         }
     }
@@ -193,10 +188,7 @@ DoscPP <- function(
     scPP_result <- rlang::try_fetch(
         ScPP.optimized(sc_data, gene_list, probs = probs),
         error = function(e) {
-            cli::cli_alert_warning("ScPP screening failed: {e$message}")
-            cli::cli_alert_info("Using fallback method...")
-            # 返回默认值或使用备用方法
-            return(NULL) # 或其他合适的默认值
+            cli::cli_abort(c("x" = "ScPP screening failed:", ">" = e$message))
         }
     )
     sc_data[[]] <- scPP_result$metadata
@@ -221,197 +213,145 @@ DoscPP <- function(
 }
 
 
-#' @title Check for Rows with Zero Variance in a Matrix
+#' @title scPP Screening with Optimal Threshold Detection
 #'
 #' @description
-#' This function checks each row of a matrix (including sparse matrices of class `dgCMatrix`)
-#' for zero variance. Rows with zero variance or only `NA` values are identified, and an error
-#' is thrown listing the names of these rows. This is useful for preprocessing data where
-#' constant rows may cause issues in analyses (e.g., PCA, regression).
-#'
-#' @param mat A numeric matrix or a sparse matrix of class `dgCMatrix` (from the `Matrix` package).
-#'   Rows represent features (e.g., genes), and columns represent observations.
-#' @param call The environment from which the function was called, used for error reporting.
-#'   Defaults to rlang::caller_env(). Most users can ignore this parameter.
-#'
-#' @return Invisibly returns a numeric vector of row variances. If zero-variance rows are found,
-#'   the function throws an error with a message listing the problematic row names.
-#'
-#' @details
-#' For dense matrices, variance is computed using an optimized `RowVars` function that
-#' efficiently calculates row variances with proper NA handling. For sparse matrices of
-#' class `dgCMatrix`, variance is computed using a mathematical identity that avoids
-#' creating large intermediate matrices. Rows with fewer than 2 non-zero observations
-#' are treated as zero-variance.
-#'
-#' This implementation is memory-efficient and handles large matrices better than
-#' the original version.
-#'
-#' @examples
-#' \dontrun{
-#' # Dense matrix example
-#' set.seed(123)
-#' mat_dense <- matrix(rnorm(100), nrow = 10)
-#' rownames(mat_dense) <- paste0("Gene", 1:10)
-#' Check0VarRows(mat_dense) # No error if all rows have variance
-#'
-#' # Introduce zero variance
-#' mat_dense[1, ] <- rep(5, 10) # First row is constant
-#' Check0VarRows(mat_dense)     # Throws error listing "Gene1"
-#'
-#' # Sparse matrix example
-#' library(Matrix)
-#' mat_sparse <- as(matrix(rpois(100, 0.5), nrow = 10), "dgCMatrix")
-#' rownames(mat_sparse) <- paste0("Gene", 1:10)
-#' Check0VarRows(mat_sparse)
-#' }
-#'
-#' @importFrom Matrix rowSums
-#' @importFrom rlang caller_env
-#' @importFrom cli cli_abort
-#'
-#' @keywords internal
-#' @family scPP
-#'
-Check0VarRows <- function(mat, call = rlang::caller_env()) {
-    if (inherits(mat, "dgCMatrix")) {
-        n <- ncol(mat)
-        row_sums <- rowSums(mat)
-        row_sums_sq <- rowSums(mat^2)
-
-        # Var = (Σx² - (Σx)²/n) / (n-1)
-        vars <- (row_sums_sq - (row_sums^2) / n) / (n - 1)
-
-        zero_counts <- rowSums(mat != 0)
-        vars[zero_counts <= 1] <- 0
-        vars[is.nan(vars)] <- 0
-    } else {
-        vars <- RowVars(mat, na.rm = TRUE)
-    }
-
-    zero_idx <- which(vars == 0 | is.na(vars))
-    if (length(zero_idx)) {
-        bad_genes <- rownames(mat)[zero_idx]
-        cli::cli_abort(
-            c(
-                "Detected {.val {length(bad_genes)}} gene(s) with zero variance:",
-                "i" = "{.val {bad_genes}}"
-            ),
-            class = "ZeroVarianceError",
-            call = call
-        )
-    }
-    invisible(vars)
-}
-
-
-#' @title Single-Cell Phenotype Profiling (Optimized)
-#'
-#' @description
-#' Performs optimized single-cell phenotype profiling using gene set enrichment
-#' analysis and differential expression to identify phenotype-associated cells
-#' and marker genes. This implementation uses AUCell for efficient gene set
-#' scoring and provides comprehensive phenotype characterization.
+#' Performs single-cell phenotype screening using gene set enrichment analysis.
+#' Can either use a fixed probability threshold or automatically find the optimal
+#' threshold by testing multiple values and maximizing NES difference.
 #'
 #' @param sc_dataset A Seurat object containing single-cell RNA-seq data.
 #'   Must have RNA assay with normalized data.
-#' @param geneList A named list of length 2 containing gene sets for phenotype
-#'   characterization. The list should contain:
+#' @param geneList A named list containing gene sets:
 #'   \itemize{
-#'     \item `gene_pos` - Genes associated with positive phenotype
-#'     \item `gene_neg` - Genes associated with negative phenotype
+#'     \item `gene_pos` - Genes associated with positive phenotype (required)
+#'     \item `gene_neg` - Genes associated with negative phenotype (required)
+#'     \item `genes_sort` - Named numeric vector of ranked genes (required for optimization mode)
 #'   }
-#' @param probs Numeric value between 0 and 1 specifying the quantile threshold
-#'   for phenotype classification. Default: 0.2 (20th and 80th percentiles).
+#' @param probs Numeric value or vector of probability thresholds:
+#'   \itemize{
+#'     \item Single value (e.g., 0.2): Performs phenotype profiling with fixed threshold
+#'     \item Multiple values (e.g., seq(0.2, 0.45, by = 0.05)): Finds optimal threshold
+#'     \item NULL (default): Automatically searches optimal threshold using seq(0.2, 0.45, by = 0.05)
+#'   }
 #'
 #' @return
 #' A list with three components:
 #' \itemize{
-#'   \item `metadata` - Data frame containing cell metadata with added columns:
-#'     \itemize{
-#'       \item `scPP_AUC` - AUCell scores for positive gene set
-#'       \item `scPP_AUCwn` - AUCell scores for negative gene set
-#'       \item `ScPP` - Phenotype classification: "Phenotype+", "Phenotype-", or "Background"
-#'     }
-#'   \item `Genes_pos` - Character vector of genes significantly upregulated
-#'         in Phenotype+ cells compared to Phenotype- cells
-#'   \item `Genes_neg` - Character vector of genes significantly upregulated
-#'         in Phenotype- cells compared to Phenotype+ cells
+#'   \item `metadata` - Data frame with cell metadata including scPP_AUCup, scPP_AUCdown, scPP
+#'   \item `Genes_pos` - Genes upregulated in Positive vs Negative
+#'   \item `Genes_neg` - Genes upregulated in Negative vs Positive
 #' }
 #'
 #' @details
-#' This function implements an optimized workflow for single-cell phenotype
-#' profiling that combines gene set enrichment analysis with differential
-#' expression to identify and characterize cell phenotypes:
+#' This function operates in two modes based on the `probs` parameter:
 #'
-#' ## Method Overview:
-#' 1. **Gene Set Scoring**: Uses AUCell to calculate enrichment scores for
-#'    both positive and negative gene sets in each cell
-#' 2. **Phenotype Classification**: Identifies phenotype-positive and
-#'    phenotype-negative cells based on quantile thresholds of AUC scores
-#' 3. **Differential Expression**: Finds marker genes distinguishing the
-#'    two phenotype groups using Seurat's FindMarkers
+#' ## Fixed Threshold Mode (length(probs) == 1):
+#' 1. Computes AUCell scores for positive and negative gene sets
+#' 2. Classifies cells based on the specified threshold
+#' 3. Identifies differential markers between phenotype groups
+#' 4. Returns complete results with metadata and marker genes
 #'
-#' ## Phenotype Classification Criteria:
-#' - **Phenotype+**: High positive gene set score AND low negative gene set score
-#' - **Phenotype-**: Low positive gene set score AND high negative gene set score
-#' - **Background**: All other cells not meeting above criteria
-#'
-#' ## Differential Expression Thresholds:
-#' - Absolute average log2 fold change > 1
-#' - Adjusted p-value < 0.05
+#' ## Optimization Mode (length(probs) > 1 or NULL):
+#' 1. Tests multiple probability thresholds
+#' 2. For each threshold, classifies cells and finds markers
+#' 3. Runs GSEA to calculate NES for marker sets
+#' 4. Returns threshold with maximum NES difference (Positive - Negative)
+#' 5. Requires `genes_sort` in geneList for GSEA analysis
 #'
 #' @note
-#' The function requires the Seurat object to have normalized data in the RNA
-#' assay. For Seurat version compatibility, it handles both v4 and v5 data
-#' structures automatically.
+#' - Fixed threshold mode: Faster, returns detailed results
+#' - Optimization mode: Slower, requires genes_sort, but robust
 #'
 #' @examples
 #' \dontrun{
-#' # Example using a Seurat object and gene lists
-#' gene_list <- list(
-#'   gene_pos = c("CD4", "IL7R", "CCR7"),
-#'   gene_neg = c("CD8A", "CD8B", "GZMB")
-#' )
-#'
+#' # Fixed threshold mode
 #' result <- ScPP.optimized(
 #'   sc_dataset = seurat_obj,
-#'   geneList = gene_list,
+#'   geneList = list(
+#'     gene_pos = c("CD4", "IL7R"),
+#'     gene_neg = c("CD8A", "CD8B")
+#'   ),
 #'   probs = 0.2
 #' )
 #'
-#' # Access results
-#' head(result$metadata)
-#' result$Genes_pos
-#' result$Genes_neg
+#' # Optimization mode
+#' result <- ScPP.optimized(
+#'   sc_dataset = seurat_obj,
+#'   geneList = list(
+#'     gene_pos = c("CD4", "IL7R"),
+#'     gene_neg = c("CD8A", "CD8B"),
+#'     genes_sort = ranked_genes
+#'   ),
+#'   probs = NULL  # or seq(0.2, 0.45, by = 0.05)
+#' )
 #' }
 #'
 #' @seealso
-#' [AUCell::AUCell_buildRankings()], [AUCell::AUCell_calcAUC()],
-#' [Seurat::FindMarkers()]
-#'
-#' @references
-#' \url{https://github.com/WangX-Lab/ScPP/}, function ScPP()
+#' [AUCell::AUCell_calcAUC()], [Seurat::FindMarkers()], [fgsea::fgsea()]
 #'
 #' @keywords internal
 #' @family scPP
-#
-ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
-    chk::chk_length(geneList, 2)
-    chk::chk_is(sc_dataset, "Seurat")
-    chk::chk_range(probs)
+#'
+ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
+    # Set default probs if NULL
+    probs <- probs %||% seq(0.2, 0.45, by = 0.05)
 
-    rna_data <- Seurat::GetAssayData(sc_dataset, slot = "data")
+    # Validate probs
+    if (any(probs <= 0) || any(probs >= 0.5)) {
+        cli::cli_abort("{.arg probs} must be numeric values between 0 and 0.5")
+    }
+
+    # Determine mode based on probs length
+    n_probs <- length(probs)
+    is_optimization_mode <- n_probs > 1
+
+    if (is_optimization_mode && "genes_sort" %chin% names(geneList)) {
+        # ============================================================
+        # OPTIMIZATION MODE: Find optimal probs
+        # ============================================================
+        probs_optimal <- .OptimizationMode(sc_dataset, geneList, probs)
+        return(.SingleProbMode(sc_dataset, geneList, probs_optimal))
+    } else {
+        # ============================================================
+        # FIXED THRESHOLD MODE: Single prob profiling
+        # ============================================================
+        return(.SingleProbMode(sc_dataset, geneList, probs))
+    }
+}
+
+
+#' @keywords internal
+#' @family scPP
+#' @seealso [ScPP.optimized()]
+.SingleProbMode <- function(sc_dataset, geneList, probs) {
+    set.seed(123)
+
+    # Extract gene sets
+    geneList_AUC <- geneList[names(geneList) %chin% c("gene_pos", "gene_neg")]
+
+    if (length(geneList_AUC) != 2) {
+        cli::cli_abort("geneList must contain 'gene_pos' and 'gene_neg'")
+    }
+
+    ts_cli$cli_alert_info(
+        "Running fixed threshold mode with prob = {.val {probs}}"
+    )
+
+    # Get RNA data
+    rna_data <- SeuratObject::LayerData(sc_dataset)
 
     ts_cli$cli_alert_info("Computing AUC scores...")
 
+    # Compute AUCell scores
     cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
-    cellAUC <- AUCell::AUCell_calcAUC(geneList, cellrankings)
+    cellAUC <- AUCell::AUCell_calcAUC(geneList_AUC, cellrankings)
 
     auc_matrix <- AUCell::getAUC(cellAUC)
     auc_up <- as.numeric(auc_matrix["gene_pos", ])
     auc_down <- as.numeric(auc_matrix["gene_neg", ])
 
+    # Create metadata table
     metadata_dt <- data.table::as.data.table(
         sc_dataset[[]],
         keep.rownames = "cell_id"
@@ -421,6 +361,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
         scPP_AUCdown = auc_down
     )]
 
+    # Calculate quantiles
     up_quantiles <- matrixStats::colQuantiles(
         matrix(c(auc_up, auc_down), ncol = 2),
         probs = c(probs, 1 - probs)
@@ -431,6 +372,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     down_q1 <- up_quantiles[2, 1]
     down_q2 <- up_quantiles[2, 2]
 
+    # Identify phenotype cells
     downcells1 <- metadata_dt[scPP_AUCup <= up_q1, cell_id]
     upcells1 <- metadata_dt[scPP_AUCup >= up_q2, cell_id]
     downcells2 <- metadata_dt[scPP_AUCdown >= down_q2, cell_id]
@@ -439,21 +381,30 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     scPP_neg <- purrr::reduce(list(downcells1, downcells2), intersect)
     scPP_pos <- purrr::reduce(list(upcells1, upcells2), intersect)
 
+    # Classify cells
     metadata_dt[, scPP := "Neutral"]
     metadata_dt[cell_id %chin% scPP_pos, scPP := "Positive"]
     metadata_dt[cell_id %chin% scPP_neg, scPP := "Negative"]
 
+    ts_cli$cli_alert_success(
+        "Classified {.val {length(scPP_pos)}} Positive, {.val {length(scPP_neg)}} Negative cells"
+    )
+
+    # Update Seurat object
     sc_dataset$scPP <- metadata_dt$scPP
     Seurat::Idents(sc_dataset) <- "scPP"
 
     ts_cli$cli_alert_info("Finding markers...")
 
+    # Find markers
     markers <- Seurat::FindMarkers(
         sc_dataset,
         ident.1 = "Positive",
-        ident.2 = "Negative"
+        ident.2 = "Negative",
+        verbose = FALSE
     )
 
+    # Filter markers
     markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
 
     pos_mask <- markers_mat[, "avg_log2FC"] > 1 &
@@ -464,6 +415,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
     genes_pos <- rownames(markers)[pos_mask]
     genes_neg <- rownames(markers)[neg_mask]
 
+    # Warnings for empty marker sets
     CheckGenes <- purrr::safely(function(genes, msg) {
         if (length(genes) == 0) cli::cli_warn(msg)
     })
@@ -477,10 +429,208 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = 0.2) {
         "There are no genes significantly upregulated in `Negative` compared to `Positive`."
     )
 
+    ts_cli$cli_alert_success(
+        "Found {.val {length(genes_pos)}} positive markers, {.val {length(genes_neg)}} negative markers"
+    )
+
+    # Return results
     return(list(
         metadata = as.data.frame(metadata_dt) %>%
-            tibble::column_to_rownames("cell_id"),
+            Col2Rownames("cell_id"),
         Genes_pos = genes_pos,
         Genes_neg = genes_neg
     ))
+}
+
+
+#' @keywords internal
+#' @family scPP
+#' @seealso [ScPP.optimized()]
+.OptimizationMode <- function(sc_dataset, geneList, probs) {
+    set.seed(123)
+
+    # Extract gene sets
+    geneList_AUC <- geneList[names(geneList) %in% c("gene_pos", "gene_neg")]
+    genes_sort <- geneList$genes_sort
+
+    if (length(geneList_AUC) != 2) {
+        cli::cli_abort("geneList must contain 'gene_pos' and 'gene_neg'")
+    }
+
+    if (is.null(genes_sort)) {
+        cli::cli_abort(
+            "Optimization mode requires 'genes_sort' in geneList for GSEA analysis"
+        )
+    }
+
+    n_probs <- length(probs)
+    ts_cli$cli_alert_info(
+        "Running optimization mode: testing {.val {n_probs}} threshold{?s}"
+    )
+
+    # Get RNA data
+    rna_data <- SeuratObject::LayerData(sc_dataset)
+
+    ts_cli$cli_alert_info("Computing AUC scores...")
+
+    # Compute AUCell scores once
+    cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
+    cellAUC <- AUCell::AUCell_calcAUC(geneList_AUC, cellrankings)
+
+    auc_matrix <- AUCell::getAUC(cellAUC)
+    auc_up <- as.numeric(auc_matrix["gene_pos", ])
+    auc_down <- as.numeric(auc_matrix["gene_neg", ])
+
+    # Create metadata table
+    metadata_dt <- data.table::as.data.table(
+        sc_dataset[[]],
+        keep.rownames = "cell_id"
+    )
+    metadata_dt[, `:=`(
+        AUCup = auc_up,
+        AUCdown = auc_down
+    )]
+
+    # Pre-compute all quantiles at once
+    all_probs <- c(probs, 1 - probs)
+    quantiles_up <- stats::quantile(auc_up, probs = all_probs)
+    quantiles_down <- stats::quantile(auc_down, probs = all_probs)
+
+    # Pre-allocate results matrix
+    NES_dif_res <- matrix(NA_real_, nrow = n_probs, ncol = 2)
+    colnames(NES_dif_res) <- c("prob", "NES_dif")
+    NES_dif_res[, "prob"] <- probs
+
+    ts_cli$cli_alert_info("Testing thresholds and computing NES differences...")
+
+    # Progress bar
+    cli::cli_progress_bar(
+        "Optimizing threshold",
+        total = n_probs,
+        format = "{cli::pb_spin} Testing prob {cli::pb_current}/{cli::pb_total} [{cli::pb_elapsed}]"
+    )
+
+    # Iterate through probability thresholds
+    for (i in seq_len(n_probs)) {
+        cli::cli_progress_update()
+
+        prob_i <- probs[i]
+
+        # Get quantile thresholds
+        up_low <- quantiles_up[i]
+        up_high <- quantiles_up[n_probs + i]
+        down_low <- quantiles_down[i]
+        down_high <- quantiles_down[n_probs + i]
+
+        # Identify cells using vectorized operations
+        pos_mask <- metadata_dt$AUCup >= up_high &
+            metadata_dt$AUCdown <= down_low
+        neg_mask <- metadata_dt$AUCup <= up_low &
+            metadata_dt$AUCdown >= down_high
+
+        scPP_pos <- metadata_dt$cell_id[pos_mask]
+        scPP_neg <- metadata_dt$cell_id[neg_mask]
+
+        # Skip if too few cells in either group
+        if (length(scPP_pos) < 3 || length(scPP_neg) < 3) {
+            next
+        }
+
+        # Classify cells
+        metadata_dt[, scPP := "Neutral"]
+        metadata_dt[pos_mask, scPP := "Positive"]
+        metadata_dt[neg_mask, scPP := "Negative"]
+
+        # Update Seurat object
+        sc_dataset$scPP <- metadata_dt$scPP
+        Seurat::Idents(sc_dataset) <- "scPP"
+
+        # Find markers
+        markers <- rlang::try_fetch(
+            Seurat::FindMarkers(
+                sc_dataset,
+                ident.1 = "Positive",
+                ident.2 = "Negative",
+                verbose = FALSE
+            ),
+            error = function(e) NULL
+        )
+
+        if (is.null(markers) || nrow(markers) == 0) {
+            next
+        }
+
+        # Filter markers efficiently using matrix operations
+        markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
+
+        pos_mask_genes <- markers_mat[, "avg_log2FC"] > 1 &
+            markers_mat[, "p_val_adj"] < 0.05
+        neg_mask_genes <- markers_mat[, "avg_log2FC"] < -1 &
+            markers_mat[, "p_val_adj"] < 0.05
+
+        genes_pos <- rownames(markers)[pos_mask_genes]
+        genes_neg <- rownames(markers)[neg_mask_genes]
+
+        # Check if we have markers in both directions
+        if (length(genes_pos) == 0 || length(genes_neg) == 0) {
+            next
+        }
+
+        # Run GSEA
+        res <- list(
+            Genes_pos = genes_pos,
+            Genes_neg = genes_neg
+        )
+
+        fgseaRes <- rlang::try_fetch(
+            fgsea::fgsea(
+                pathways = res,
+                stats = genes_sort
+            ),
+            error = function(e) NULL,
+            warning = function(w) NULL
+        )
+
+        if (is.null(fgseaRes)) {
+            next
+        }
+
+        # Calculate NES difference
+        nes_pos <- fgseaRes$NES[fgseaRes$pathway == "Genes_pos"]
+        nes_neg <- fgseaRes$NES[fgseaRes$pathway == "Genes_neg"]
+
+        if (length(nes_pos) > 0 && length(nes_neg) > 0) {
+            NES_dif_res[i, "NES_dif"] <- nes_pos - nes_neg
+        }
+    }
+
+    cli::cli_progress_done()
+
+    # Convert to data.frame and find optimal
+    NES_dif_res <- as.data.frame(NES_dif_res)
+
+    # Check if we have any valid results
+    valid_results <- !is.na(NES_dif_res$NES_dif)
+    if (!any(valid_results)) {
+        cli::cli_abort(
+            "No valid NES differences calculated. Try different probability thresholds."
+        )
+    }
+
+    # Find optimal probability
+    opt_idx <- which.max(NES_dif_res$NES_dif)
+    opt_prob <- NES_dif_res$prob[opt_idx]
+    opt_nes <- NES_dif_res$NES_dif[opt_idx]
+
+    ts_cli$cli_alert_success(
+        "Optimal threshold: {.val {opt_prob}} (NES difference: {.val {round(opt_nes, 3)}})"
+    )
+
+    # Show summary of valid results
+    valid_summary <- NES_dif_res[valid_results, ]
+    ts_cli$cli_alert_info(
+        "Valid results: {.val {sum(valid_results)}}/{.val {n_probs}} thresholds"
+    )
+
+    return(opt_prob)
 }

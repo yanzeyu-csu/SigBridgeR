@@ -27,6 +27,16 @@ The package includes multiple algorithms for integrative analysis of single-cell
 For a detailed tutorial, please visit: \url{https://wanglabcsu.github.io/SigBridgeR/}
 }
 
+\section{License}{
+
+SigBridgeR is licensed under the GPL version 3.0. Please see the LICENSE file for details.
+}
+
+\section{For Bug Reports, Suggestions, and Questions}{
+
+Please use the GitHub issue tracker at \url{https://github.com/wanglabcsu/SigBridgeR/issues}
+}
+
 \seealso{
 Useful links:
 \itemize{

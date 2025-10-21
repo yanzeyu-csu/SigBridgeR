@@ -275,14 +275,6 @@ DoscPAS <- function(
 #'
 #' @references Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associated subpopulation identifier. Briefings in Bioinformatics. 2024 Nov 22;26(1):bbae655.
 #'
-#' @importFrom Seurat DefaultAssay FindVariableFeatures VariableFeatures
-#' @importFrom Seurat GetAssayData FindNeighbors
-#' @importFrom Matrix crossprod
-#' @importFrom preprocessCore normalize.quantiles
-#' @importFrom purrr map reduce map_dbl
-#' @importFrom matrixStats rowMeans2 rowSds
-#' @importFrom stats pnorm p.adjust cor
-#' @importFrom data.table data.table fcase
 #' @importFrom methods as
 #'
 #' @keywords internal
@@ -386,9 +378,8 @@ scPAS.optimized <- function(
     ts_cli$cli_alert_info(
         "Extracting single-cell expression profiles..."
     )
-    sc_exprs <- Seurat::GetAssayData(sc_dataset, slot = "data")
+    sc_exprs <- SeuratObject::LayerData(sc_dataset)
     Expression_cell <- sc_exprs[common_genes, ]
-    Expression_cell <- methods::as(Expression_cell, "dgCMatrix")
 
     # Clean up memory using data.table approach
     rm_vars <- c("sc_exprs", "bulk_dataset")
@@ -474,11 +465,9 @@ scPAS.optimized <- function(
 
     y <- family_processor[[family]]()
 
-    # Alpha optimization with purrr
     alpha <- alpha %||%
         c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     lambda <- c()
-    # Use purrr for model fitting with early termination
     for (i in seq_along(alpha)) {
         set.seed(123)
 
@@ -543,7 +532,7 @@ scPAS.optimized <- function(
     scaled_exp <- methods::as(scaled_exp, "dgCMatrix")
 
     # Fast matrix multiplication for risk scores
-    risk_score <- as.matrix(Matrix::crossprod(scaled_exp, Coefs))
+    risk_score <- Matrix::crossprod(scaled_exp, Coefs)
 
     # Step 6: Permutation test with purrr and matrix optimizations
     ts_cli$cli_alert_info(
@@ -553,7 +542,7 @@ scPAS.optimized <- function(
     set.seed(12345)
 
     randomPermutation_list <- lapply(
-        1:permutation_times,
+        seq_len(permutation_times),
         function(i) {
             set.seed(1234 + i)
             sample(Coefs, length(Coefs), replace = FALSE)
@@ -622,10 +611,10 @@ scPAS.optimized <- function(
             alpha = alpha,
             lambda = lambda,
             family = family,
-            Coefs = Coefs,
-            bulk = x,
-            phenotype = y,
-            Network = Network
+            Coefs = Coefs
+            # ,bulk = x,
+            # phenotype = y,
+            # Network = Network
         ),
         cover = FALSE
     )

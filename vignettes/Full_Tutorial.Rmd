@@ -60,7 +60,7 @@ vignette: >
 
 ### 0.1 Introduction to SigBridgeR
 
-SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP),[aiminXie/scPAS](https://github.com/aiminXie/scPAS) and [tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
+SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP), [aiminXie/scPAS](https://github.com/aiminXie/scPAS) and [tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
 
 ------------------------------------------------------------------------
 
@@ -633,8 +633,9 @@ scissor_result = Screen(
 **Returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
--   `scissor_result`: The result of Scissor screening
+-   `scissor_result`: The result of Scissor screening, including the parameters used
 -   `reliability_test`: Reliability test results
+-   `cell_evaluation`: Cell evaluation results
 
 **Cell level Evaluation & Reliability Test**:
 
@@ -1811,6 +1812,12 @@ knitr::include_graphics("vignettes/example_figures/umaps.png")
 ```
 
 [![umaps](example_figures/umaps.png){fig-align="center" width="400"}]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps.png))
+
+All the analysis has been completed, and we can save the data for future use.
+
+```{r,save_example_data,eval=FALSE}
+SeuratObject::SaveSeuratRds(object = screen_result, filename = "screened_result.rds")
+```
 
 ### 5.2 Continuous phenotype associated cell screening
 

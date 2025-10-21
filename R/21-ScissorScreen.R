@@ -172,7 +172,11 @@ DoScissor <- function(
     sc_meta$scissor[rownames(sc_meta) %chin% infos1$Scissor_pos] <- "Positive"
     sc_meta$scissor[rownames(sc_meta) %chin% infos1$Scissor_neg] <- "Negative"
     sc_data <- Seurat::AddMetaData(sc_data, metadata = sc_meta) %>%
-        AddMisc(scissor_type = label_type, cover = FALSE)
+        AddMisc(
+            scissor_type = label_type,
+            scissor_para = infos1$para,
+            cover = FALSE
+        )
 
     # *reliability test
     if (reliability_test) {
@@ -181,32 +185,31 @@ DoScissor <- function(
         chk::chk_number(alpha)
 
         # indicate that Y has only two levels, both Pos and Neg cells exist
-        if (!length(table(infos1$Y)) < 2) {
-            ts_cli$cli_alert_info(
-                cli::col_green("Start reliability test")
-            )
-
-            reliability_result <- Scissor::reliability.test(
-                infos1$X,
-                infos1$Y,
-                infos1$network,
-                alpha = alpha,
-                family = scissor_family,
-                cell_num = length(infos1$Scissor_pos) +
-                    length(infos1$Scissor_neg),
-                n = reliability_test.n,
-                nfold = reliability_test.nfold
-            )
-
-            cli::cli_alert_success(
-                "reliability test: Done"
-            )
-        } else {
+        if (length(table(infos1$Y)) < 2) {
             cli::cli_abort(c(
                 "x" = "Error in reliability test:",
                 ">" = "one of the Pos or Neg cells doesn't exist"
             ))
         }
+        ts_cli$cli_alert_info(
+            cli::col_green("Start reliability test")
+        )
+
+        reliability_result <- Scissor::reliability.test(
+            infos1$X,
+            infos1$Y,
+            infos1$network,
+            alpha = alpha,
+            family = scissor_family,
+            cell_num = length(infos1$Scissor_pos) +
+                length(infos1$Scissor_neg),
+            n = reliability_test.n,
+            nfold = reliability_test.nfold
+        )
+
+        ts_cli$cli_alert_info(
+            cli::col_green("reliability test: Done")
+        )
     } else {
         reliability_result <- NULL
     }
@@ -228,8 +231,8 @@ DoScissor <- function(
             bootstrap_n = cell_evaluation.bootstrap_n
         )
 
-        cli::cli_alert_success(
-            "cell evalutaion: Done"
+        ts_cli$cli_alert_info(
+            cli::col_green("Cell evalutaion: Done")
         )
     } else {
         evaluate_res <- NULL
@@ -237,7 +240,7 @@ DoScissor <- function(
 
     return(list(
         scRNA_data = sc_data,
-        scissor_result = infos1, # parameters
+        scissor_result = infos1, # parameters included
         reliability_result = reliability_result,
         cell_evaluation = evaluate_res
     ))
@@ -333,7 +336,7 @@ Scissor.v5.optimized <- function(
 
         n_bulk <- ncol(bulk_mat)
         # gene-sample
-        Expression_bulk <- dataset1[, 1:n_bulk, drop = FALSE]
+        Expression_bulk <- dataset1[, seq_len(n_bulk), drop = FALSE]
         # gene-cell
         Expression_cell <- dataset1[, (n_bulk + 1):ncol(dataset1), drop = FALSE]
 
@@ -346,10 +349,21 @@ Scissor.v5.optimized <- function(
         X <- cor(Expression_bulk, Expression_cell)
         quality_check <- matrixStats::colQuantiles(X, probs = seq(0, 1, 0.25))
 
-        cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
+        cli::cli_text(
+            strrep("-", floor(getOption("width") / 2)),
+            "\n",
+            sep = ""
+        )
         cli::cli_text("Five-number summary of correlations:")
-        print(quality_check %>% asplit(2) %>% purrr::map_dbl(mean))
-        cat(strrep("-", floor(getOption("width") / 2)), "\n", sep = "")
+        quality_check %>%
+            asplit(2) %>%
+            purrr::map_dbl(mean) %>%
+            cli::cli_text()
+        cli::cli_text(
+            strrep("-", floor(getOption("width") / 2)),
+            "\n",
+            sep = ""
+        )
         # median
         if (quality_check[3] < 0.01) {
             cli::cli_warn(
@@ -424,14 +438,14 @@ Scissor.v5.optimized <- function(
                 Expression_cell,
                 file = Save_file
             )
-            ts_cli$cli_alert_success(glue::glue(
-                "Statistics data saved to `{Save_file}`."
-            ))
+            ts_cli$cli_alert_success(
+                "Statistics data saved to {.file {Save_file}}."
+            )
         }
     } else {
         # Load data from previous work
         ts_cli$cli_alert_info(
-            glue::glue("Loading data from `{Load_file}`...")
+            "Loading data from {.file {Load_file}}"
         )
         load(Load_file)
     }
@@ -444,6 +458,7 @@ Scissor.v5.optimized <- function(
         bulk_dataset,
         phenotype
     )
+    gc(verbose = FALSE)
 
     ts_cli$cli_alert_info("Screening...")
 
@@ -537,9 +552,10 @@ Scissor.v5.optimized <- function(
         para = list(
             alpha = last_success$alpha,
             lambda = last_success$fit0$lambda.min,
-            family = family
+            family = family,
+            Coefs = last_success$Coefs # for miscellaneous informationss
         ),
-        Coefs = last_success$Coefs,
+        Coefs = last_success$Coefs, # for cell evaluation
         Scissor_pos = last_success$Cell1,
         Scissor_neg = last_success$Cell2,
         X = X,

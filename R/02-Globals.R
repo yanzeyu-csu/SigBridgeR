@@ -45,6 +45,7 @@ utils::globalVariables(c(
     "index",
     "is_outlier",
     "label",
+    "MatchArg",
     "max_suffix",
     "model_results",
     "n",

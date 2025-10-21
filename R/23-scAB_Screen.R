@@ -80,7 +80,7 @@ DoscAB <- function(
     chk::chk_not_any_na(matched_bulk)
     chk::chk_not_any_na(phenotype)
 
-    # robust, scAB is more strict than Scissor and scPAS
+    # scAB is more strict than Scissor and scPAS
     if (phenotype_class == "survival") {
         if (!all(rownames(phenotype) == colnames(matched_bulk))) {
             cli::cli_abort(c(
@@ -128,7 +128,16 @@ DoscAB <- function(
         scAB_Object = scAB_result,
         tred = tred
     ) %>%
-        AddMisc(scAB_type = label_type, cover = FALSE)
+        AddMisc(
+            scAB_type = label_type,
+            scAB_para = list(
+                iter = scAB_result$iter,
+                loss = scAB_result$loss,
+                method = scAB_result$method,
+                tred = tred
+            ),
+            cover = FALSE
+        )
 
     sc_data[[]] <- dplyr::rename(sc_data[[]], scAB = `scAB_select`) %>%
         dplyr::mutate(
@@ -197,10 +206,10 @@ create_scAB.v5 <- function(
     Ahat <- D12 %*% (A) %*% D12
 
     # similarity matrix
-    sc_exprs <- as.data.frame(Seurat::GetAssayData(Object, slot = "data"))
+    sc_exprs <- as.data.frame(SeuratObject::LayerData(Object))
     common <- intersect(rownames(bulk_dataset), rownames(sc_exprs))
     dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ]) # Dataset before quantile normalization.
-    dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after  quantile normalization.
+    dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after quantile normalization.
     rownames(dataset1) <- common
     colnames(dataset1) <- colnames(dataset0)
     Expression_bulk <- dataset1[, seq_len(ncol(bulk_dataset))]

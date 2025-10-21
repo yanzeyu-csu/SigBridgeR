@@ -2,107 +2,95 @@
 % Please edit documentation in R/24-scPP_Screen.R
 \name{ScPP.optimized}
 \alias{ScPP.optimized}
-\title{Single-Cell Phenotype Profiling (Optimized)}
+\title{scPP Screening with Optimal Threshold Detection}
 \usage{
-ScPP.optimized(sc_dataset, geneList, probs = 0.2)
+ScPP.optimized(sc_dataset, geneList, probs = c(0.2, NULL))
 }
 \arguments{
 \item{sc_dataset}{A Seurat object containing single-cell RNA-seq data.
 Must have RNA assay with normalized data.}
 
-\item{geneList}{A named list of length 2 containing gene sets for phenotype
-characterization. The list should contain:
+\item{geneList}{A named list containing gene sets:
 \itemize{
-\item \code{gene_pos} - Genes associated with positive phenotype
-\item \code{gene_neg} - Genes associated with negative phenotype
+\item \code{gene_pos} - Genes associated with positive phenotype (required)
+\item \code{gene_neg} - Genes associated with negative phenotype (required)
+\item \code{genes_sort} - Named numeric vector of ranked genes (required for optimization mode)
 }}
 
-\item{probs}{Numeric value between 0 and 1 specifying the quantile threshold
-for phenotype classification. Default: 0.2 (20th and 80th percentiles).}
+\item{probs}{Numeric value or vector of probability thresholds:
+\itemize{
+\item Single value (e.g., 0.2): Performs phenotype profiling with fixed threshold
+\item Multiple values (e.g., seq(0.2, 0.45, by = 0.05)): Finds optimal threshold
+\item NULL (default): Automatically searches optimal threshold using seq(0.2, 0.45, by = 0.05)
+}}
 }
 \value{
 A list with three components:
 \itemize{
-\item \code{metadata} - Data frame containing cell metadata with added columns:
-\itemize{
-\item \code{scPP_AUC} - AUCell scores for positive gene set
-\item \code{scPP_AUCwn} - AUCell scores for negative gene set
-\item \code{ScPP} - Phenotype classification: "Phenotype+", "Phenotype-", or "Background"
-}
-\item \code{Genes_pos} - Character vector of genes significantly upregulated
-in Phenotype+ cells compared to Phenotype- cells
-\item \code{Genes_neg} - Character vector of genes significantly upregulated
-in Phenotype- cells compared to Phenotype+ cells
+\item \code{metadata} - Data frame with cell metadata including scPP_AUCup, scPP_AUCdown, scPP
+\item \code{Genes_pos} - Genes upregulated in Positive vs Negative
+\item \code{Genes_neg} - Genes upregulated in Negative vs Positive
 }
 }
 \description{
-Performs optimized single-cell phenotype profiling using gene set enrichment
-analysis and differential expression to identify phenotype-associated cells
-and marker genes. This implementation uses AUCell for efficient gene set
-scoring and provides comprehensive phenotype characterization.
+Performs single-cell phenotype screening using gene set enrichment analysis.
+Can either use a fixed probability threshold or automatically find the optimal
+threshold by testing multiple values and maximizing NES difference.
 }
 \details{
-This function implements an optimized workflow for single-cell phenotype
-profiling that combines gene set enrichment analysis with differential
-expression to identify and characterize cell phenotypes:
-\subsection{Method Overview:}{
+This function operates in two modes based on the \code{probs} parameter:
+\subsection{Fixed Threshold Mode (length(probs) == 1):}{
 \enumerate{
-\item \strong{Gene Set Scoring}: Uses AUCell to calculate enrichment scores for
-both positive and negative gene sets in each cell
-\item \strong{Phenotype Classification}: Identifies phenotype-positive and
-phenotype-negative cells based on quantile thresholds of AUC scores
-\item \strong{Differential Expression}: Finds marker genes distinguishing the
-two phenotype groups using Seurat's FindMarkers
+\item Computes AUCell scores for positive and negative gene sets
+\item Classifies cells based on the specified threshold
+\item Identifies differential markers between phenotype groups
+\item Returns complete results with metadata and marker genes
 }
 }
 
-\subsection{Phenotype Classification Criteria:}{
-\itemize{
-\item \strong{Phenotype+}: High positive gene set score AND low negative gene set score
-\item \strong{Phenotype-}: Low positive gene set score AND high negative gene set score
-\item \strong{Background}: All other cells not meeting above criteria
-}
-}
-
-\subsection{Differential Expression Thresholds:}{
-\itemize{
-\item Absolute average log2 fold change > 1
-\item Adjusted p-value < 0.05
+\subsection{Optimization Mode (length(probs) > 1 or NULL):}{
+\enumerate{
+\item Tests multiple probability thresholds
+\item For each threshold, classifies cells and finds markers
+\item Runs GSEA to calculate NES for marker sets
+\item Returns threshold with maximum NES difference (Positive - Negative)
+\item Requires \code{genes_sort} in geneList for GSEA analysis
 }
 }
 }
 \note{
-The function requires the Seurat object to have normalized data in the RNA
-assay. For Seurat version compatibility, it handles both v4 and v5 data
-structures automatically.
+\itemize{
+\item Fixed threshold mode: Faster, returns detailed results
+\item Optimization mode: Slower, requires genes_sort, but robust
+}
 }
 \examples{
 \dontrun{
-# Example using a Seurat object and gene lists
-gene_list <- list(
-  gene_pos = c("CD4", "IL7R", "CCR7"),
-  gene_neg = c("CD8A", "CD8B", "GZMB")
-)
-
+# Fixed threshold mode
 result <- ScPP.optimized(
   sc_dataset = seurat_obj,
-  geneList = gene_list,
+  geneList = list(
+    gene_pos = c("CD4", "IL7R"),
+    gene_neg = c("CD8A", "CD8B")
+  ),
   probs = 0.2
 )
 
-# Access results
-head(result$metadata)
-result$Genes_pos
-result$Genes_neg
+# Optimization mode
+result <- ScPP.optimized(
+  sc_dataset = seurat_obj,
+  geneList = list(
+    gene_pos = c("CD4", "IL7R"),
+    gene_neg = c("CD8A", "CD8B"),
+    genes_sort = ranked_genes
+  ),
+  probs = NULL  # or seq(0.2, 0.45, by = 0.05)
+)
 }
 
 }
-\references{
-\url{https://github.com/WangX-Lab/ScPP/}, function ScPP()
-}
 \seealso{
-\code{\link[AUCell:AUCell_buildRankings]{AUCell::AUCell_buildRankings()}}, \code{\link[AUCell:AUCell_calcAUC]{AUCell::AUCell_calcAUC()}},
-\code{\link[Seurat:FindMarkers]{Seurat::FindMarkers()}}
+\code{\link[AUCell:AUCell_calcAUC]{AUCell::AUCell_calcAUC()}}, \code{\link[Seurat:FindMarkers]{Seurat::FindMarkers()}}, \code{\link[fgsea:fgsea]{fgsea::fgsea()}}
 
 Other scPP: 
 \code{\link{Check0VarRows}()},

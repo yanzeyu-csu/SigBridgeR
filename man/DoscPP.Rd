@@ -13,7 +13,7 @@ DoscPP(
   ref_group = 0,
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
-  probs = 0.2
+  probs = c(0.2, NULL)
 )
 }
 \arguments{
@@ -40,7 +40,7 @@ DoscPP(
 
 \item{estimate_cutoff}{Effect size threshold for \strong{continuous} traits (default: 0.2)}
 
-\item{probs}{Quantile cutoff for cell classification (default: 0.2)}
+\item{probs}{A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)}
 }
 \value{
 A list containing:
@@ -54,7 +54,7 @@ A list containing:
 \item{AUC}{A data.frame with area under the ROC curve:
 \describe{
 \item{scPP_AUCup}{AUC for positive}
-\item{AUCdown}{AUC for negative}
+\item{scPP_AUCdown}{AUC for negative}
 }
 }
 }
@@ -98,6 +98,7 @@ surv_res <- DoscPP(
   phenotype_class = "Survival"
 )
 }
+
 
 }
 \seealso{

@@ -279,7 +279,7 @@ DoDEGAS <- function(
     }
 
     # Python-like data formats
-    sc_mat <- Seurat::GetAssayData(sc_dataset, slot = "data")
+    sc_mat <- SeuratObject::LayerData(sc_data)
     cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
     t_sc_mat <- Matrix::t(sc_mat[cm_genes, ])
     t_matched_bulk <- Matrix::t(matched_bulk[cm_genes, ])
@@ -405,7 +405,11 @@ DoDEGAS <- function(
         metadata = t_sc_preds[["label"]],
         col.name = "DEGAS"
     ) %>%
-        AddMisc(DEGAS_type = label_type)
+        AddMisc(
+            DEGAS_type = label_type,
+            DEGAS_para = degas_params,
+            cover = FALSE
+        )
 
     ts_cli$cli_alert_info(cli::col_green("DEGAS Screen done."))
 

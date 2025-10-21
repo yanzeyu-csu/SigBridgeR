@@ -39,7 +39,6 @@
 #' }
 #'
 #' @export
-#' @importFrom tibble rownames_to_column column_to_rownames
 #' @importFrom cli cli_abort cli_alert_warning cli_alert_success
 #' @importFrom data.table merge.data.table
 #' @importFrom purrr map
@@ -94,7 +93,7 @@ MergeResult <- function(...) {
     )
 
     merged_obj <- seurat_objects[[1]]
-    merged_obj@meta.data <- tibble::column_to_rownames(merged_meta, "cell_id")
+    merged_obj[[]] <- Col2Rownames(merged_meta, "cell_id")
 
     # merge misc
     all_keys <- unique(unlist(lapply(seurat_objects, function(obj) {

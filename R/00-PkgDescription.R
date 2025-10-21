@@ -16,6 +16,12 @@
 #' @section Tutorial:
 #' For a detailed tutorial, please visit: \url{https://wanglabcsu.github.io/SigBridgeR/}
 #'
+#' @section License:
+#' SigBridgeR is licensed under the GPL version 3.0. Please see the LICENSE file for details.
+#'
+#' @section For Bug Reports, Suggestions, and Questions:
+#' Please use the GitHub issue tracker at \url{https://github.com/wanglabcsu/SigBridgeR/issues}
+#'
 #' @author Yuxi Yang \email{15364051195@163.com} ORCID: 0009-0006-1329-1224 (creator, author)
 #'
 #' @docType package

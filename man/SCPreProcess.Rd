@@ -31,7 +31,7 @@ SCPreProcess(sc, ...)
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = seq_len(10L),
+  dims = NULL,
   verbose = TRUE,
   ...
 )
@@ -54,7 +54,57 @@ SCPreProcess(sc, ...)
 \item \code{Seurat}: Preprocessed Seurat object
 }}
 
-\item{...}{Method-specific arguments (see below)}
+\item{...}{Additional arguments passed to specific methods. Currently unused.}
+
+\item{meta_data}{A data.frame containing metadata for each cell. It will be
+added to the Seurat object as \verb{@meta.data}. If \code{NULL}, it will be
+extracted from the input object if possible.}
+
+\item{column2only_tumor}{A character of column names in \code{meta_data}, used to
+filter the Seurat object to only tumor cells. If \code{NULL}, no filtering is performed.}
+
+\item{project}{A character of project name, used to name the Seurat object.}
+
+\item{min_cells}{Minimum number of cells that must express a feature for it
+to be included in the analysis. Defaults to \code{400}.}
+
+\item{min_features}{Minimum number of features that must be detected in a
+cell for it to be included in the analysis. Defaults to \code{0}.}
+
+\item{quality_control}{Logical indicating whether to perform mitochondrial
+percentage quality control. Defaults to \code{TRUE}.}
+
+\item{quality_control.pattern}{Character pattern to identify mitochondrial
+genes. Customized patterns are supported. Defaults to \code{"^MT-"}.}
+
+\item{data_filter}{Logical indicating whether to filter cells based on
+quality metrics. Defaults to \code{TRUE}.}
+
+\item{data_filter.nFeature_RNA_thresh}{Numeric vector of length 2 specifying
+the minimum and maximum number of features per cell. Defaults to \code{c(200, 6000)}.}
+
+\item{data_filter.percent.mt}{Maximum mitochondrial percentage allowed.
+Defaults to \code{20}.}
+
+\item{normalization_method}{Method for normalization: "LogNormalize", "CLR",
+or "RC". Defaults to \code{"LogNormalize"}.}
+
+\item{scale_factor}{Scaling factor for normalization. Defaults to \code{10000}.}
+
+\item{scale_features}{Features to use for scaling. If NULL, uses all variable
+features. Defaults to \code{NULL}.}
+
+\item{selection_method}{Method for variable feature selection: "vst", "mvp",
+or "disp". Defaults to \code{"vst"}.}
+
+\item{resolution}{Resolution parameter for clustering. Higher values lead to
+more clusters. Defaults to \code{0.6}.}
+
+\item{dims}{Dimensions to use for clustering and dimensionality reduction.
+If NULL, automatically determined by elbow method. Defaults to \code{NULL}.}
+
+\item{verbose}{Logical indicating whether to print progress messages.
+Defaults to \code{TRUE}.}
 }
 \value{
 A Seurat object containing:
@@ -73,4 +123,44 @@ A generic function for standardized preprocessing of single-cell RNA-seq data
 from multiple sources. Handles data.frame/matrix, AnnData, and Seurat inputs
 with tumor cell filtering. Implements a complete analysis pipeline
 from raw data to clustered embeddings.
+}
+\examples{
+\dontrun{
+# Example with matrix input
+counts_matrix <- matrix(rpois(1000, 5), nrow = 100, ncol = 10)
+rownames(counts_matrix) <- paste0("Gene", 1:100)
+colnames(counts_matrix) <- paste0("Cell", 1:10)
+
+seurat_obj <- SCPreProcess(
+  sc = counts_matrix,
+  project = "TestProject",
+  min_features = 50,
+  resolution = 0.8
+)
+
+# Example with tumor cell filtering
+metadata <- data.frame(
+  cell_type = c(rep("Tumor", 5), rep("Normal", 5)),
+  row.names = paste0("Cell", 1:10)
+)
+
+tumor_seurat <- SCPreProcess(
+  sc = counts_matrix,
+  meta_data = metadata,
+  column2only_tumor = "cell_type",
+  project = "TumorAnalysis"
+)
+}
+
+}
+\seealso{
+\code{\link[Seurat]{CreateSeuratObject}},
+\code{\link[Seurat]{NormalizeData}},
+\code{\link[Seurat]{ScaleData}},
+\code{\link[Seurat]{FindVariableFeatures}},
+\code{\link[Seurat]{RunPCA}},
+\code{\link[Seurat]{RunTSNE}},
+\code{\link[Seurat]{RunUMAP}},
+\code{\link[Seurat]{FindNeighbors}},
+\code{\link[Seurat]{FindClusters}}
 }

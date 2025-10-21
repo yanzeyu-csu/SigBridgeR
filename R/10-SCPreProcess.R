@@ -16,7 +16,40 @@
 #'    - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
 #'    - `AnnDataR6`: Python AnnData object via reticulate
 #'    - `Seurat`: Preprocessed Seurat object
-#' @param ... Method-specific arguments (see below)
+#' @param meta_data A data.frame containing metadata for each cell. It will be
+#'    added to the Seurat object as `@meta.data`. If `NULL`, it will be
+#'    extracted from the input object if possible.
+#' @param column2only_tumor A character of column names in `meta_data`, used to
+#'    filter the Seurat object to only tumor cells. If `NULL`, no filtering is performed.
+#' @param project A character of project name, used to name the Seurat object.
+#' @param min_cells Minimum number of cells that must express a feature for it
+#'    to be included in the analysis. Defaults to `400`.
+#' @param min_features Minimum number of features that must be detected in a
+#'    cell for it to be included in the analysis. Defaults to `0`.
+#' @param quality_control Logical indicating whether to perform mitochondrial
+#'    percentage quality control. Defaults to `TRUE`.
+#' @param quality_control.pattern Character pattern to identify mitochondrial
+#'    genes. Customized patterns are supported. Defaults to `"^MT-"`.
+#' @param data_filter Logical indicating whether to filter cells based on
+#'    quality metrics. Defaults to `TRUE`.
+#' @param data_filter.nFeature_RNA_thresh Numeric vector of length 2 specifying
+#'    the minimum and maximum number of features per cell. Defaults to `c(200, 6000)`.
+#' @param data_filter.percent.mt Maximum mitochondrial percentage allowed.
+#'    Defaults to `20`.
+#' @param normalization_method Method for normalization: "LogNormalize", "CLR",
+#'    or "RC". Defaults to `"LogNormalize"`.
+#' @param scale_factor Scaling factor for normalization. Defaults to `10000`.
+#' @param scale_features Features to use for scaling. If NULL, uses all variable
+#'    features. Defaults to `NULL`.
+#' @param selection_method Method for variable feature selection: "vst", "mvp",
+#'    or "disp". Defaults to `"vst"`.
+#' @param resolution Resolution parameter for clustering. Higher values lead to
+#'    more clusters. Defaults to `0.6`.
+#' @param dims Dimensions to use for clustering and dimensionality reduction.
+#'    If NULL, automatically determined by elbow method. Defaults to `NULL`.
+#' @param verbose Logical indicating whether to print progress messages.
+#'    Defaults to `TRUE`.
+#' @param ... Additional arguments passed to specific methods. Currently unused.
 #'
 #' @return A Seurat object containing:
 #' \itemize{
@@ -28,6 +61,46 @@
 #'   \item When tumor cells filtered: original dimensions in `@misc$raw_dim`
 #'   \item Final dimensions in `@misc$self_dim`
 #' }
+#'
+#' @examples
+#' \dontrun{
+#' # Example with matrix input
+#' counts_matrix <- matrix(rpois(1000, 5), nrow = 100, ncol = 10)
+#' rownames(counts_matrix) <- paste0("Gene", 1:100)
+#' colnames(counts_matrix) <- paste0("Cell", 1:10)
+#'
+#' seurat_obj <- SCPreProcess(
+#'   sc = counts_matrix,
+#'   project = "TestProject",
+#'   min_features = 50,
+#'   resolution = 0.8
+#' )
+#'
+#' # Example with tumor cell filtering
+#' metadata <- data.frame(
+#'   cell_type = c(rep("Tumor", 5), rep("Normal", 5)),
+#'   row.names = paste0("Cell", 1:10)
+#' )
+#'
+#' tumor_seurat <- SCPreProcess(
+#'   sc = counts_matrix,
+#'   meta_data = metadata,
+#'   column2only_tumor = "cell_type",
+#'   project = "TumorAnalysis"
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link[Seurat]{CreateSeuratObject}},
+#' \code{\link[Seurat]{NormalizeData}},
+#' \code{\link[Seurat]{ScaleData}},
+#' \code{\link[Seurat]{FindVariableFeatures}},
+#' \code{\link[Seurat]{RunPCA}},
+#' \code{\link[Seurat]{RunTSNE}},
+#' \code{\link[Seurat]{RunUMAP}},
+#' \code{\link[Seurat]{FindNeighbors}},
+#' \code{\link[Seurat]{FindClusters}}
+#'
 NULL
 
 
@@ -56,7 +129,7 @@ SCPreProcess.default <- function(
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
-    dims = seq_len(10L),
+    dims = NULL,
     verbose = TRUE,
     ...
 ) {
@@ -332,7 +405,7 @@ ProcessSeuratObject <- function(
 #' @family single_cell_preprocess
 ClusterAndReduce <- function(
     obj,
-    dims = seq_len(10),
+    dims = NULL,
     resolution = 0.6,
     verbose = TRUE
 ) {
