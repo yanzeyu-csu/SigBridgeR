@@ -46,6 +46,10 @@
 #' where \eqn{S} is skewness, \eqn{K} is kurtosis, and \eqn{n} is sample size,
 #' with modified coefficients for different parameter knowledge scenarios.
 #'
+#' @note
+#' This test cannot be used for small sample sizes (n < 500) due to the assumption
+#' of normality. For smaller samples, consider using the Shapiro-Wilk test.
+#'
 #' @section Reference:
 #' KhrushchevSergey/modified_jarque_bera_test Internet. cited 2025 Sep 28.
 #' Available from: \url{https://github.com/KhrushchevSergey/Modified-Jarque-Bera-test/blob/main/modified_jarque_bera_test.R}
@@ -70,6 +74,8 @@
 #' @seealso
 #' [stats::shapiro.test()] for the Shapiro-Wilk test
 #'
+#' @keywords htest
+#' @family normality_test
 #' @keywords internal
 jb.test.modified <- function(x, mean = NA, sd = NA) {
     if ((NCOL(x) > 1) || is.data.frame(x)) {
@@ -82,10 +88,10 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
     n <- length(x)
 
     if (is.na(mean) & is.na(sd)) {
-        m1 <- sum(x) / n
-        m2 <- sum((x - m1)^2) / n
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
+        m1 <- matrixStats::sum2(x) / n
+        m2 <- matrixStats::sum2((x - m1)^2) / n
+        m3 <- matrixStats::sum2((x - m1)^3) / n
+        m4 <- matrixStats::sum2((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 24)
@@ -93,19 +99,19 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
 
     if (!is.na(mean) & is.na(sd)) {
         m1 <- mean
-        m2 <- sum((x - m1)^2) / n
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
+        m2 <- matrixStats::sum2((x - m1)^2) / n
+        m3 <- matrixStats::sum2((x - m1)^3) / n
+        m4 <- matrixStats::sum2((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 24)
     }
 
     if (is.na(mean) & !is.na(sd)) {
-        m1 <- mean(x)
+        m1 <- matrixStats::mean2(x)
         m2 <- sd^2
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
+        m3 <- matrixStats::sum2((x - m1)^3) / n
+        m4 <- matrixStats::sum2((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 96)
@@ -114,8 +120,8 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
     if (!is.na(mean) & !is.na(sd)) {
         m1 <- mean
         m2 <- sd^2
-        m3 <- sum((x - m1)^3) / n
-        m4 <- sum((x - m1)^4) / n
+        m3 <- matrixStats::sum2((x - m1)^3) / n
+        m4 <- matrixStats::sum2((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 96)
@@ -137,7 +143,6 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
         class = "htest"
     )
 }
-
 
 #' @title D'Agostino Test of Normality
 #'
@@ -209,8 +214,8 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
 #' dagostino.test(large_sample)
 #' }
 #'
-#'
 #' @keywords htest
+#' @family normality_test
 #' @keywords internal
 #'
 dagostino.test <- function(x) {
@@ -224,11 +229,11 @@ dagostino.test <- function(x) {
     x <- x[!is.na(x)]
     n <- as.double(length(x))
 
-    x_mean <- mean(x)
+    x_mean <- matrixStats::mean2(x)
     x_centered <- x - x_mean
-    m2 <- sum(x_centered^2) / n
-    m3 <- sum(x_centered^3) / n
-    m4 <- sum(x_centered^4) / n
+    m2 <- matrixStats::sum2(x_centered^2) / n
+    m3 <- matrixStats::sum2(x_centered^3) / n
+    m4 <- matrixStats::sum2(x_centered^4) / n
 
     g1 <- m3 / (m2^(3 / 2))
 
@@ -347,4 +352,462 @@ dagostino.test <- function(x) {
         class = "htest"
     )
     return(result)
+}
+
+#' @title Anderson-Darling Normality Test
+#'
+#' @description
+#' Performs the Anderson-Darling test for normality to assess whether a given
+#' sample comes from a normal distribution. This implementation follows the
+#' methodology from the `nortest` R package.
+#'
+#' @param x A numeric vector of data values. Missing values will be
+#'          automatically removed.
+#'
+#' @return A list with class `"htest"` containing the following components:
+#' \itemize{
+#'   \item `statistic` - The Anderson-Darling test statistic (A)
+#'   \item `p.value` - The p-value for the test
+#'   \item `method` - The name of the method ("Anderson-Darling normality test")
+#'   \item `data.name` - The name of the data used in the test
+#' }
+#'
+#' @details
+#' The Anderson-Darling test is a statistical test of whether a given sample
+#' of data is drawn from a normal distribution. The test is a modification
+#' of the Kolmogorov-Smirnov (K-S) test and gives more weight to the tails
+#' than the K-S test.
+#'
+#' This implementation requires a minimum sample size of 8 observations.
+#' The test statistic is calculated as:
+#' \deqn{A^2 = -n - \frac{1}{n}\sum_{i=1}^n(2i-1)[\ln(p_i) + \ln(1-p_{n+1-i})]}
+#' where \eqn{p_i = \Phi((x_i - \mu)/\sigma)} and \eqn{\Phi} is the cumulative
+#' distribution function of the standard normal distribution.
+#'
+#' The p-value is calculated using different approximation formulas depending
+#' on the value of the adjusted test statistic:
+#' \itemize{
+#'   \item For AA < 0.2: \eqn{p = 1 - \exp(-13.436 + 101.14 \times AA - 223.73 \times AA^2)}
+#'   \item For 0.2 ≤ AA < 0.34: \eqn{p = 1 - \exp(-8.318 + 42.796 \times AA - 59.938 \times AA^2)}
+#'   \item For 0.34 ≤ AA < 0.6: \eqn{p = \exp(0.9177 - 4.279 \times AA - 1.38 \times AA^2)}
+#'   \item For 0.6 ≤ AA < 10: \eqn{p = \exp(1.2937 - 5.709 \times AA + 0.0186 \times AA^2)}
+#'   \item For AA ≥ 10: \eqn{p = 3.7 \times 10^{-24}}
+#' }
+#' where \eqn{AA = A^2 \times (1 + 0.75/n + 2.25/n^2)}.
+#'
+#' @references
+#' This implementation is based on the `nortest` package:
+#'
+#' Gross, J. and Ligges, U. (2015). nortest: Tests for Normality. R package
+#' version 1.0-4. https://CRAN.R-project.org/package=nortest
+#'
+#' The original test is described in:
+#'
+#' Anderson, T.W. and Darling, D.A. (1954). A Test of Goodness of Fit.
+#' Journal of the American Statistical Association, 49(268), 765-769.
+#'
+#' Stephens, M.A. (1974). EDF Statistics for Goodness of Fit and Some
+#' Comparisons. Journal of the American Statistical Association, 69(347), 730-737.
+#'
+#' @examples
+#' # Test a sample from normal distribution
+#' set.seed(123)
+#' normal_data <- rnorm(100)
+#' ad.test(normal_data)
+#'
+#' # Test a sample from non-normal distribution
+#' exponential_data <- rexp(50)
+#' ad.test(exponential_data)
+#'
+#' # Test with real data
+#' if (require("datasets")) {
+#'   ad.test(iris$Sepal.Length)
+#' }
+#'
+#' @seealso
+#' \code{\link[nortest]{ad.test}} for the original implementation in the nortest package.
+#' \code{\link{shapiro.test}} for the Shapiro-Wilk normality test.
+#' \code{\link{ks.test}} for the Kolmogorov-Smirnov test.
+#'
+#' @keywords htest
+#' @family normality_test
+#' @keywords internal
+ad.test <- function(x) {
+    DNAME <- deparse(substitute(x))
+    x <- sort(x[complete.cases(x)])
+    n <- length(x)
+    if (n < 8) {
+        stop("sample size must be greater than 7")
+    }
+    logp1 <- pnorm((x - mean(x)) / sd(x), log.p = TRUE)
+    logp2 <- pnorm(-(x - mean(x)) / sd(x), log.p = TRUE)
+    h <- (2 * seq(1:n) - 1) * (logp1 + rev(logp2))
+    A <- -n - mean(h)
+    AA <- (1 + 0.75 / n + 2.25 / n^2) * A
+    if (AA < 0.2) {
+        pval <- 1 - exp(-13.436 + 101.14 * AA - 223.73 * AA^2)
+    } else if (AA < 0.34) {
+        pval <- 1 - exp(-8.318 + 42.796 * AA - 59.938 * AA^2)
+    } else if (AA < 0.6) {
+        pval <- exp(0.9177 - 4.279 * AA - 1.38 * AA^2)
+    } else if (AA < 10) {
+        pval <- exp(1.2937 - 5.709 * AA + 0.0186 * AA^2)
+    } else {
+        pval <- 3.7e-24
+    }
+    RVAL <- list(
+        statistic = c(A = A),
+        p.value = pval,
+        method = "Anderson-Darling normality test",
+        data.name = DNAME
+    )
+    class(RVAL) <- "htest"
+    return(RVAL)
+}
+
+#' @title Cramer-von Mises Normality Test
+#'
+#' @description
+#' Performs the Cramer-von Mises test for normality to assess whether a given
+#' sample comes from a normal distribution. This implementation follows the
+#' methodology from the `nortest` R package.
+#'
+#' @param x A numeric vector of data values. Missing values will be
+#'          automatically removed.
+#'
+#' @return A list with class `"htest"` containing the following components:
+#' \itemize{
+#'   \item `statistic` - The Cramer-von Mises test statistic (W)
+#'   \item `p.value` - The p-value for the test
+#'   \item `method` - The name of the method ("Cramer-von Mises normality test")
+#'   \item `data.name` - The name of the data used in the test
+#' }
+#'
+#' @details
+#' The Cramer-von Mises test is a statistical test of whether a given sample
+#' of data is drawn from a normal distribution. It is an empirical distribution
+#' function (EDF) test that compares the empirical distribution function of the
+#' sample with the cumulative distribution function of the normal distribution.
+#'
+#' This implementation requires a minimum sample size of 8 observations.
+#' The test statistic is calculated as:
+#' \deqn{W = \frac{1}{12n} + \sum_{i=1}^n \left(p_i - \frac{2i-1}{2n}\right)^2}
+#' where \eqn{p_i = \Phi((x_i - \mu)/\sigma)} and \eqn{\Phi} is the cumulative
+#' distribution function of the standard normal distribution.
+#'
+#' The p-value is calculated using different approximation formulas depending
+#' on the value of the adjusted test statistic WW = W × (1 + 0.5/n):
+#' \itemize{
+#'   \item For WW < 0.0275: \eqn{p = 1 - \exp(-13.953 + 775.5 \times WW - 12542.61 \times WW^2)}
+#'   \item For 0.0275 ≤ WW < 0.051: \eqn{p = 1 - \exp(-5.903 + 179.546 \times WW - 1515.29 \times WW^2)}
+#'   \item For 0.051 ≤ WW < 0.092: \eqn{p = \exp(0.886 - 31.62 \times WW + 10.897 \times WW^2)}
+#'   \item For 0.092 ≤ WW < 1.1: \eqn{p = \exp(1.111 - 34.242 \times WW + 12.832 \times WW^2)}
+#'   \item For WW ≥ 1.1: \eqn{p = 7.37 \times 10^{-10}} with a warning
+#' }
+#'
+#' @references
+#' This implementation is based on the `nortest` package:
+#'
+#' Gross, J. and Ligges, U. (2015). nortest: Tests for Normality. R package
+#' version 1.0-4. https://CRAN.R-project.org/package=nortest
+#'
+#' The original test is described in:
+#'
+#' Cramer, H. (1928). On the Composition of Elementary Errors.
+#' Scandinavian Actuarial Journal, 1928(1), 13-74.
+#'
+#' Von Mises, R. (1931). Wahrscheinlichkeitsrechnung und ihre Anwendung
+#' in der Statistik und theoretischen Physik. Leipzig: Deuticke.
+#'
+#' Stephens, M.A. (1970). Use of the Kolmogorov-Smirnov, Cramer-von Mises
+#' and Related Statistics Without Extensive Tables. Journal of the Royal
+#' Statistical Society. Series B (Methodological), 32(1), 115-122.
+#'
+#' @examples
+#' # Test a sample from normal distribution
+#' set.seed(123)
+#' normal_data <- rnorm(100)
+#' cvm.test(normal_data)
+#'
+#' # Test a sample from non-normal distribution
+#' exponential_data <- rexp(50)
+#' cvm.test(exponential_data)
+#'
+#' # Test with real data
+#' if (require("datasets")) {
+#'   cvm.test(iris$Sepal.Length)
+#' }
+#'
+#' @seealso
+#' \code{\link[nortest]{cvm.test}} for the original implementation in the nortest package.
+#' \code{\link{ad.test}} for the Anderson-Darling normality test.
+#' \code{\link{shapiro.test}} for the Shapiro-Wilk normality test.
+#' \code{\link{ks.test}} for the Kolmogorov-Smirnov test.
+#'
+#' @keywords htest
+#' @family normality_test
+#' @keywords internal
+cvm.test <- function(x) {
+    DNAME <- deparse(substitute(x))
+    x <- sort(x[complete.cases(x)])
+    n <- length(x)
+    if (n < 8) {
+        stop("sample size must be greater than 7")
+    }
+    p <- pnorm((x - mean(x)) / sd(x))
+    W <- (1 / (12 * n) + sum((p - (2 * seq(1:n) - 1) / (2 * n))^2))
+    WW <- (1 + 0.5 / n) * W
+    if (WW < 0.0275) {
+        pval <- 1 - exp(-13.953 + 775.5 * WW - 12542.61 * WW^2)
+    } else if (WW < 0.051) {
+        pval <- 1 - exp(-5.903 + 179.546 * WW - 1515.29 * WW^2)
+    } else if (WW < 0.092) {
+        pval <- exp(0.886 - 31.62 * WW + 10.897 * WW^2)
+    } else if (WW < 1.1) {
+        pval <- exp(1.111 - 34.242 * WW + 12.832 * WW^2)
+    } else {
+        warning(
+            "p-value is smaller than 7.37e-10, cannot be computed more accurately"
+        )
+        pval <- 7.37e-10
+    }
+    RVAL <- list(
+        statistic = c(W = W),
+        p.value = pval,
+        method = "Cramer-von Mises normality test",
+        data.name = DNAME
+    )
+    class(RVAL) <- "htest"
+    return(RVAL)
+}
+
+#' @title Pearson Chi-Square Normality Test
+#'
+#' @description
+#' Performs the Pearson chi-square test for normality to assess whether a given
+#' sample comes from a normal distribution. This test divides the data into
+#' classes and compares observed frequencies with expected frequencies under
+#' the normal distribution.
+#'
+#' @param x A numeric vector of data values. Missing values will be
+#'          automatically removed.
+#' @param n.classes Number of classes to use for the chi-square test.
+#'                  Defaults to \code{ceiling(2 * (n^(2 / 5)))}, where n is the
+#'                  sample size. This formula provides a data-driven approach
+#'                  to determining the number of classes.
+#' @param adjust Logical indicating whether to adjust the degrees of freedom.
+#'               If \code{TRUE} (default), 2 degrees of freedom are subtracted
+#'               to account for estimated parameters (mean and standard deviation).
+#'
+#' @return A list with class \code{"htest"} containing the following components:
+#' \itemize{
+#'   \item \code{statistic} - The Pearson chi-square test statistic (P)
+#'   \item \code{p.value} - The p-value for the test
+#'   \item \code{method} - The name of the method ("Pearson chi-square normality test")
+#'   \item \code{data.name} - The name of the data used in the test
+#'   \item \code{n.classes} - The number of classes used in the test
+#'   \item \code{df} - The degrees of freedom used for the chi-square distribution
+#' }
+#'
+#' @details
+#' The Pearson chi-square normality test is a classical goodness-of-fit test
+#' that compares the observed frequency distribution with the expected frequency
+#' distribution under the normal distribution assumption.
+#'
+#' The test procedure involves:
+#' \enumerate{
+#'   \item Estimating the mean and standard deviation from the sample
+#'   \item Dividing the range of the normal distribution into \code{n.classes} equal-probability intervals
+#'   \item Counting the number of observations falling into each interval
+#'   \item Calculating the chi-square statistic:
+#'         \deqn{P = \sum \frac{(O_i - E_i)^2}{E_i}}
+#'         where \eqn{O_i} is the observed frequency and \eqn{E_i} is the expected frequency
+#'   \item Comparing the test statistic to a chi-square distribution with
+#'         \code{n.classes - 1 - dfd} degrees of freedom, where \code{dfd} is 2 if
+#'         \code{adjust = TRUE} (accounting for estimated parameters) or 0 otherwise
+#' }
+#'
+#' The default number of classes follows the recommendation:
+#' \code{ceiling(2 * (n^(2 / 5)))}, which adapts to the sample size.
+#'
+#' @references
+#' This implementation is based on the `nortest` package:
+#'
+#' Pearson, K. (1900). On the Criterion that a Given System of Deviations from
+#' the Probable in the Case of a Correlated System of Variables is such that
+#' it can be Reasonably Supposed to have Arisen from Random Sampling.
+#' Philosophical Magazine, 50(302), 157-175.
+#'
+#' Moore, D.S. (1986). Tests of the chi-squared type. In: D'Agostino, R.B.
+#' and Stephens, M.A. (eds.), Goodness-of-Fit Techniques, Marcel Dekker, New York.
+#'
+#' @examples
+#' # Test a sample from normal distribution
+#' set.seed(123)
+#' normal_data <- rnorm(100)
+#' pearson.test(normal_data)
+#'
+#' # Test with custom number of classes
+#' pearson.test(normal_data, n.classes = 10)
+#'
+#' # Test without degrees of freedom adjustment
+#' pearson.test(normal_data, adjust = FALSE)
+#'
+#' # Test a sample from non-normal distribution
+#' exponential_data <- rexp(50)
+#' pearson.test(exponential_data)
+#'
+#' @seealso
+#' \code{\link{chisq.test}} for the general chi-square test of independence.
+#' \code{\link{ad.test}} for the Anderson-Darling normality test.
+#' \code{\link{cvm.test}} for the Cramer-von Mises normality test.
+#' \code{\link{shapiro.test}} for the Shapiro-Wilk normality test.
+#'
+#' @keywords htest
+#' @family normality_test
+#' @keywords internal
+#'
+pearson.test <- function(
+    x,
+    n.classes = ceiling(2 * (n^(2 / 5))),
+    adjust = TRUE
+) {
+    DNAME <- deparse(substitute(x))
+    x <- x[complete.cases(x)]
+    n <- length(x)
+    if (adjust) {
+        dfd <- 2
+    } else {
+        dfd <- 0
+    }
+    num <- floor(1 + n.classes * pnorm(x, mean(x), sd(x)))
+    count <- tabulate(num, n.classes)
+    prob <- rep(1 / n.classes, n.classes)
+    xpec <- n * prob
+    h <- ((count - xpec)^2) / xpec
+    P <- sum(h)
+    pvalue <- pchisq(P, n.classes - dfd - 1, lower.tail = FALSE)
+    RVAL <- list(
+        statistic = c(P = P),
+        p.value = pvalue,
+        method = "Pearson chi-square normality test",
+        data.name = DNAME,
+        n.classes = n.classes,
+        df = n.classes -
+            1 -
+            dfd
+    )
+    class(RVAL) <- "htest"
+    return(RVAL)
+}
+
+#' @title Shapiro-Francia Normality Test
+#'
+#' @description
+#' Performs the Shapiro-Francia test for normality, which is similar to the
+#' Shapiro-Wilk test but designed to handle larger sample sizes (up to 5000
+#' observations).
+#'
+#' @param x A numeric vector of data values. Missing values will be
+#'          automatically removed.
+#'
+#' @return A list with class \code{"htest"} containing the following components:
+#' \itemize{
+#'   \item \code{statistic} - The Shapiro-Francia test statistic (W)
+#'   \item \code{p.value} - The p-value for the test
+#'   \item \code{method} - The name of the method ("Shapiro-Francia normality test")
+#'   \item \code{data.name} - The name of the data used in the test
+#' }
+#'
+#' @details
+#' The Shapiro-Francia test is a powerful test for normality that is particularly
+#' useful for larger sample sizes where the Shapiro-Wilk test may not be applicable.
+#' The test is based on the correlation between the ordered sample values and the
+#' corresponding normal quantiles.
+#'
+#' The test procedure involves:
+#' \enumerate{
+#'   \item Sorting the data and computing normal quantiles using \code{\link{qnorm}}
+#'         with \code{\link{ppoints}} (Blom's method with a = 3/8)
+#'   \item Calculating the squared correlation coefficient between the ordered
+#'         data and the normal quantiles: \eqn{W = [cor(x, y)]^2}
+#'   \item Transforming the statistic using: \eqn{z = (\log(1 - W) - \mu) / \sigma}
+#'   \item Computing the p-value from the standard normal distribution
+#' }
+#'
+#' The parameters for the transformation are:
+#' \deqn{\mu = -1.2725 + 1.0521 \times (\log(u) - u)}
+#' \deqn{\sigma = 1.0308 - 0.26758 \times (\log(u) + 2/u)}
+#' where \eqn{u = \log(n)} and \eqn{n} is the sample size.
+#'
+#' @note
+#' The Shapiro-Francia test has the following limitations:
+#' \itemize{
+#'   \item Sample size must be between 5 and 5000
+#'   \item The test may be less powerful than the Shapiro-Wilk test for small samples
+#'   \item For sample sizes > 5000, consider using other tests like
+#'         Anderson-Darling or Cramer-von Mises
+#' }
+#'
+#' @references
+#' This implementation is based on the `nortest` package:
+#'
+#' Shapiro, S.S. and Francia, R.S. (1972). An Approximate Analysis of Variance
+#' Test for Normality. Journal of the American Statistical Association, 67(337), 215-216.
+#'
+#' Royston, P. (1993). A Pocket-Calculator Algorithm for the Shapiro-Francia Test
+#' for Non-Normality: An Application to Medicine. Statistics in Medicine, 12(2), 181-184.
+#'
+#' Thode, H.C. (2002). Testing for Normality. Marcel Dekker, New York.
+#'
+#' @examples
+#' # Test a sample from normal distribution
+#' set.seed(123)
+#' normal_data <- rnorm(100)
+#' sf.test(normal_data)
+#'
+#' # Test a sample from non-normal distribution
+#' exponential_data <- rexp(50)
+#' sf.test(exponential_data)
+#'
+#' # Test with real data
+#' if (require("datasets")) {
+#'   sf.test(iris$Sepal.Length)
+#' }
+#'
+#' @seealso
+#' \code{\link{shapiro.test}} for the Shapiro-Wilk normality test (limited to 5000 observations).
+#' \code{\link{ad.test}} for the Anderson-Darling normality test.
+#' \code{\link{cvm.test}} for the Cramer-von Mises normality test.
+#' \code{\link{pearson.test}} for the Pearson chi-square normality test.
+#' \code{\link{ppoints}} for the generation of probability points.
+#' \code{\link{qnorm}} for the normal quantile function.
+#'
+#' @keywords htest
+#' @family normality_test
+#' @keywords internal
+#'
+sf.test <- function(x) {
+    DNAME <- deparse(substitute(x))
+    x <- sort(x[complete.cases(x)])
+    n <- length(x)
+    if ((n < 5 || n > 5000)) {
+        stop("sample size must be between 5 and 5000")
+    }
+    y <- qnorm(ppoints(n, a = 3 / 8))
+    W <- cor(x, y)^2
+    u <- log(n)
+    v <- log(u)
+    mu <- -1.2725 + 1.0521 * (v - u)
+    sig <- 1.0308 - 0.26758 * (v + 2 / u)
+    z <- (log(1 - W) - mu) / sig
+    pval <- pnorm(z, lower.tail = FALSE)
+    RVAL <- list(
+        statistic = c(W = W),
+        p.value = pval,
+        method = "Shapiro-Francia normality test",
+        data.name = DNAME
+    )
+    class(RVAL) <- "htest"
+    return(RVAL)
 }

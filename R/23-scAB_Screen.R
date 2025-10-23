@@ -106,7 +106,14 @@ DoscAB <- function(
 
     ts_cli$cli_alert_info("Selecting K...")
 
-    k <- scAB::select_K(scAB_obj)
+    k <- scAB::select_K(
+        scAB_obj,
+        K_max = 20L,
+        repeat_times = 10L,
+        maxiter = 2000L,
+        seed = 0L,
+        verbose = FALSE
+    )
 
     ts_cli$cli_alert_info(
         "Run NMF with phenotype and cell-cell similarity regularization at",
@@ -180,12 +187,15 @@ create_scAB.v5 <- function(
 ) {
     # cell neighbors
     if ("RNA_snn" %chin% names(Object@graphs)) {
-        A <- as.matrix(Object@graphs$RNA_snn)
+        A <- as.matrix(SeuratObject::Graphs(object = Object, slot = "RNA_snn"))
         cli::cli_alert_info(
             " Using {.val RNA_snn} graph for network."
         )
     } else if ("integrated_snn" %chin% names(Object@graphs)) {
-        A <- as.matrix(Object@graphs$integrated_snn)
+        A <- as.matrix(SeuratObject::Graphs(
+            object = Object,
+            slot = "integrated_snn"
+        ))
         cli::cli_alert_info(
             "Using {.val integrated_snn} graph for network."
         )
@@ -196,7 +206,7 @@ create_scAB.v5 <- function(
     }
     diag(A) <- 0
     A[which(A != 0)] <- 1
-    degrees <- rowSums(A)
+    degrees <- matrixStats::rowSums2(A)
     D <- diag(degrees)
     eps <- 2.2204e-256
     D12 <- diag(1 / sqrt(pmax(degrees, eps)))
@@ -236,4 +246,74 @@ create_scAB.v5 <- function(
     )
     class(obj) <- "scAB_data"
     return(obj)
+}
+
+#' @title Selection of parameter K
+#'
+#' @param Object a scAB_data object
+#' @param k_max  the maximum value of the rank in the matrix factorization
+#' @param repeat_times  the number of repetitions
+#' @param seed random seed
+#' @param verbose Logical, whether to print output message
+#'
+#' @return A integer value of K
+#'
+#' @family scAB
+#'
+#' @keywords internal
+#'
+select_K.optimized <- function(
+    Object,
+    K_max = 20L,
+    repeat_times = 10L,
+    maxiter = 2000L,
+    seed = 0L,
+    verbose = FALSE
+) {
+    X <- Object$X
+    set.seed(seed)
+
+    K_all <- 2:K_max
+    n_K <- length(K_all)
+    dist_K <- matrix(NA_real_, nrow = n_K, ncol = repeat_times)
+
+    dist_all <- norm(X, "F")
+
+    eii <- numeric(n_K)
+    row_means <- numeric(n_K)
+
+    for (Ki_idx in seq_along(K_all)) {
+        Ki <- K_all[Ki_idx]
+
+        for (Kj in seq_len(repeat_times)) {
+            res_ij <- scAB::NMF(X = X, K = Ki, maxiter = maxiter)
+            diff_matrix <- X - res_ij$W %*% res_ij$H
+            dist_K[Ki_idx, Kj] <- matrixStats::sum2(diff_matrix^2) # equivalent to `norm(., "F")^2`
+        }
+        if (verbose) {
+            message(sprintf(
+                "loss of %d: %.6f",
+                Ki,
+                matrixStats::mean2(dist_K[Ki_idx, ])
+            ))
+        }
+
+        if (Ki_idx == 1) {
+            next
+        } # Ki == 2
+        row_means <- matrixStats::rowMeans2(dist_K)
+        numerator <- row_means[Ki_idx - 1] - row_means[Ki_idx]
+        denominator <- row_means[1] - row_means[Ki_idx]
+        eii[Ki_idx] <- numerator / denominator
+
+        if (numerator <= 0) {
+            break
+        }
+
+        if (eii[Ki_idx] < 0.05) {
+            break
+        }
+    }
+    K <- Ki - 1
+    return(K)
 }

@@ -45,7 +45,7 @@
 #'
 mad.test <- function(x, na.rm = TRUE) {
     # Store data name for htest output
-    dna <- deparse(substitute(x))
+    data_name <- deparse(substitute(x))
 
     # Input validation
     chk::chk_numeric(x)
@@ -130,7 +130,7 @@ mad.test <- function(x, na.rm = TRUE) {
         ),
         p.value = pval,
         method = method_used,
-        data.name = dna,
+        data.name = data_name,
         alternative = "at least one value is an outlier",
         outlier.indices = outlier_indices
     )

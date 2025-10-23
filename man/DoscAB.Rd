@@ -88,7 +88,8 @@ Other screen_method:
 \code{\link{DoscPP}()}
 
 Other scAB: 
-\code{\link{create_scAB.v5}()}
+\code{\link{create_scAB.v5}()},
+\code{\link{select_K.optimized}()}
 }
 \concept{scAB}
 \concept{screen_method}

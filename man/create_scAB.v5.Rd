@@ -28,7 +28,8 @@ preprocess the single-cell data, bulk data, and phenotype data.
 }
 \seealso{
 Other scAB: 
-\code{\link{DoscAB}()}
+\code{\link{DoscAB}()},
+\code{\link{select_K.optimized}()}
 }
 \concept{scAB}
 \keyword{internal}

@@ -59,6 +59,10 @@ where \eqn{S} is skewness, \eqn{K} is kurtosis, and \eqn{n} is sample size,
 with modified coefficients for different parameter knowledge scenarios.
 }
 }
+\note{
+This test cannot be used for small sample sizes (n < 500) due to the assumption
+of normality. For smaller samples, consider using the Shapiro-Wilk test.
+}
 \section{Reference}{
 
 KhrushchevSergey/modified_jarque_bera_test Internet. cited 2025 Sep 28.
@@ -85,5 +89,14 @@ print(test_result)
 }
 \seealso{
 \code{\link[stats:shapiro.test]{stats::shapiro.test()}} for the Shapiro-Wilk test
+
+Other normality_test: 
+\code{\link{ad.test}()},
+\code{\link{cvm.test}()},
+\code{\link{dagostino.test}()},
+\code{\link{pearson.test}()},
+\code{\link{sf.test}()}
 }
+\concept{normality_test}
+\keyword{htest}
 \keyword{internal}

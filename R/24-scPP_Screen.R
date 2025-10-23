@@ -546,21 +546,18 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
         Seurat::Idents(sc_dataset) <- "scPP"
 
         # Find markers
-        markers <- rlang::try_fetch(
-            Seurat::FindMarkers(
-                sc_dataset,
-                ident.1 = "Positive",
-                ident.2 = "Negative",
-                verbose = FALSE
-            ),
-            error = function(e) NULL
+        markers <- Seurat::FindMarkers(
+            sc_dataset,
+            ident.1 = "Positive",
+            ident.2 = "Negative",
+            verbose = FALSE
         )
 
         if (is.null(markers) || nrow(markers) == 0) {
             next
         }
 
-        # Filter markers efficiently using matrix operations
+        # Filter markers
         markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
 
         pos_mask_genes <- markers_mat[, "avg_log2FC"] > 1 &

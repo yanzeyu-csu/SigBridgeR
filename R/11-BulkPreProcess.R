@@ -114,7 +114,7 @@ SymbolConvert <- function(data) {
 #' \code{\link[edgeR]{cpm}} for counts per million calculation,
 #' \code{\link[stats]{prcomp}} for PCA analysis,
 #' \code{\link[stats]{cor}} for correlation analysis,
-#' \code{\link[SigBridgeR]{RowVars}} for variance calculation of each row,
+#' \code{\link[matrixStats]{rowVars}} for variance calculation of each row,
 #' \code{\link[SigBridgeR]{SymbolConvert}} for gene symbol conversion
 #'
 #' @return Filtered count matrix
@@ -308,7 +308,7 @@ BulkPreProcess <- function(
 
         # Select highly variable genes
         n_genes_for_pca <- min(n_top_genes, nrow(cpm_values))
-        gene_vars <- RowVars(cpm_values, na.rm = TRUE)
+        gene_vars <- matrixStats::rowVars(cpm_values, na.rm = TRUE)
         top_var_idx <- order(gene_vars, decreasing = TRUE)[seq_len(
             n_genes_for_pca
         )]
@@ -579,81 +579,4 @@ BulkPreProcess <- function(
     }
 
     return(filtered_counts)
-}
-
-#' @title Calculate Row Variances
-#'
-#' @description
-#' This function calculates the sample variance for each row of a numeric matrix
-#' or data frame. It uses the standard sample variance formula with Bessel's
-#' correction (dividing by n-1).
-#'
-#' @param x A numeric matrix or data frame for which row variances are to be
-#'   calculated.
-#' @param na.rm A logical value indicating whether missing values (NA) should be
-#'   removed before calculating variances. If \code{TRUE} (default), missing
-#'   values are excluded and the denominator is adjusted accordingly. If
-#'   \code{FALSE}, any row containing missing values will result in \code{NA}.
-#'
-#' @return A numeric vector of length equal to the number of rows in \code{x},
-#'   containing the sample variance for each row.
-#'
-#' @details
-#' The function computes sample variances using the formula:
-#' \deqn{\sigma^2 = \frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}
-#'
-#' When \code{na.rm = TRUE}, the function:
-#' \itemize{
-#'   \item Excludes missing values from mean and variance calculations
-#'   \item Adjusts the degrees of freedom (n-1) based on the number of
-#'     non-missing values in each row
-#'   \item Returns \code{NaN} for rows with fewer than 2 non-missing values
-#' }
-#'
-#' When \code{na.rm = FALSE}, the function:
-#' \itemize{
-#'   \item Uses all values including missing ones
-#'   \item Returns \code{NA} for any row containing missing values
-#'   \item Uses \code{ncol(x) - 1} as the degrees of freedom
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Basic usage with a matrix
-#' mat <- matrix(1:12, nrow = 3)
-#' rowVars(mat)
-#'
-#' # With missing values
-#' mat[1, 2] <- NA
-#' mat[2, 3] <- NA
-#' rowVars(mat, na.rm = TRUE)   # Excludes NAs
-#' rowVars(mat, na.rm = FALSE)  # Includes NAs (returns NA for affected rows)
-#'
-#' # With a data frame
-#' df <- data.frame(
-#'   a = c(1, 4, 7),
-#'   b = c(2, 5, 8),
-#'   c = c(3, 6, 9)
-#' )
-#' rowVars(df)
-#'
-#' # Edge case: single column (variance is 0)
-#' single_col <- matrix(1:3, ncol = 1)
-#' rowVars(single_col)  # Returns NaN due to division by 0
-#' }
-#'
-#' @seealso
-#' \code{\link{var}} for column-wise variance calculation,
-#' \code{\link{rowMeans}} for row means,
-#' \code{\link{apply}} for applying functions across rows or columns
-#'
-#' @keywords internal
-#'
-RowVars <- function(x, na.rm = TRUE) {
-    if (na.rm) {
-        n <- rowSums(!is.na(x))
-        rowSums((x - rowMeans(x, na.rm = TRUE))^2, na.rm = TRUE) / (n - 1)
-    } else {
-        rowSums((x - rowMeans(x))^2) / (ncol(x) - 1)
-    }
 }

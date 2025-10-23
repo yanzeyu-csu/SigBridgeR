@@ -76,7 +76,15 @@ large_sample <- rnorm(5000)
 dagostino.test(large_sample)
 }
 
-
 }
+\seealso{
+Other normality_test: 
+\code{\link{ad.test}()},
+\code{\link{cvm.test}()},
+\code{\link{jb.test.modified}()},
+\code{\link{pearson.test}()},
+\code{\link{sf.test}()}
+}
+\concept{normality_test}
 \keyword{htest}
 \keyword{internal}

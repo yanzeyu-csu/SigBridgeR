@@ -24,14 +24,11 @@ is thrown listing the names of these rows. This is useful for preprocessing data
 constant rows may cause issues in analyses (e.g., PCA, regression).
 }
 \details{
-For dense matrices, variance is computed using an optimized \code{RowVars} function that
+For dense matrices, variance is computed using \code{matrixStats::rowVars()} function that
 efficiently calculates row variances with proper NA handling. For sparse matrices of
 class \code{dgCMatrix}, variance is computed using a mathematical identity that avoids
 creating large intermediate matrices. Rows with fewer than 2 non-zero observations
 are treated as zero-variance.
-
-This implementation is memory-efficient and handles large matrices better than
-the original version.
 }
 \examples{
 \dontrun{
@@ -51,6 +48,7 @@ mat_sparse <- as(matrix(rpois(100, 0.5), nrow = 10), "dgCMatrix")
 rownames(mat_sparse) <- paste0("Gene", 1:10)
 Check0VarRows(mat_sparse)
 }
+
 
 }
 \seealso{
