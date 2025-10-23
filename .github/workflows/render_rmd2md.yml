@@ -60,7 +60,7 @@ jobs:
               run: |
                   Rscript -e '
                   pkgs <- c("rmarkdown", "knitr", "reticulate")
-                  if(length(new_pkgs)) {
+                  if(length(pkgs)) {
                       install.packages(pkgs, repos="https://cloud.r-project.org")
                   }
                   '
