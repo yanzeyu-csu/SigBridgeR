@@ -88,7 +88,10 @@ Other screen_method:
 \code{\link{DoscPP}()}
 
 Other scAB: 
+\code{\link{NMF.optimized}()},
 \code{\link{create_scAB.v5}()},
+\code{\link{findSubset.optimized}()},
+\code{\link{scAB.optimized}()},
 \code{\link{select_K.optimized}()}
 }
 \concept{scAB}

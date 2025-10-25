@@ -47,6 +47,7 @@ on the value of the adjusted test statistic WW = W × (1 + 0.5/n):
 }
 }
 \examples{
+\dontrun{
 # Test a sample from normal distribution
 set.seed(123)
 normal_data <- rnorm(100)
@@ -60,7 +61,7 @@ cvm.test(exponential_data)
 if (require("datasets")) {
   cvm.test(iris$Sepal.Length)
 }
-
+}
 }
 \references{
 This implementation is based on the \code{nortest} package:

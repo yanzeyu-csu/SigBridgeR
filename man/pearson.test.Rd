@@ -58,9 +58,10 @@ The default number of classes follows the recommendation:
 \code{ceiling(2 * (n^(2 / 5)))}, which adapts to the sample size.
 }
 \examples{
+\dontrun{
 # Test a sample from normal distribution
 set.seed(123)
-normal_data <- rnorm(100)
+normal_data <- stats::rnorm(100)
 pearson.test(normal_data)
 
 # Test with custom number of classes
@@ -70,9 +71,9 @@ pearson.test(normal_data, n.classes = 10)
 pearson.test(normal_data, adjust = FALSE)
 
 # Test a sample from non-normal distribution
-exponential_data <- rexp(50)
+exponential_data <- stats::rexp(50)
 pearson.test(exponential_data)
-
+}
 }
 \references{
 This implementation is based on the \code{nortest} package:

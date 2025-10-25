@@ -18,7 +18,7 @@ SCPreProcess(sc, ...)
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
-  project = glue::glue("SC_Screening_Proj"),
+  project = "SC_Screening_Proj",
   min_cells = 400L,
   min_features = 0L,
   quality_control = TRUE,

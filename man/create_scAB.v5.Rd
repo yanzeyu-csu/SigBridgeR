@@ -29,6 +29,9 @@ preprocess the single-cell data, bulk data, and phenotype data.
 \seealso{
 Other scAB: 
 \code{\link{DoscAB}()},
+\code{\link{NMF.optimized}()},
+\code{\link{findSubset.optimized}()},
+\code{\link{scAB.optimized}()},
 \code{\link{select_K.optimized}()}
 }
 \concept{scAB}

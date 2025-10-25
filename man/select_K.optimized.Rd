@@ -2,7 +2,7 @@
 % Please edit documentation in R/23-scAB_Screen.R
 \name{select_K.optimized}
 \alias{select_K.optimized}
-\title{Selection of parameter K}
+\title{Selection of Parameter K for Non-negative Matrix Factorization}
 \usage{
 select_K.optimized(
   Object,
@@ -14,26 +14,42 @@ select_K.optimized(
 )
 }
 \arguments{
-\item{Object}{a scAB_data object}
+\item{Object}{A scAB_data object containing the data matrix to be factorized.}
 
-\item{repeat_times}{the number of repetitions}
+\item{K_max}{The maximum rank value to consider in the search. Must be at
+least 2. Defaults to 20.}
 
-\item{seed}{random seed}
+\item{repeat_times}{The number of repeated NMF runs for each candidate rank
+to account for random initialization variability.
+Defaults to 10.}
 
-\item{verbose}{Logical, whether to print output message}
+\item{maxiter}{The maximum number of iterations for each NMF run.
+Defaults to 2000.}
 
-\item{k_max}{the maximum value of the rank in the matrix factorization}
+\item{seed}{Random seed for reproducible results. Defaults to 0.}
+
+\item{verbose}{Logical indicating whether to print progress messages and
+intermediate results. Defaults to FALSE.}
 }
 \value{
-A integer value of K
+An integer value representing the selected optimal rank K.
 }
 \description{
-Selection of parameter K
+Automatically determines the optimal rank (K) for non-negative matrix
+factorization using an empirical indicator method. This function evaluates
+multiple candidate ranks and selects the one that provides the best
+trade-off between model complexity and reconstruction accuracy.
+}
+\note{
+This function is from scAB package,
 }
 \seealso{
 Other scAB: 
 \code{\link{DoscAB}()},
-\code{\link{create_scAB.v5}()}
+\code{\link{NMF.optimized}()},
+\code{\link{create_scAB.v5}()},
+\code{\link{findSubset.optimized}()},
+\code{\link{scAB.optimized}()}
 }
 \concept{scAB}
 \keyword{internal}

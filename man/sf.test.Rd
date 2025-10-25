@@ -55,18 +55,20 @@ Anderson-Darling or Cramer-von Mises
 }
 }
 \examples{
+\dontrun{
 # Test a sample from normal distribution
 set.seed(123)
-normal_data <- rnorm(100)
+normal_data <- stats::rnorm(100)
 sf.test(normal_data)
 
 # Test a sample from non-normal distribution
-exponential_data <- rexp(50)
+exponential_data <- stats::rexp(50)
 sf.test(exponential_data)
 
 # Test with real data
 if (require("datasets")) {
   sf.test(iris$Sepal.Length)
+}
 }
 
 }

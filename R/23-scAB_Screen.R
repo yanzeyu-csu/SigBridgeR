@@ -106,7 +106,7 @@ DoscAB <- function(
 
     ts_cli$cli_alert_info("Selecting K...")
 
-    k <- scAB::select_K(
+    k <- select_K.optimized(
         scAB_obj,
         K_max = 20L,
         repeat_times = 10L,
@@ -116,11 +116,10 @@ DoscAB <- function(
     )
 
     ts_cli$cli_alert_info(
-        "Run NMF with phenotype and cell-cell similarity regularization at",
-        "K = {.val {k}}."
+        "Run NMF with phenotype and cell-cell similarity regularization at K = {.val {k}}"
     )
 
-    scAB_result <- scAB::scAB(
+    scAB_result <- scAB.optimized(
         Object = scAB_obj,
         K = k,
         alpha = alpha,
@@ -130,7 +129,7 @@ DoscAB <- function(
 
     ts_cli$cli_alert_info("Screening cells...")
 
-    sc_data <- scAB::findSubset(
+    sc_data <- findSubset.optimized(
         sc_data,
         scAB_Object = scAB_result,
         tred = tred
@@ -144,15 +143,6 @@ DoscAB <- function(
                 tred = tred
             ),
             cover = FALSE
-        )
-
-    sc_data[[]] <- dplyr::rename(sc_data[[]], scAB = `scAB_select`) %>%
-        dplyr::mutate(
-            scAB = dplyr::case_when(
-                scAB == "Other cells" ~ "Other",
-                scAB == "scAB+ cells" ~ "Positive",
-                TRUE ~ "NULL"
-            )
         )
 
     ts_cli$cli_alert_info(
@@ -216,16 +206,19 @@ create_scAB.v5 <- function(
     Ahat <- D12 %*% (A) %*% D12
 
     # similarity matrix
-    sc_exprs <- as.data.frame(SeuratObject::LayerData(Object))
+    sc_exprs <- Matrix::Matrix(SeuratObject::LayerData(Object))
     common <- intersect(rownames(bulk_dataset), rownames(sc_exprs))
     dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ]) # Dataset before quantile normalization.
     dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after quantile normalization.
+    dataset1 <- Matrix::Matrix(dataset1)
     rownames(dataset1) <- common
     colnames(dataset1) <- colnames(dataset0)
-    Expression_bulk <- dataset1[, seq_len(ncol(bulk_dataset))]
-    Expression_cell <- dataset1[, (ncol(bulk_dataset) + 1):ncol(dataset1)]
+    ncol_bulk <- ncol(bulk_dataset)
+    Expression_bulk <- as.matrix(dataset1[, seq_len(ncol_bulk)])
+    Expression_cell <- as.matrix(dataset1[, (ncol_bulk + 1):ncol(dataset1)])
     X <- stats::cor(Expression_bulk, Expression_cell)
-    X <- X / norm(X, "F")
+    # X <- X / norm(X, "F")
+    X <- X / sqrt(matrixStats::sum2(X^2))
 
     # phenotype ranking
     if (method == "survival") {
@@ -236,11 +229,11 @@ create_scAB.v5 <- function(
     }
     # return
     obj <- list(
-        X = X,
-        S = S,
-        L = L,
-        D = Dhat,
-        A = Ahat,
+        X = Matrix::Matrix(X),
+        S = Matrix::Matrix(S),
+        L = Matrix::Matrix(L),
+        D = Matrix::Matrix(Dhat),
+        A = Matrix::Matrix(Ahat),
         phenotype = phenotype,
         method = method
     )
@@ -248,15 +241,30 @@ create_scAB.v5 <- function(
     return(obj)
 }
 
-#' @title Selection of parameter K
+#' @title Selection of Parameter K for Non-negative Matrix Factorization
 #'
-#' @param Object a scAB_data object
-#' @param k_max  the maximum value of the rank in the matrix factorization
-#' @param repeat_times  the number of repetitions
-#' @param seed random seed
-#' @param verbose Logical, whether to print output message
+#' @description
+#' Automatically determines the optimal rank (K) for non-negative matrix
+#' factorization using an empirical indicator method. This function evaluates
+#' multiple candidate ranks and selects the one that provides the best
+#' trade-off between model complexity and reconstruction accuracy.
 #'
-#' @return A integer value of K
+#' @param Object A scAB_data object containing the data matrix to be factorized.
+#' @param K_max The maximum rank value to consider in the search. Must be at
+#'              least 2. Defaults to 20.
+#' @param repeat_times The number of repeated NMF runs for each candidate rank
+#'                     to account for random initialization variability.
+#'                     Defaults to 10.
+#' @param maxiter The maximum number of iterations for each NMF run.
+#'                Defaults to 2000.
+#' @param seed Random seed for reproducible results. Defaults to 0.
+#' @param verbose Logical indicating whether to print progress messages and
+#'                intermediate results. Defaults to FALSE.
+#'
+#' @return An integer value representing the selected optimal rank K.
+#'
+#' @note
+#' This function is from scAB package,
 #'
 #' @family scAB
 #'
@@ -277,8 +285,9 @@ select_K.optimized <- function(
     n_K <- length(K_all)
     dist_K <- matrix(NA_real_, nrow = n_K, ncol = repeat_times)
 
-    dist_all <- norm(X, "F")
-
+    # dist_all <- norm(X, "F")
+    dist_all <- sqrt(sum(X^2))
+    # initialize
     eii <- numeric(n_K)
     row_means <- numeric(n_K)
 
@@ -286,22 +295,22 @@ select_K.optimized <- function(
         Ki <- K_all[Ki_idx]
 
         for (Kj in seq_len(repeat_times)) {
-            res_ij <- scAB::NMF(X = X, K = Ki, maxiter = maxiter)
+            res_ij <- NMF.optimized(X = X, K = Ki, maxiter = maxiter)
             diff_matrix <- X - res_ij$W %*% res_ij$H
-            dist_K[Ki_idx, Kj] <- matrixStats::sum2(diff_matrix^2) # equivalent to `norm(., "F")^2`
+            dist_K[Ki_idx, Kj] <- sum(diff_matrix^2) # equivalent to `norm(., "F")^2`
         }
         if (verbose) {
             message(sprintf(
                 "loss of %d: %.6f",
                 Ki,
-                matrixStats::mean2(dist_K[Ki_idx, ])
+                mean(dist_K[Ki_idx, ])
             ))
         }
-
+        # Ki == 2
         if (Ki_idx == 1) {
             next
-        } # Ki == 2
-        row_means <- matrixStats::rowMeans2(dist_K)
+        }
+        row_means <- rowMeans(dist_K)
         numerator <- row_means[Ki_idx - 1] - row_means[Ki_idx]
         denominator <- row_means[1] - row_means[Ki_idx]
         eii[Ki_idx] <- numerator / denominator
@@ -315,5 +324,214 @@ select_K.optimized <- function(
         }
     }
     K <- Ki - 1
-    return(K)
+    return(eval(K))
+}
+
+#' @title Non-negative Matrix Factorization from scAB
+#'
+#' @description
+#' An R implementation of classical non-negative matrix factorization (NMF).
+#'
+#' @param X A non-negative numeric matrix (features x samples) to be factorized.
+#'          All elements must be non-negative.
+#' @param K The rank of factorization, i.e., the number of components/latent
+#'          features to extract. Must be a positive integer smaller than
+#'          both dimensions of X.
+#' @param maxiter The maximum number of iterations for the optimization algorithm.
+#'                Defaults to 2000.
+#' @param tol The convergence tolerance for the loss function. The algorithm
+#'            stops when the absolute change in Euclidean distance between
+#'            consecutive iterations is less than this value. Defaults to 1e-5.
+#'
+#' @return A list containing the factorization results:
+#' \itemize{
+#'   \item \code{W} - The basis matrix (features x K), representing the
+#'                    learned features or components
+#'   \item \code{H} - The coefficient matrix (K x samples), representing the
+#'                    weights or activations of components for each sample
+#'   \item \code{iter} - The number of iterations actually performed
+#'   \item \code{loss} - The final value of the objective function (squared
+#'                       Euclidean distance)
+#' }
+#'
+#' @seealso
+#' This function is from scAB package, and it is not recommended to use it because the computational efficiency of the R language is not very high.
+#' For more advanced NMF implementations, see:
+#' \code{\link[NMF]{nmf}} from the NMF package, which is written in C++ and is much faster than this function.
+#'
+#' @keywords internal
+#' @family scAB
+#'
+NMF.optimized <- function(X, K, maxiter = 2000L, tol = 1e-5) {
+    eps <- 2.2204e-256
+
+    nr <- nrow(X)
+    nc <- ncol(X)
+
+    # initiate
+    W <- Matrix::Matrix(stats::runif(nr * K), nrow = nr, ncol = K)
+    H <- Matrix::Matrix(stats::runif(K * nc), nrow = K, ncol = nc)
+
+    old_eucl <- Inf
+
+    for (iter in seq_len(maxiter)) {
+        WtW <- crossprod(W) # t(W) %*% W
+        WtX <- crossprod(W, X) # t(W) %*% X
+        # avoid zero with eps
+        H <- H * WtX / (WtW %*% H + eps)
+
+        HHt <- tcrossprod(H) # H %*% t(H)
+        XHt <- tcrossprod(X, H) #  X %*% t(H)
+
+        W <- W * XHt / (W %*% HHt + eps)
+
+        if (iter != 1) {
+            WH <- W %*% H
+            eucl_dist <- sum((X - WH)^2)
+
+            if (iter > 1) {
+                d_eucl <- abs(eucl_dist - old_eucl)
+
+                if (d_eucl < tol) {
+                    break
+                }
+            }
+
+            old_eucl <- eucl_dist
+        }
+    }
+
+    final_loss <- sum((X - W %*% H)^2)
+
+    return(list(
+        W = W,
+        H = H,
+        iter = iter,
+        loss = final_loss
+    ))
+}
+
+
+#' @title Non-negative Matrix Factorization with phenotype and cell-cell similarity regularization.
+#' @description
+#' Non-negative Matrix Factorization with phenotype and cell-cell similarity regularization,
+#' for identifing phenotype-associated cell states at different resolutions.
+#'
+#' @param Object  a scAB_data object
+#' @param K  the rank of matrix factorization
+#' @param maxiter the maximum number of iterations
+#' @param alpha Coefficient of phenotype regularization
+#' @param alpha_2 Coefficient of cell-cell similarity regularization
+#'
+#' @return a list with the submatrix and loss value
+#' @keywords internal
+#' @family scAB
+#'
+#'
+scAB.optimized <- function(
+    Object,
+    K,
+    alpha = 0.005,
+    alpha_2 = 0.005,
+    maxiter = 2000L,
+    convergence_threshold = 1e-5
+) {
+    seed <- ifelse(Object$method == "survival", 7L, 5L)
+    if (Object$method != "") {
+        set.seed(seed)
+    }
+    X <- Object$X
+    A <- Object$A
+    L <- Object$L
+    D <- Object$D
+    S <- Object$S
+    eps <- 2.2204e-256
+    nr <- nrow(X)
+    nc <- ncol(X)
+    W <- Matrix::Matrix(runif(nr * K), nrow = nr, ncol = K)
+    H <- Matrix::Matrix(runif(K * nc), nrow = K, ncol = nc)
+    SS <- S %*% S
+
+    loss_func = function(X, W, H, S, L, alpha, alpha_2) {
+        # loss <- norm(X - W %*% H, "F")^2 +
+        #     alpha * (norm(S %*% W, "F")^2) +
+        #     alpha_2 * sum(diag(H %*% L %*% t(H)))
+        loss1 <- sum((X - W %*% H)^2)
+        loss2 <- alpha * sum((S %*% W)^2)
+        loss3 <- alpha_2 * sum(H * (H %*% L)) # diag(H %*% L %*% t(H)) is equivalent to rowSums(H * (H %*% L))
+
+        return(loss1 + loss2 + loss3)
+    }
+    # tD <- t(D)
+    # tA <- t(A)
+    tX <- Matrix::t(X)
+
+    for (iter in seq_len(maxiter)) {
+        # W_old <- W # no use
+        H <- H *
+            (crossprod(W, X) + alpha_2 * tcrossprod(H, A)) /
+            (crossprod(W, W) %*% H + alpha_2 * tcrossprod(H, D) + eps)
+        Pena <- SS %*% W
+        W <- W *
+            tcrossprod(X, H) /
+            (W %*% tcrossprod(H, H) + alpha * Pena + eps)
+
+        # tW <- t(W) # no use
+
+        if (iter != 1) {
+            eucl_dist <- loss_func(X, W, H, S, L, alpha, alpha_2)
+            d_eucl <- abs(eucl_dist - old_eucl)
+            if (d_eucl < convergence_threshold) {
+                break
+            }
+            old_eucl <- eucl_dist
+        } else {
+            old_eucl <- loss_func(X, W, H, S, L, alpha, alpha_2)
+        }
+    }
+    return(list(
+        W = W,
+        H = H,
+        iter = iter,
+        loss = old_eucl,
+        method = Object$method
+    ))
+}
+
+#' @title Subsets identification
+#'
+#' @param Object a Seurat object
+#' @param scAB_Object a scAB_data object
+#' @param tred threshold
+#'
+#' @return a Seurat object
+#' @keywords internal
+#' @family scAB
+#'
+#'
+findSubset.optimized <- function(Object, scAB_Object, tred = 2L) {
+    do.dip <- ifelse(scAB_Object$method == "binary", 1L, 0L)
+    H <- as.matrix(scAB_Object$H)
+    module <- scAB::findModule(H, tred = tred, do.dip = do.dip)
+    scAB_index <- unique(unlist(module))
+    # Add scAB column in metadata
+    n_cells <- ncol(Object)
+    scAB_select <- rep("Other", n_cells)
+    scAB_select[scAB_index] <- "Positive"
+    Object$scAB <- scAB_select
+
+    for (i in seq_along(module)) {
+        M <- rep("Other", n_cells)
+        M[as.numeric(module[[i]])] = "Positive"
+        Object <- Seurat::AddMetaData(
+            Object,
+            metadata = M,
+            col.name = paste0("scAB_Subset", i)
+        ) %>%
+            Seurat::AddMetaData(
+                metadata = H[i, ],
+                col.name = paste0("Subset", i, "_loading")
+            )
+    }
+    return(Object)
 }

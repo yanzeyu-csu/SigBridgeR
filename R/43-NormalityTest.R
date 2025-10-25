@@ -410,6 +410,7 @@ dagostino.test <- function(x) {
 #' Comparisons. Journal of the American Statistical Association, 69(347), 730-737.
 #'
 #' @examples
+#' \dontrun{
 #' # Test a sample from normal distribution
 #' set.seed(123)
 #' normal_data <- rnorm(100)
@@ -423,7 +424,7 @@ dagostino.test <- function(x) {
 #' if (require("datasets")) {
 #'   ad.test(iris$Sepal.Length)
 #' }
-#'
+#' }
 #' @seealso
 #' \code{\link[nortest]{ad.test}} for the original implementation in the nortest package.
 #' \code{\link{shapiro.test}} for the Shapiro-Wilk normality test.
@@ -434,13 +435,13 @@ dagostino.test <- function(x) {
 #' @keywords internal
 ad.test <- function(x) {
     DNAME <- deparse(substitute(x))
-    x <- sort(x[complete.cases(x)])
+    x <- sort(x[stats::complete.cases(x)])
     n <- length(x)
     if (n < 8) {
         stop("sample size must be greater than 7")
     }
-    logp1 <- pnorm((x - mean(x)) / sd(x), log.p = TRUE)
-    logp2 <- pnorm(-(x - mean(x)) / sd(x), log.p = TRUE)
+    logp1 <- stats::pnorm((x - mean(x)) / stats::sd(x), log.p = TRUE)
+    logp2 <- stats::pnorm(-(x - mean(x)) / stats::sd(x), log.p = TRUE)
     h <- (2 * seq(1:n) - 1) * (logp1 + rev(logp2))
     A <- -n - mean(h)
     AA <- (1 + 0.75 / n + 2.25 / n^2) * A
@@ -524,6 +525,7 @@ ad.test <- function(x) {
 #' Statistical Society. Series B (Methodological), 32(1), 115-122.
 #'
 #' @examples
+#' \dontrun{
 #' # Test a sample from normal distribution
 #' set.seed(123)
 #' normal_data <- rnorm(100)
@@ -537,7 +539,7 @@ ad.test <- function(x) {
 #' if (require("datasets")) {
 #'   cvm.test(iris$Sepal.Length)
 #' }
-#'
+#' }
 #' @seealso
 #' \code{\link[nortest]{cvm.test}} for the original implementation in the nortest package.
 #' \code{\link{ad.test}} for the Anderson-Darling normality test.
@@ -549,12 +551,12 @@ ad.test <- function(x) {
 #' @keywords internal
 cvm.test <- function(x) {
     DNAME <- deparse(substitute(x))
-    x <- sort(x[complete.cases(x)])
+    x <- sort(x[stats::complete.cases(x)])
     n <- length(x)
     if (n < 8) {
         stop("sample size must be greater than 7")
     }
-    p <- pnorm((x - mean(x)) / sd(x))
+    p <- stats::pnorm((x - mean(x)) / stats::sd(x))
     W <- (1 / (12 * n) + sum((p - (2 * seq(1:n) - 1) / (2 * n))^2))
     WW <- (1 + 0.5 / n) * W
     if (WW < 0.0275) {
@@ -642,9 +644,10 @@ cvm.test <- function(x) {
 #' and Stephens, M.A. (eds.), Goodness-of-Fit Techniques, Marcel Dekker, New York.
 #'
 #' @examples
+#' \dontrun{
 #' # Test a sample from normal distribution
 #' set.seed(123)
-#' normal_data <- rnorm(100)
+#' normal_data <- stats::rnorm(100)
 #' pearson.test(normal_data)
 #'
 #' # Test with custom number of classes
@@ -654,9 +657,9 @@ cvm.test <- function(x) {
 #' pearson.test(normal_data, adjust = FALSE)
 #'
 #' # Test a sample from non-normal distribution
-#' exponential_data <- rexp(50)
+#' exponential_data <- stats::rexp(50)
 #' pearson.test(exponential_data)
-#'
+#' }
 #' @seealso
 #' \code{\link{chisq.test}} for the general chi-square test of independence.
 #' \code{\link{ad.test}} for the Anderson-Darling normality test.
@@ -673,20 +676,20 @@ pearson.test <- function(
     adjust = TRUE
 ) {
     DNAME <- deparse(substitute(x))
-    x <- x[complete.cases(x)]
+    x <- x[stats::complete.cases(x)]
     n <- length(x)
     if (adjust) {
         dfd <- 2
     } else {
         dfd <- 0
     }
-    num <- floor(1 + n.classes * pnorm(x, mean(x), sd(x)))
+    num <- floor(1 + n.classes * stats::pnorm(x, mean(x), stats::sd(x)))
     count <- tabulate(num, n.classes)
     prob <- rep(1 / n.classes, n.classes)
     xpec <- n * prob
     h <- ((count - xpec)^2) / xpec
     P <- sum(h)
-    pvalue <- pchisq(P, n.classes - dfd - 1, lower.tail = FALSE)
+    pvalue <- stats::pchisq(P, n.classes - dfd - 1, lower.tail = FALSE)
     RVAL <- list(
         statistic = c(P = P),
         p.value = pvalue,
@@ -761,18 +764,20 @@ pearson.test <- function(
 #' Thode, H.C. (2002). Testing for Normality. Marcel Dekker, New York.
 #'
 #' @examples
+#' \dontrun{
 #' # Test a sample from normal distribution
 #' set.seed(123)
-#' normal_data <- rnorm(100)
+#' normal_data <- stats::rnorm(100)
 #' sf.test(normal_data)
 #'
 #' # Test a sample from non-normal distribution
-#' exponential_data <- rexp(50)
+#' exponential_data <- stats::rexp(50)
 #' sf.test(exponential_data)
 #'
 #' # Test with real data
 #' if (require("datasets")) {
 #'   sf.test(iris$Sepal.Length)
+#' }
 #' }
 #'
 #' @seealso
@@ -789,19 +794,19 @@ pearson.test <- function(
 #'
 sf.test <- function(x) {
     DNAME <- deparse(substitute(x))
-    x <- sort(x[complete.cases(x)])
+    x <- sort(x[stats::complete.cases(x)])
     n <- length(x)
     if ((n < 5 || n > 5000)) {
         stop("sample size must be between 5 and 5000")
     }
-    y <- qnorm(ppoints(n, a = 3 / 8))
+    y <- qnorm(stats::ppoints(n, a = 3 / 8))
     W <- cor(x, y)^2
     u <- log(n)
     v <- log(u)
     mu <- -1.2725 + 1.0521 * (v - u)
     sig <- 1.0308 - 0.26758 * (v + 2 / u)
     z <- (log(1 - W) - mu) / sig
-    pval <- pnorm(z, lower.tail = FALSE)
+    pval <- stats::pnorm(z, lower.tail = FALSE)
     RVAL <- list(
         statistic = c(W = W),
         p.value = pval,

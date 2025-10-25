@@ -48,6 +48,7 @@ on the value of the adjusted test statistic:
 where \eqn{AA = A^2 \times (1 + 0.75/n + 2.25/n^2)}.
 }
 \examples{
+\dontrun{
 # Test a sample from normal distribution
 set.seed(123)
 normal_data <- rnorm(100)
@@ -61,7 +62,7 @@ ad.test(exponential_data)
 if (require("datasets")) {
   ad.test(iris$Sepal.Length)
 }
-
+}
 }
 \references{
 This implementation is based on the \code{nortest} package:

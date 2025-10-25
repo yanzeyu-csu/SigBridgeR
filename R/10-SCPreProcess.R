@@ -116,7 +116,7 @@ SCPreProcess.default <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
-    project = glue::glue("SC_Screening_Proj"),
+    project = "SC_Screening_Proj",
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
@@ -143,7 +143,7 @@ SCPreProcess.default <- function(
     sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc,
         project = project,
-        meta.data = meta_data,
+        meta.data = NULL %||% meta_data,
         min.cells = min_cells,
         min.features = min_features
     )
