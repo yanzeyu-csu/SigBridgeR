@@ -48,13 +48,11 @@ MergeResult <- function(...) {
 
     if (length(args) == 0) {
         cli::cli_abort(
-            c(
-                "x" = "Input objects must be provided."
-            ),
+            c("x" = "Input objects must be provided."),
             class = "InputsNotFound"
         )
     }
-
+    # Extract Seurat objects
     seurat_objects <- list()
     seurat_objects <- lapply(args, function(x) {
         if (inherits(x, "Seurat")) {
@@ -92,8 +90,23 @@ MergeResult <- function(...) {
         meta_list
     )
 
-    merged_obj <- seurat_objects[[1]]
+    common_cells <- merged_meta$cell_id
+    merged_obj <- subset(seurat_objects[[1]], cells = common_cells)
     merged_obj[[]] <- Col2Rownames(merged_meta, "cell_id")
+
+    # merge slots
+    merged_obj <- Reduce(
+        function(merged_obj, slot_type) {
+            MergeSlot(
+                slot_type = slot_type,
+                merged_obj = merged_obj,
+                seurat_objects = seurat_objects,
+                common_cells = common_cells
+            )
+        },
+        c("assays", "reductions", "graphs", "images"),
+        init = merged_obj
+    )
 
     # merge misc
     all_keys <- unique(unlist(lapply(seurat_objects, function(obj) {
@@ -122,5 +135,72 @@ MergeResult <- function(...) {
         "Successfully merged {.val {length(seurat_objects)}} objects."
     )
 
+    return(merged_obj)
+}
+
+#' @title Helper function to get slot names
+#' @description
+#' Returns the names of the slots in a Seurat object.
+#'
+#' @keywords internal
+GetSlotNames <- function(obj, slot_type) {
+    switch(
+        slot_type,
+        "assays" = names(obj@assays),
+        "graphs" = names(obj@graphs),
+        "reductions" = names(obj@reductions),
+        "images" = names(obj@images),
+        character(0)
+    )
+}
+
+#' @title Helper function to merge slot
+#' @description
+#' Merges the slot of a Seurat object (`merged_obj`) with the slot (`slot_type`) of other Seurat objects (`seurat_objects`).
+#' `common_cells` is a vector of cell barcodes that are common to all Seurat objects.
+#'
+#' @keywords internal
+MergeSlot <- function(slot_type, merged_obj, seurat_objects, common_cells) {
+    base_names <- GetSlotNames(merged_obj, slot_type)
+    # The first object is the base object
+    for (i in seq_along(seurat_objects)[-1]) {
+        current_obj <- seurat_objects[[i]]
+        current_names <- GetSlotNames(current_obj, slot_type)
+
+        # Find unique names not in base
+        unique_names <- setdiff(current_names, base_names)
+
+        # Add unique items
+        for (name in unique_names) {
+            item <- switch(
+                slot_type,
+                "assays" = current_obj@assays[[name]],
+                "graphs" = current_obj@graphs[[name]],
+                "reductions" = current_obj@reductions[[name]],
+                "images" = current_obj@images[[name]]
+            )
+
+            # Subset to common cells if applicable
+            if (slot_type == "assays") {
+                item <- subset(item, cells = common_cells)
+                merged_obj@assays[[name]] <- item
+            } else if (slot_type == "reductions") {
+                valid_cells <- intersect(
+                    rownames(item),
+                    common_cells
+                )
+                if (length(valid_cells) > 0) {
+                    item <- item[valid_cells, ]
+                    merged_obj@reductions[[name]] <- item
+                }
+            } else if (slot_type == "graphs") {
+                merged_obj@graphs[[name]] <- item
+            } else if (slot_type == "images") {
+                merged_obj@images[[name]] <- item
+            }
+        }
+
+        base_names <- GetSlotNames(merged_obj, slot_type)
+    }
     return(merged_obj)
 }

@@ -10,7 +10,7 @@ SigBridgeR is an integrative toolkit designed to identify phenotype-associated c
 }
 \section{Main functions}{
 
-The package includes multiple algorithms for integrative analysis of single-cell and bulk data to identify (see function \itemize{\item \code{\link{Screen}}}) phenotype-associated cell populations.
+The package includes multiple algorithms for integrative analysis of single-cell and bulk data to identify phenotype-associated cell populations. (see function \code{\link{Screen}})
 }
 
 \section{Data requirements (their pre-processing is also provided in the package)}{
@@ -30,11 +30,6 @@ For a detailed tutorial, please visit: \url{https://wanglabcsu.github.io/SigBrid
 \section{License}{
 
 SigBridgeR is licensed under the GPL version 3.0. Please see the LICENSE file for details.
-}
-
-\section{For Bug Reports, Suggestions, and Questions}{
-
-Please use the GitHub issue tracker at \url{https://github.com/wanglabcsu/SigBridgeR/issues}
 }
 
 \seealso{
