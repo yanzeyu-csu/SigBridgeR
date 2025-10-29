@@ -217,7 +217,7 @@ create_scAB.v5 <- function(
     Expression_cell <- as.matrix(dataset1[, (ncol_bulk + 1):ncol(dataset1)])
     X <- stats::cor(Expression_bulk, Expression_cell)
     # X <- X / norm(X, "F")
-    X <- X / sqrt(sum2(X^2))
+    X <- X / sqrt(sum(X^2))
 
     # phenotype ranking
     if (method == "survival") {
@@ -447,11 +447,11 @@ scAB.optimized <- function(
     eps <- 2.2204e-256
     nr <- nrow(X)
     nc <- ncol(X)
-    W <- Matrix::Matrix(runif(nr * K), nrow = nr, ncol = K)
-    H <- Matrix::Matrix(runif(K * nc), nrow = K, ncol = nc)
+    W <- Matrix::Matrix(stats::runif(nr * K), nrow = nr, ncol = K)
+    H <- Matrix::Matrix(stats::runif(K * nc), nrow = K, ncol = nc)
     SS <- S %*% S
 
-    loss_func = function(X, W, H, S, L, alpha, alpha_2) {
+    loss_func <- function(X, W, H, S, L, alpha, alpha_2) {
         # loss <- norm(X - W %*% H, "F")^2 +
         #     alpha * (norm(S %*% W, "F")^2) +
         #     alpha_2 * sum(diag(H %*% L %*% t(H)))
@@ -521,7 +521,7 @@ findSubset.optimized <- function(Object, scAB_Object, tred = 2L) {
 
     for (i in seq_along(module)) {
         M <- rep("Other", n_cells)
-        M[as.numeric(module[[i]])] = "Positive"
+        M[as.numeric(module[[i]])] <- "Positive"
         Object <- Seurat::AddMetaData(
             Object,
             metadata = M,
@@ -532,5 +532,6 @@ findSubset.optimized <- function(Object, scAB_Object, tred = 2L) {
                 col.name = paste0("Subset", i, "_loading")
             )
     }
-    return(Object)
+
+    Object
 }

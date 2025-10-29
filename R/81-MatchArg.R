@@ -9,8 +9,6 @@
 #' @param choices A character vector of valid choices to match against.
 #' @param default The default value to return if no match is found and `arg` is `NULL`.
 #'                Defaults to the first element of `choices`.
-#' @param call The calling environment to use for error reporting. Defaults to
-#'             `rlang::caller_env()`.
 #'
 #' @return Returns the matched choice from the `choices` vector. If no match is found
 #'         and `arg` is `NULL`, returns the `default` value. If no match is found and

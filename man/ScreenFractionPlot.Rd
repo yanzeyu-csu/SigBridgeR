@@ -59,7 +59,7 @@ can be a vector of titles or single title (will append screen type).}
 
 \item{nrow}{Number of rows for facet wrap when multiple screen types (default: NULL).}
 
-\item{....}{Useless}
+\item{...}{Other arguments passed to ggplot2::theme()}
 }
 \value{
 A list containing:

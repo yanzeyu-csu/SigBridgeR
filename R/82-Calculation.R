@@ -137,7 +137,7 @@ colQuantiles <- function(x, probs = seq(0, 1, 0.25), ...) {
             ...
         ))
     }
-    quantile(x, probs = probs, ...)
+    stats::quantile(x, probs = probs, ...)
 }
 
 #' @title Quantile normalizes the rows of a matrix.
@@ -197,7 +197,7 @@ normalize.quantiles <- function(x, copy = TRUE, keep.names = FALSE, ...) {
 
     # 4. 使用矩阵索引一次性分配所有值
     # 为每个元素分配对应排名的目标分布值
-    for (j in 1:cols) {
+    for (j in seq_len(cols)) {
         valid_idx <- !is.na(rank_mat[, j])
         mat[valid_idx, j] <- target_dist[rank_mat[valid_idx, j]]
     }

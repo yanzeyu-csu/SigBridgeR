@@ -272,7 +272,11 @@ SetupPyEnv.conda <- function(
                 }
                 # print message
                 if (verbose && nzchar(create_res$result$stdout)) {
-                    cat(create_res$result$stdout, sep = "\n")
+                    message(paste(
+                        create_res$result$stdout,
+                        sep = "\n",
+                        collapse = "\n"
+                    ))
                 }
                 if (verbose) {
                     cli::cli_alert_success(
@@ -389,7 +393,11 @@ SetupPyEnv.conda <- function(
                 }
                 # print message
                 if (verbose && nzchar(install_res$error$stdout)) {
-                    cat(install_res$error$stdout, sep = "\n")
+                    message(paste(
+                        install_res$error$stdout,
+                        sep = "\n",
+                        collapse = "\n"
+                    ))
                 }
 
                 if (verbose) {
@@ -725,7 +733,7 @@ ListPyEnv.default <- function(
     verbose = TRUE,
     ...
 ) {
-    env_type %<>% MatchArg(., c("all", "conda", "venv", "virtualenv"))
+    env_type %<>% MatchArg(c("all", "conda", "venv", "virtualenv"))
     switch(
         env_type,
         "conda" = ListPyEnv.conda(

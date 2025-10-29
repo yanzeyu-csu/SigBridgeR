@@ -240,7 +240,7 @@ DoDEGAS <- function(
             class = "NoPhenotypeProvided"
         )
     }
-    degas_params$DEGAS.model_type = paste0(
+    degas_params$DEGAS.model_type <- paste0(
         model_type.first,
         model_type.last
     )
@@ -606,20 +606,37 @@ runCCMTL.optimized <- function(
             DEGAS.seed
         )
     )
-
+    # cmd_args <- as.character(c(
+    #     paste0(tmpDir, model_type, "MTL.py"),
+    #     tmpDir,
+    #     DEGAS.train_steps,
+    #     DEGAS.scbatch_sz,
+    #     DEGAS.patbatch_sz,
+    #     DEGAS.hidden_feats,
+    #     DEGAS.do_prc,
+    #     DEGAS.lambda1,
+    #     DEGAS.lambda2,
+    #     DEGAS.lambda3,
+    #     DEGAS.seed
+    # ))
     if (verbose) {
         ts_cli$cli_alert_info("Training...")
     }
 
     # Execute system command
-    system(command = cmd)
+    system(command = cmd) # tested with processx::run but failed
+    # result <- processx::run(
+    #     command = DEGAS.pyloc, # 主命令/脚本
+    #     args = cmd_args, # 所有参数
+    #     echo = verbose, # 是否显示输出
+    #     error_on_status = TRUE # 如果命令失败则抛出错误
+    # )
 
-    ccModel1 <- readOutputFiles.optimized(
+    readOutputFiles.optimized(
         tmpDir = tmpDir,
         model_type = model_type,
         architecture = architecture
     )
-    return(ccModel1)
 }
 
 #' @title ccModel Object
@@ -769,7 +786,7 @@ runCCMTLBag.optimized <- function(
         tmpDir = tmpDir
     )
 
-    results <- purrr::map(
+    purrr::map(
         seq_len(Bagdepth),
         function(i) {
             DEGAS.seed_i <- DEGAS.seed + (i - 1)
@@ -792,8 +809,6 @@ runCCMTLBag.optimized <- function(
         },
         .progress = TRUE
     )
-
-    return(results)
 }
 
 #' @title Optimized Input File Writing for DEGAS Models
@@ -1041,7 +1056,7 @@ readOutputFiles.optimized <- function(tmpDir, model_type, architecture) {
 
     Activations <- as.list(activations)
 
-    return(methods::new(
+    methods::new(
         'ccModel',
         Bias = Biases,
         Theta = Thetas,
@@ -1049,7 +1064,7 @@ readOutputFiles.optimized <- function(tmpDir, model_type, architecture) {
         Depth = depth,
         Model_type = model_type,
         Architecture = architecture
-    ))
+    )
 }
 
 
@@ -1125,8 +1140,7 @@ predClassBag.optimized <- function(ccModel, Exp, scORpat) {
             ))
         )
     })
-    out <- Reduce("+", out) / length(out)
-    return(out)
+    Reduce("+", out) / length(out)
 }
 
 
@@ -1346,7 +1360,7 @@ LabelBinaryCells <- function(
         "Labeled {.val {positive_count}} cells as Positive ({.val {actual_fraction * 100}}% of total)."
     )
 
-    return(pred_dt)
+    pred_dt
 }
 
 #' @title Label Continuous Phenotype Cells Using MAD Testing
@@ -1433,7 +1447,7 @@ LabelContinuousCells <- function(pred_dt) {
         pred_dt[, "label" := "Other"]
     }
 
-    return(pred_dt)
+    pred_dt
 }
 
 #' @title Label Survival-Associated Phenotype Cells Based on Hazard Scores
@@ -1605,6 +1619,4 @@ LabelSurvivalCells <- function(
             }
         }
     ]
-
-    return(pred_dt)
 }

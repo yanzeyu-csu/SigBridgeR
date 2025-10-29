@@ -143,7 +143,7 @@ SCPreProcess.default <- function(
     sc_seurat <- Seurat::CreateSeuratObject(
         counts = sc,
         project = project,
-        meta.data = NULL %||% meta_data,
+        meta.data = meta_data,
         min.cells = min_cells,
         min.features = min_features
     )
@@ -206,15 +206,51 @@ SCPreProcess.default <- function(
 #'
 SCPreProcess.matrix <- function(
     sc,
+    meta_data = NULL,
+    column2only_tumor = NULL,
+    project = "SC_Screening_Proj",
+    min_cells = 400L,
+    min_features = 0L,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+    data_filter.percent.mt = 20L,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000L,
+    scale_features = NULL,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = NULL,
+    verbose = TRUE,
     ...
 ) {
-    dots <- list(...)
-    verbose <- if ("verbose" %in% names(dots)) dots$verbose else TRUE
     # sc is a count matrix
     if (verbose) {
         ts_cli$cli_alert_info("Start from matrix")
     }
-    NextMethod(generic = "SCPreProcess", sc = Matrix::Matrix(sc), ...)
+    NextMethod(
+        generic = "SCPreProcess",
+        sc = Matrix::Matrix(sc),
+        meta_data = meta_data,
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        scale_features = scale_features,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
+        ...
+    )
 }
 
 #' @rdname SCPreProcess
@@ -222,10 +258,25 @@ SCPreProcess.matrix <- function(
 #'
 SCPreProcess.data.frame <- function(
     sc,
+    meta_data = NULL,
+    column2only_tumor = NULL,
+    project = "SC_Screening_Proj",
+    min_cells = 400L,
+    min_features = 0L,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+    data_filter.percent.mt = 20L,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000L,
+    scale_features = NULL,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = NULL,
+    verbose = TRUE,
     ...
 ) {
-    dots <- list(...)
-    verbose <- if ("verbose" %in% names(dots)) dots$verbose else TRUE
     # sc is a count matrix
     if (verbose) {
         ts_cli$cli_alert_info("Start from data.frame, convert to matrix")
@@ -233,6 +284,23 @@ SCPreProcess.data.frame <- function(
     NextMethod(
         generic = "SCPreProcess",
         sc = Matrix::Matrix(as.matrix(sc)),
+        meta_data = meta_data,
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        scale_features = scale_features,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
         ...
     )
 }
@@ -242,15 +310,51 @@ SCPreProcess.data.frame <- function(
 #'
 SCPreProcess.dgCMatrix <- function(
     sc,
+    meta_data = NULL,
+    column2only_tumor = NULL,
+    project = "SC_Screening_Proj",
+    min_cells = 400L,
+    min_features = 0L,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+    data_filter.percent.mt = 20L,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000L,
+    scale_features = NULL,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = NULL,
+    verbose = TRUE,
     ...
 ) {
-    dots <- list(...)
-    verbose <- if ("verbose" %in% names(dots)) dots$verbose else TRUE
     # sc is a count matrix
     if (verbose) {
         ts_cli$cli_alert_info("Start from dgCMatrix")
     }
-    NextMethod(generic = "SCPreProcess", sc = sc, ...)
+    NextMethod(
+        generic = "SCPreProcess",
+        sc = sc,
+        meta_data = meta_data,
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        scale_features = scale_features,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
+        ...
+    )
 }
 
 
@@ -259,21 +363,56 @@ SCPreProcess.dgCMatrix <- function(
 SCPreProcess.AnnDataR6 <- function(
     sc,
     meta_data = NULL,
+    column2only_tumor = NULL,
+    project = "SC_Screening_Proj",
+    min_cells = 400L,
+    min_features = 0L,
+    quality_control = TRUE,
+    quality_control.pattern = c("^MT-", "^mt-"),
+    data_filter = TRUE,
+    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+    data_filter.percent.mt = 20L,
+    normalization_method = "LogNormalize",
+    scale_factor = 10000L,
+    scale_features = NULL,
+    selection_method = "vst",
+    resolution = 0.6,
+    dims = NULL,
+    verbose = TRUE,
     ...
 ) {
-    dots <- list(...)
-    verbose <- if ("verbose" %in% names(dots)) dots$verbose else TRUE
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
     if (verbose) {
         ts_cli$cli_alert_info("Start from anndata object")
     }
+    meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
+        cbind(meta_data, sc$obs)
+    } else if (!is.null(sc$obs)) {
+        sc$obs
+    }
 
     NextMethod(
         generic = "SCPreProcess",
         sc = Matrix::t(sc$X),
-        meta_data = sc$obs,
+        meta_data = meta_data,
+        column2only_tumor = column2only_tumor,
+        project = project,
+        min_cells = min_cells,
+        min_features = min_features,
+        quality_control = quality_control,
+        quality_control.pattern = quality_control.pattern,
+        data_filter = data_filter,
+        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
+        data_filter.percent.mt = data_filter.percent.mt,
+        normalization_method = normalization_method,
+        scale_factor = scale_factor,
+        scale_features = scale_features,
+        selection_method = selection_method,
+        resolution = resolution,
+        dims = dims,
+        verbose = verbose,
         ...
     )
 }
@@ -284,10 +423,9 @@ SCPreProcess.AnnDataR6 <- function(
 SCPreProcess.Seurat <- function(
     sc,
     column2only_tumor = NULL,
+    verbose = TRUE,
     ...
 ) {
-    dots <- list(...)
-    verbose <- if ("verbose" %in% names(dots)) dots$verbose else TRUE
     if (verbose) {
         ts_cli$cli_alert_info("Start from Seurat object")
     }

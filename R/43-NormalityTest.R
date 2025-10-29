@@ -441,7 +441,7 @@ ad.test <- function(x) {
     }
     logp1 <- stats::pnorm((x - mean(x)) / stats::sd(x), log.p = TRUE)
     logp2 <- stats::pnorm(-(x - mean(x)) / stats::sd(x), log.p = TRUE)
-    h <- (2 * seq(1:n) - 1) * (logp1 + rev(logp2))
+    h <- (2 * seq_len(n) - 1) * (logp1 + rev(logp2))
     A <- -n - mean(h)
     AA <- (1 + 0.75 / n + 2.25 / n^2) * A
     if (AA < 0.2) {
@@ -557,7 +557,7 @@ cvm.test <- function(x) {
         stop("sample size must be greater than 7")
     }
     p <- stats::pnorm((x - mean(x)) / stats::sd(x))
-    W <- (1 / (12 * n) + sum((p - (2 * seq(1:n) - 1) / (2 * n))^2))
+    W <- (1 / (12 * n) + sum((p - (2 * seq_len(n) - 1) / (2 * n))^2))
     WW <- (1 + 0.5 / n) * W
     if (WW < 0.0275) {
         pval <- 1 - exp(-13.953 + 775.5 * WW - 12542.61 * WW^2)

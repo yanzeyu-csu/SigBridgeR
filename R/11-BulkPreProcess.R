@@ -319,7 +319,7 @@ BulkPreProcess <- function(
 
         # Outlier detection (use only first 2 PCs)
         if (ncol(pca_result$x) >= 2) {
-            pc12 <- pca_result$x[, 1:2]
+            pc12 <- pca_result$x[, c(1, 2)]
             mahal_dist <- stats::mahalanobis(
                 pc12,
                 center = colMeans(pc12),
@@ -416,7 +416,7 @@ BulkPreProcess <- function(
                     pca_df$batch <- sample_info$batch
                 }
 
-                var_labels <- pca_summary$importance[2, 1:2] * 100
+                var_labels <- pca_summary$importance[2, c(1, 2)] * 100
 
                 p_pca <- ggplot2::ggplot(
                     pca_df,
@@ -451,7 +451,7 @@ BulkPreProcess <- function(
                         )
                 }
 
-                print(p_pca)
+                methods::show(p_pca)
             }
 
             if (verbose) {

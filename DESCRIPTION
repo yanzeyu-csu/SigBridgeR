@@ -54,7 +54,9 @@ Suggests:
     ggVennDiagram,
     here,
     knitr,
+    matrixStats,
     org.Hs.eg.db,
+    preprocessCore,
     randomcoloR,
     rmarkdown,
     zeallot

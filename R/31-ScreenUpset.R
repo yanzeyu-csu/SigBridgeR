@@ -189,7 +189,7 @@ ScreenUpset <- function(
         rlang::exec(ggplot2::theme, !!!theme_args)
 
     if (show_plot) {
-        print(upset)
+        methods::show(upset)
     }
 
     cli::cli_alert_success("ScreenUpset completed.")

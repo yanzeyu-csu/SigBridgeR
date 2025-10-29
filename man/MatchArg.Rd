@@ -13,9 +13,6 @@ MatchArg(arg, choices, default = choices[1])
 
 \item{default}{The default value to return if no match is found and \code{arg} is \code{NULL}.
 Defaults to the first element of \code{choices}.}
-
-\item{call}{The calling environment to use for error reporting. Defaults to
-\code{rlang::caller_env()}.}
 }
 \value{
 Returns the matched choice from the \code{choices} vector. If no match is found

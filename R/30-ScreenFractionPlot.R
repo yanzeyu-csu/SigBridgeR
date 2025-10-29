@@ -50,7 +50,7 @@
 #' @param y_lab Y-axis label (default: "Fraction of Status").
 #' @param ncol Number of columns for facet wrap when multiple screen types (default: 2).
 #' @param nrow Number of rows for facet wrap when multiple screen types (default: NULL).
-#' @param.... Useless
+#' @param ... Other arguments passed to ggplot2::theme()
 #'
 #' @return A list containing:
 #' \itemize{
@@ -244,10 +244,11 @@ ScreenFractionPlot <- function(
                 ),
                 axis.text = ggplot2::element_text(color = "black"),
                 legend.position = legend_position,
-                axis.line = ggplot2::element_line(linewidth = axis_linewidth)
+                axis.line = ggplot2::element_line(linewidth = axis_linewidth),
+                ...
             )
 
-        return(list(stats = stats_df, plot = plot))
+        list(stats = stats_df, plot = plot)
     }
 
     # Process single or multiple screen types
@@ -256,7 +257,7 @@ ScreenFractionPlot <- function(
         result <- SinglePlot(screen_type)
 
         if (show_plot) {
-            print(result$plot)
+            methods::show(result$plot)
         }
 
         return(result)
@@ -286,7 +287,7 @@ ScreenFractionPlot <- function(
         )
 
         if (show_plot) {
-            print(combined_plot)
+            methods::show(combined_plot)
         }
 
         return(list(

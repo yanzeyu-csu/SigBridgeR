@@ -153,7 +153,7 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
 
         # Create comprehensive visualization
         plot_data <- data.table::data.table(
-            PC = 1:ndims,
+            PC = seq_len(ndims),
             Variance = pct_variance,
             Cumulative = cumulative_variance
         )
@@ -254,7 +254,7 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
             ) +
             ggplot2::theme_minimal()
 
-        print(p)
+        methods::show(p)
 
         # Additional summary
         cli::cli_h3(cli::col_green("Summary"))
