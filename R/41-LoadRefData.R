@@ -136,5 +136,5 @@ LoadRefData <- function(
         unlink(local_file)
     }
 
-    return(data)
+    data
 }

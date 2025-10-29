@@ -174,7 +174,7 @@ SetupPyEnv.conda <- function(
         chk::chk_named(packages)
     }
     #   Default method is `reticulate`
-    method %<>% MatchArg(., c("reticulate", "system", "environment"))
+    method %<>% MatchArg(c("reticulate", "system", "environment"))
 
     if (verbose) {
         cli::cli_h1("Setting up Conda Python Environment")
@@ -753,11 +753,10 @@ ListPyEnv.default <- function(
                 venv_locations = venv_locations
             )
         ),
-        TRUE ~
-            cli::cli_abort(c(
-                "x" = "Invalid environment type: {.val {env_type}}",
-                "i" = "Valid types are: {.code all}, {.code conda} or {.code venv}"
-            ))
+        cli::cli_abort(c(
+            "x" = "Invalid environment type: {.val {env_type}}",
+            "i" = "Valid types are: {.code all}, {.code conda} or {.code venv}"
+        ))
     )
 }
 
@@ -861,11 +860,11 @@ ListPyEnv.conda <- function(
                 "No conda environments found, return empty result."
             )
 
-            return(data.frame(
+            data.frame(
                 name = character(),
                 python = character(),
                 type = character()
-            ))
+            )
         },
         reticulate = function() {
             # Method2: reticulate
@@ -883,21 +882,21 @@ ListPyEnv.conda <- function(
                 "No conda environments found, return empty result."
             )
 
-            return(data.frame(
+            data.frame(
                 name = character(),
                 python = character(),
                 type = character()
-            ))
+            )
         },
         default = function() {
             cli::cli_warn(
                 "All methods have failed to find the conda environment, returning empty conda environment result ."
             )
-            return(data.frame(
+            data.frame(
                 name = character(),
                 python = character(),
                 type = character()
-            ))
+            )
         }
     ) %>%
         purrr::map(purrr::safely)
@@ -953,15 +952,15 @@ ListPyEnv.venv <- function(
             ),
             type = "venv"
         ))
-    } else {
-        cli::cli_warn(
-            "No venv found in {.val {venv_locations}}, return empty virtual environment result"
-        )
-
-        return(data.frame(
-            name = character(),
-            python = character(),
-            type = character()
-        ))
     }
+
+    cli::cli_warn(
+        "No venv found in {.val {venv_locations}}, return empty virtual environment result"
+    )
+
+    data.frame(
+        name = character(),
+        python = character(),
+        type = character()
+    )
 }

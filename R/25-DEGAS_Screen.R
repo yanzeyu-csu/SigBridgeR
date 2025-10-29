@@ -576,16 +576,6 @@ runCCMTL.optimized <- function(
         )
     }
 
-    # Check Python with error handling
-    py_check <- processx::run(command = DEGAS.pyloc, args = "--version")
-    if (!is.null(py_check$error)) {
-        cli::cli_abort("Python check failed: ", py_check$error$message)
-    } else {
-        ts_cli$cli_alert_info(glue::glue(
-            "Python check passed, using {py_check$stdout}"
-        ))
-    }
-
     # cmd <- paste0(
     #     DEGAS.pyloc,
     #     " ",
@@ -619,9 +609,6 @@ runCCMTL.optimized <- function(
         DEGAS.lambda3,
         DEGAS.seed
     ))
-    if (verbose) {
-        ts_cli$cli_alert_info("Training...")
-    }
 
     # * Execute system command
     # system(command = cmd) # if processx::run failed, use `system` instead
@@ -786,10 +773,24 @@ runCCMTLBag.optimized <- function(
         tmpDir = tmpDir
     )
 
+    # Check Python with error handling
+    py_check <- processx::run(command = DEGAS.pyloc, args = "--version")
+    if (!is.null(py_check$error)) {
+        cli::cli_abort("Python check failed: ", py_check$error$message)
+    } else {
+        ts_cli$cli_alert_info(glue::glue(
+            "Python check passed, using {py_check$stdout}"
+        ))
+    }
+
     purrr::map(
         seq_len(Bagdepth),
         function(i) {
             DEGAS.seed_i <- DEGAS.seed + (i - 1)
+
+            if (verbose) {
+                ts_cli$cli_alert_info("Training progress: {i}/{Bagdepth}...")
+            }
 
             result <- runCCMTL.optimized(
                 scExp = scExp,
@@ -801,11 +802,12 @@ runCCMTLBag.optimized <- function(
                 architecture = architecture,
                 FFdepth = FFdepth,
                 DEGAS.seed = DEGAS.seed_i,
-                # Alreadt written files will not be rewritten
+                # Written files will not be rewritten
                 force_rewrite = FALSE
             )
             class(result) <- "ccModel"
-            return(result)
+
+            result
         },
         .progress = TRUE
     )

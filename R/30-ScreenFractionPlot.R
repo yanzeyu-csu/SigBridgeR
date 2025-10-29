@@ -261,39 +261,38 @@ ScreenFractionPlot <- function(
         }
 
         return(result)
-    } else {
-        # Multiple screen types
-        cli::cli_inform(
-            "Creating plots for {.val {length(screen_type)}} screen types..."
-        )
-
-        # Create plots for all screen types in parallel if possible
-        plot_results <- lapply(screen_type, function(st) {
-            SinglePlot(st, title_suffix = st)
-        })
-
-        # Extract stats and plots
-        stats_list <- lapply(plot_results, function(x) x$stats)
-        names(stats_list) <- screen_type
-
-        plots_list <- lapply(plot_results, function(x) x$plot)
-        names(plots_list) <- screen_type
-
-        # Combine plots using patchwork
-        combined_plot <- patchwork::wrap_plots(
-            plots_list,
-            ncol = ncol,
-            nrow = nrow
-        )
-
-        if (show_plot) {
-            methods::show(combined_plot)
-        }
-
-        return(list(
-            stats = stats_list,
-            plot = plots_list,
-            combined_plot = combined_plot
-        ))
     }
+    # Multiple screen types
+    cli::cli_inform(
+        "Creating plots for {.val {length(screen_type)}} screen types..."
+    )
+
+    # Create plots for all screen types in parallel if possible
+    plot_results <- lapply(screen_type, function(st) {
+        SinglePlot(st, title_suffix = st)
+    })
+
+    # Extract stats and plots
+    stats_list <- lapply(plot_results, function(x) x$stats)
+    names(stats_list) <- screen_type
+
+    plots_list <- lapply(plot_results, function(x) x$plot)
+    names(plots_list) <- screen_type
+
+    # Combine plots using patchwork
+    combined_plot <- patchwork::wrap_plots(
+        plots_list,
+        ncol = ncol,
+        nrow = nrow
+    )
+
+    if (show_plot) {
+        methods::show(combined_plot)
+    }
+
+    list(
+        stats = stats_list,
+        plot = plots_list,
+        combined_plot = combined_plot
+    )
 }

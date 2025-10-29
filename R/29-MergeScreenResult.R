@@ -135,7 +135,7 @@ MergeResult <- function(...) {
         "Successfully merged {.val {length(seurat_objects)}} objects."
     )
 
-    return(merged_obj)
+    merged_obj
 }
 
 #' @title Helper function to get slot names
@@ -202,5 +202,6 @@ MergeSlot <- function(slot_type, merged_obj, seurat_objects, common_cells) {
 
         base_names <- GetSlotNames(merged_obj, slot_type)
     }
-    return(merged_obj)
+
+    merged_obj
 }
