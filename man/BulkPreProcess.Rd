@@ -112,6 +112,5 @@ Samples are retained if:
 \code{\link[edgeR]{cpm}} for counts per million calculation,
 \code{\link[stats]{prcomp}} for PCA analysis,
 \code{\link[stats]{cor}} for correlation analysis,
-\code{\link[matrixStats]{rowVars}} for variance calculation of each row,
 \code{\link[SigBridgeR]{SymbolConvert}} for gene symbol conversion
 }

@@ -9,7 +9,7 @@ R/9*
 tmp
 *.RData
 inst/doc
-Tmp/*
+Tmp/**
 docs
 *.qs
 figures/**

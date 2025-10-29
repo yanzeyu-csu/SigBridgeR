@@ -342,11 +342,11 @@ SCPreProcess.Seurat <- function(
         )
     }
 
-    return(FilterTumorCell(
+    FilterTumorCell(
         obj = sc,
         column2only_tumor = column2only_tumor,
         verbose = verbose
-    ))
+    )
 }
 
 #' @title Process a Seurat object (internal)
@@ -469,13 +469,11 @@ FilterTumorCell <- function(
         labels
     )
 
-    tumor_seurat <- obj[, tumor_cells] %>%
-        AddMisc(
-            raw_dim = dim(obj),
-            self_dim = dim(.),
-            column2only_tumor = column2only_tumor,
-            cover = TRUE
-        )
-
-    return(tumor_seurat)
+    AddMisc(
+        seurat_obj = obj[, tumor_cells],
+        raw_dim = dim(obj),
+        self_dim = dim(.),
+        column2only_tumor = column2only_tumor,
+        cover = TRUE
+    )
 }

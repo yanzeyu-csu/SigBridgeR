@@ -238,12 +238,12 @@ DoScissor <- function(
         evaluate_res <- NULL
     }
 
-    return(list(
+    list(
         scRNA_data = sc_data,
         scissor_result = infos1, # parameters included
         reliability_result = reliability_result,
         cell_evaluation = evaluate_res
-    ))
+    )
 }
 
 #' @title Optimized Scissor Algorithm for Seurat ver5
@@ -326,7 +326,7 @@ Scissor.v5.optimized <- function(
             "Normalizing quantiles of data..."
         )
 
-        dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0))
+        dataset1 <- normalize.quantiles(as.matrix(dataset0))
         rownames(dataset1) <- common
         colnames(dataset1) <- c(colnames(bulk_mat), colnames(sc_mat))
 
@@ -347,7 +347,7 @@ Scissor.v5.optimized <- function(
         )
 
         X <- cor(Expression_bulk, Expression_cell)
-        quality_check <- matrixStats::colQuantiles(X, probs = seq(0, 1, 0.25))
+        quality_check <- colQuantiles(X, probs = seq(0, 1, 0.25))
 
         cli::cli_text(
             strrep("-", floor(getOption("width") / 2)),
@@ -548,7 +548,7 @@ Scissor.v5.optimized <- function(
     }
 
     last_success <- results[[length(results)]]
-    return(list(
+    list(
         para = list(
             alpha = last_success$alpha,
             lambda = last_success$fit0$lambda.min,
@@ -561,5 +561,5 @@ Scissor.v5.optimized <- function(
         X = X,
         Y = Y,
         network = network
-    ))
+    )
 }

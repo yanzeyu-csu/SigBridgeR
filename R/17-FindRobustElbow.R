@@ -272,5 +272,5 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
         }
     }
 
-    return(final_dims)
+    final_dims
 }

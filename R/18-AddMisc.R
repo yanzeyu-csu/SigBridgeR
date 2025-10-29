@@ -187,5 +187,5 @@ AddMisc <- function(seurat_obj, ..., cover = TRUE) {
         )
     }
 
-    return(seurat_obj)
+    seurat_obj
 }

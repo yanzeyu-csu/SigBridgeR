@@ -106,7 +106,6 @@
 #' @importFrom purrr walk map_chr map_dfr
 #' @importFrom magrittr %>%
 #' @importFrom data.table as.data.table fifelse setnames `:=`
-#' @importFrom matrixStats colMeans2 colSds
 #' @importFrom stats ks.test qnorm median
 #' @family screen_method
 #' @family DEGAS
@@ -1310,8 +1309,8 @@ LabelBinaryCells <- function(
                 labels
             } else {
                 # Use normal distribution-based selection
-                mean_val <- matrixStats::colMeans2(as.matrix(diff))
-                sd_val <- matrixStats::colSds(as.matrix(diff))
+                mean_val <- colMeans(as.matrix(diff))
+                sd_val <- colSds(as.matrix(diff))
                 quantile_val <- stats::qnorm(
                     select_fraction,
                     mean = mean_val,
@@ -1577,8 +1576,8 @@ LabelSurvivalCells <- function(
                 labels
             } else {
                 # Use normal distribution-based selection
-                mean_val <- matrixStats::colMeans2(`Hazard`)
-                sd_val <- matrixStats::colSds(`Hazard`)
+                mean_val <- colMeans(`Hazard`)
+                sd_val <- colSds(`Hazard`)
                 quantile_val <- stats::qnorm(
                     select_fraction,
                     mean = mean_val,

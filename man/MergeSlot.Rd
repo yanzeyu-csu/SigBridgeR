@@ -7,6 +7,7 @@
 MergeSlot(slot_type, merged_obj, seurat_objects, common_cells)
 }
 \description{
-Helper function to merge slot
+Merges the slot of a Seurat object (\code{merged_obj}) with the slot (\code{slot_type}) of other Seurat objects (\code{seurat_objects}).
+\code{common_cells} is a vector of cell barcodes that are common to all Seurat objects.
 }
 \keyword{internal}

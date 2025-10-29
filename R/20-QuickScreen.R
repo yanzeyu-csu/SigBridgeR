@@ -127,9 +127,10 @@ Screen <- function(
         ))
         label_type <- screen_method
     }
-    phenotype_class %<>% MatchArg(c("binary", "survival", "continuous"), NULL)
-    screen_method %<>%
-        MatchArg(c("Scissor", "scPP", "scPAS", "scAB", "DEGAS"), NULL)
+    available_phenotype_class <- c("binary", "survival", "continuous")
+    available_screen_method <- c("Scissor", "scPP", "scPAS", "scAB", "DEGAS")
+    phenotype_class %<>% MatchArg(available_phenotype_class, NULL)
+    screen_method %<>% MatchArg(available_screen_method, NULL)
 
     switch(
         screen_method,
@@ -210,7 +211,7 @@ Screen <- function(
         },
         cli::cli_abort(c(
             "x" = "Screen method not found.",
-            "i" = "Available methods: {.val Scissor}, {.val scPP}, {.val scPAS}, {.val scAB}, {.val DEGAS}"
+            "i" = "Available methods: {.val {available_screen_method}}"
         ))
     )
 }

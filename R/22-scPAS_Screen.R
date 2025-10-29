@@ -561,11 +561,11 @@ scPAS.optimized <- function(
     # Matrix multiplication for background scores
     risk_score.background <- Matrix::crossprod(scaled_exp, randomPermutation)
     rm(randomPermutation_list, randomPermutation)
-    # Calculate background statistics using matrixStats
+    # Calculate background statistics
     if (independent) {
         risk_bg_matrix <- as.matrix(risk_score.background)
-        mean.background <- matrixStats::rowMeans2(risk_bg_matrix)
-        sd.background <- matrixStats::rowSds(risk_bg_matrix)
+        mean.background <- rowMeans(risk_bg_matrix)
+        sd.background <- rowSds(risk_bg_matrix)
         rm(risk_bg_matrix)
     } else {
         risk_bg_vector <- as.vector(risk_score.background)
@@ -597,10 +597,10 @@ scPAS.optimized <- function(
     # Fast conditional labeling using data.table
     risk_score_data.frame[,
         cell_label := data.table::fcase(
-            Z > 0 & q.value <= FDR.threshold,
-            "Positive",
-            Z < 0 & q.value <= FDR.threshold,
-            "Negative",
+            Z > 0 & q.value <= FDR.threshold ,
+            "Positive"                       ,
+            Z < 0 & q.value <= FDR.threshold ,
+            "Negative"                       ,
             default = "Neutral"
         )
     ]

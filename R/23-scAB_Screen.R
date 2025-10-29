@@ -163,7 +163,6 @@ DoscAB <- function(
 #' @param method method "survival" or "binary"
 #'
 #' @return a scAB_data
-#' @importFrom preprocessCore normalize.quantiles
 #'
 #' @family scAB
 #'
@@ -196,7 +195,7 @@ create_scAB.v5 <- function(
     }
     diag(A) <- 0
     A[which(A != 0)] <- 1
-    degrees <- matrixStats::rowSums2(A)
+    degrees <- rowSums(A)
     D <- diag(degrees)
     eps <- 2.2204e-256
     D12 <- diag(1 / sqrt(pmax(degrees, eps)))
@@ -209,7 +208,7 @@ create_scAB.v5 <- function(
     sc_exprs <- Matrix::Matrix(SeuratObject::LayerData(Object))
     common <- intersect(rownames(bulk_dataset), rownames(sc_exprs))
     dataset0 <- cbind(bulk_dataset[common, ], sc_exprs[common, ]) # Dataset before quantile normalization.
-    dataset1 <- preprocessCore::normalize.quantiles(as.matrix(dataset0)) # Dataset after quantile normalization.
+    dataset1 <- normalize.quantiles(as.matrix(dataset0)) # Dataset after quantile normalization.
     dataset1 <- Matrix::Matrix(dataset1)
     rownames(dataset1) <- common
     colnames(dataset1) <- colnames(dataset0)
@@ -218,7 +217,7 @@ create_scAB.v5 <- function(
     Expression_cell <- as.matrix(dataset1[, (ncol_bulk + 1):ncol(dataset1)])
     X <- stats::cor(Expression_bulk, Expression_cell)
     # X <- X / norm(X, "F")
-    X <- X / sqrt(matrixStats::sum2(X^2))
+    X <- X / sqrt(sum2(X^2))
 
     # phenotype ranking
     if (method == "survival") {

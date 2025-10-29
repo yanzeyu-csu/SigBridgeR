@@ -114,7 +114,6 @@ SymbolConvert <- function(data) {
 #' \code{\link[edgeR]{cpm}} for counts per million calculation,
 #' \code{\link[stats]{prcomp}} for PCA analysis,
 #' \code{\link[stats]{cor}} for correlation analysis,
-#' \code{\link[matrixStats]{rowVars}} for variance calculation of each row,
 #' \code{\link[SigBridgeR]{SymbolConvert}} for gene symbol conversion
 #'
 #' @return Filtered count matrix
@@ -308,7 +307,7 @@ BulkPreProcess <- function(
 
         # Select highly variable genes
         n_genes_for_pca <- min(n_top_genes, nrow(cpm_values))
-        gene_vars <- matrixStats::rowVars(cpm_values, na.rm = TRUE)
+        gene_vars <- rowVars(cpm_values, na.rm = TRUE)
         top_var_idx <- order(gene_vars, decreasing = TRUE)[seq_len(
             n_genes_for_pca
         )]
@@ -340,9 +339,10 @@ BulkPreProcess <- function(
             )
             if (length(outliers) > 0) {
                 outlier_names <- sample_info$sample[outliers]
-                cli::cli_warn(
-                    "Outlier samples detected: {.emph {glue::glue_collapse(outlier_names, sep = ', ')}}"
-                )
+                cli::cli_warn(sprintf(
+                    "Outlier samples detected: {.emph {%s}}",
+                    glue::glue_collapse(outlier_names, sep = ', ')
+                ))
             }
         }
 
@@ -382,9 +382,10 @@ BulkPreProcess <- function(
                 batch_sig_prop <- mean(batch_pvalues < 0.05, na.rm = TRUE)
 
                 if (verbose) {
-                    ts_cli$cli_alert_success(
-                        "Batch effect detection completed: {.val {round(batch_sig_prop*100, 2)}}% genes affected"
-                    )
+                    ts_cli$cli_alert_success(sprintf(
+                        "Batch effect detection completed: {.val {%s}}% genes affected",
+                        round(batch_sig_prop * 100, 2)
+                    ))
                     if (batch_sig_prop > 0.3) {
                         cli::cli_warn(
                             "Strong batch effects detected, consider batch correction."
@@ -567,9 +568,10 @@ BulkPreProcess <- function(
     }
 
     if (gene_symbol_conversion) {
-        ts_cli$cli_alert_info("Start Gene symbol conversion")
         filtered_counts %<>% SymbolConvert()
-        ts_cli$cli_alert_success("Gene symbol conversion done")
+        if (verbose) {
+            ts_cli$cli_alert_success("Gene symbol conversion done")
+        }
     }
 
     if (verbose) {
@@ -578,5 +580,5 @@ BulkPreProcess <- function(
         )
     }
 
-    return(filtered_counts)
+    filtered_counts
 }

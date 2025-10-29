@@ -88,10 +88,10 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
     n <- length(x)
 
     if (is.na(mean) & is.na(sd)) {
-        m1 <- matrixStats::sum2(x) / n
-        m2 <- matrixStats::sum2((x - m1)^2) / n
-        m3 <- matrixStats::sum2((x - m1)^3) / n
-        m4 <- matrixStats::sum2((x - m1)^4) / n
+        m1 <- sum(x) / n
+        m2 <- sum((x - m1)^2) / n
+        m3 <- sum((x - m1)^3) / n
+        m4 <- sum((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 24)
@@ -99,19 +99,19 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
 
     if (!is.na(mean) & is.na(sd)) {
         m1 <- mean
-        m2 <- matrixStats::sum2((x - m1)^2) / n
-        m3 <- matrixStats::sum2((x - m1)^3) / n
-        m4 <- matrixStats::sum2((x - m1)^4) / n
+        m2 <- sum((x - m1)^2) / n
+        m3 <- sum((x - m1)^3) / n
+        m4 <- sum((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 24)
     }
 
     if (is.na(mean) & !is.na(sd)) {
-        m1 <- matrixStats::mean2(x)
+        m1 <- mean(x)
         m2 <- sd^2
-        m3 <- matrixStats::sum2((x - m1)^3) / n
-        m4 <- matrixStats::sum2((x - m1)^4) / n
+        m3 <- sum((x - m1)^3) / n
+        m4 <- sum((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 6 + (b2 - 3)^2 / 96)
@@ -120,8 +120,8 @@ jb.test.modified <- function(x, mean = NA, sd = NA) {
     if (!is.na(mean) & !is.na(sd)) {
         m1 <- mean
         m2 <- sd^2
-        m3 <- matrixStats::sum2((x - m1)^3) / n
-        m4 <- matrixStats::sum2((x - m1)^4) / n
+        m3 <- sum((x - m1)^3) / n
+        m4 <- sum((x - m1)^4) / n
         b1 <- (m3 / m2^(3 / 2))^2
         b2 <- (m4 / m2^2)
         STATISTIC <- n * (b1 / 15 + (b2 - 3)^2 / 96)
@@ -229,11 +229,11 @@ dagostino.test <- function(x) {
     x <- x[!is.na(x)]
     n <- as.double(length(x))
 
-    x_mean <- matrixStats::mean2(x)
+    x_mean <- mean(x)
     x_centered <- x - x_mean
-    m2 <- matrixStats::sum2(x_centered^2) / n
-    m3 <- matrixStats::sum2(x_centered^3) / n
-    m4 <- matrixStats::sum2(x_centered^4) / n
+    m2 <- sum(x_centered^2) / n
+    m3 <- sum(x_centered^3) / n
+    m4 <- sum(x_centered^4) / n
 
     g1 <- m3 / (m2^(3 / 2))
 

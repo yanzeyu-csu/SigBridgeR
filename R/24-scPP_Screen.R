@@ -362,7 +362,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     )]
 
     # Calculate quantiles
-    up_quantiles <- matrixStats::colQuantiles(
+    up_quantiles <- colQuantiles(
         matrix(c(auc_up, auc_down), ncol = 2),
         probs = c(probs, 1 - probs)
     )
@@ -579,7 +579,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
             Genes_neg = genes_neg
         )
 
-        fgseaRes <- rlang::try_fetch(
+        fgsea_res <- rlang::try_fetch(
             fgsea::fgsea(
                 pathways = res,
                 stats = genes_sort
@@ -588,13 +588,13 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
             warning = function(w) NULL
         )
 
-        if (is.null(fgseaRes)) {
+        if (is.null(fgsea_res)) {
             next
         }
 
         # Calculate NES difference
-        nes_pos <- fgseaRes$NES[fgseaRes$pathway == "Genes_pos"]
-        nes_neg <- fgseaRes$NES[fgseaRes$pathway == "Genes_neg"]
+        nes_pos <- fgsea_res$NES[fgsea_res$pathway == "Genes_pos"]
+        nes_neg <- fgsea_res$NES[fgsea_res$pathway == "Genes_neg"]
 
         if (length(nes_pos) > 0 && length(nes_neg) > 0) {
             NES_dif_res[i, "NES_dif"] <- nes_pos - nes_neg
