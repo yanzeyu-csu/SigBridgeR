@@ -8,6 +8,7 @@ NULL
 # Silence R CMD check NOTES
 # These symbols are used inside dplyr/tidyeval or data.table calls
 utils::globalVariables(c(
+    "!!!",
     # environment variables
     "ts_cli",
     # dplyr pipe & tidy-select
@@ -15,7 +16,7 @@ utils::globalVariables(c(
     "..duplicate_cols",
     # data.table internals
     "sym",
-    # column names
+    # column names and suffixes
     "scPP_AUCdown",
     "scPP_AUCup",
     "scPP",

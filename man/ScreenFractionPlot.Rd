@@ -6,11 +6,11 @@
 \usage{
 ScreenFractionPlot(
   screened_seurat,
-  group_by = "Source",
-  screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
+  group_by = "Source", # x-axis label
+  screen_type = NULL, # default: search all available screens
   show_null = FALSE,
-  plot_color = NULL,
-  show_plot = TRUE,
+  plot_color = NULL, # stack bar color of each status
+  show_plot = FALSE,
   plot_title = "Screen Fraction",
   stack_width = 0.85,
   x_text_angle = 45,
@@ -18,9 +18,9 @@ ScreenFractionPlot(
   legend_position = "right",
   x_lab = NULL,
   y_lab = "Fraction of Status",
-  ncol = 2,
-  nrow = NULL,
-  scales = "fixed"
+  ncol = 2, # number of columns for facet wrap
+  nrow = NULL, # number of rows for facet wrap
+  ... # unused
 )
 }
 \arguments{
@@ -59,8 +59,7 @@ can be a vector of titles or single title (will append screen type).}
 
 \item{nrow}{Number of rows for facet wrap when multiple screen types (default: NULL).}
 
-\item{scales}{Should scales be fixed ("fixed"), free ("free"), or free in one dimension
-("free_x", "free_y") for faceted plots (default: "fixed").}
+\item{....}{Useless}
 }
 \value{
 A list containing:

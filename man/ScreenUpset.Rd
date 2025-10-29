@@ -7,7 +7,7 @@
 ScreenUpset(
   screened_seurat,
   screen_type = NULL,
-  show_plot = TRUE,
+  show_plot = FALSE,
   n_intersections = 20,
   x_lab = "Screen Set Intersections",
   y_lab = "Number of Cells",
@@ -24,7 +24,7 @@ Must contain columns with screening types marked as "Positive".}
 \item{screen_type}{Character vector of screening types to analyze.
 Default: NULL, indicating that a self-search pattern will be used.}
 
-\item{show_plot}{Whether to show the upset plot. Default: TRUE.}
+\item{show_plot}{Whether to show the upset plot. Default: FALSE}
 
 \item{n_intersections}{Number of intersections to display in the plot. Default: 20.}
 

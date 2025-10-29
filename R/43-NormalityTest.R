@@ -325,7 +325,7 @@ dagostino.test <- function(x) {
     DNAME <- deparse(substitute(x))
     METHOD <- "D'Agostino Normality Test"
 
-    result <- structure(
+    structure(
         list(
             statistic = c(
                 Skewness = Z_g1,
@@ -351,7 +351,6 @@ dagostino.test <- function(x) {
         ),
         class = "htest"
     )
-    return(result)
 }
 
 #' @title Anderson-Darling Normality Test
@@ -456,14 +455,15 @@ ad.test <- function(x) {
     } else {
         pval <- 3.7e-24
     }
-    RVAL <- list(
-        statistic = c(A = A),
-        p.value = pval,
-        method = "Anderson-Darling normality test",
-        data.name = DNAME
+    structure(
+        list(
+            statistic = c(A = A),
+            p.value = pval,
+            method = "Anderson-Darling normality test",
+            data.name = DNAME
+        ),
+        class = "htest"
     )
-    class(RVAL) <- "htest"
-    return(RVAL)
 }
 
 #' @title Cramer-von Mises Normality Test

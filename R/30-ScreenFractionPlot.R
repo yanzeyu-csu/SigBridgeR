@@ -13,11 +13,11 @@
 #' @usage
 #' ScreenFractionPlot(
 #'   screened_seurat,
-#'   group_by = "Source",
-#'   screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
+#'   group_by = "Source", # x-axis label
+#'   screen_type = NULL, # default: search all available screens
 #'   show_null = FALSE,
-#'   plot_color = NULL,
-#'   show_plot = TRUE,
+#'   plot_color = NULL, # stack bar color of each status
+#'   show_plot = FALSE,
 #'   plot_title = "Screen Fraction",
 #'   stack_width = 0.85,
 #'   x_text_angle = 45,
@@ -25,9 +25,9 @@
 #'   legend_position = "right",
 #'   x_lab = NULL,
 #'   y_lab = "Fraction of Status",
-#'   ncol = 2,
-#'   nrow = NULL,
-#'   scales = "fixed"
+#'   ncol = 2, # number of columns for facet wrap
+#'   nrow = NULL, # number of rows for facet wrap
+#'   ... # unused
 #' )
 #'
 #' @param screened_seurat A Seurat object containing screening results in metadata.
@@ -50,8 +50,7 @@
 #' @param y_lab Y-axis label (default: "Fraction of Status").
 #' @param ncol Number of columns for facet wrap when multiple screen types (default: 2).
 #' @param nrow Number of rows for facet wrap when multiple screen types (default: NULL).
-#' @param scales Should scales be fixed ("fixed"), free ("free"), or free in one dimension
-#'        ("free_x", "free_y") for faceted plots (default: "fixed").
+#' @param.... Useless
 #'
 #' @return A list containing:
 #' \itemize{
@@ -96,7 +95,6 @@
 #' @importFrom tidyr complete
 #' @importFrom ggplot2 ggplot aes geom_col scale_y_continuous scale_fill_manual
 #' @importFrom ggplot2 theme_classic labs theme element_text element_line
-#' @importFrom scales percent_format
 #' @importFrom glue glue
 #' @importFrom patchwork wrap_plots plot_annotation
 #'
@@ -105,20 +103,20 @@
 ScreenFractionPlot <- function(
     screened_seurat,
     group_by = "Source",
-    screen_type = c("scissor", "scPAS", "scPP", "scAB", "DEGAS"),
+    screen_type = NULL,
     show_null = FALSE,
     plot_color = NULL,
-    show_plot = TRUE,
+    show_plot = FALSE,
     plot_title = "Screen Fraction",
     stack_width = 0.85,
-    x_text_angle = 45,
+    x_text_angle = 45L,
     axis_linewidth = 0.8,
     legend_position = "right",
     x_lab = NULL,
     y_lab = "Fraction of Status",
-    ncol = 2,
+    ncol = 2L,
     nrow = NULL,
-    scales = "fixed"
+    ...
 ) {
     chk::chk_is(screened_seurat, "Seurat")
     chk::chk_character(group_by)
@@ -127,37 +125,32 @@ ScreenFractionPlot <- function(
     if (!is.null(plot_color)) {
         chk::chk_vector(plot_color)
     }
-    all_screen_types <- colnames(screened_seurat@meta.data)
-    if (
-        !all(purrr::map_vec(
-            screen_type,
-            ~ . %chin% all_screen_types
-        ))
-    ) {
-        cli::cli_abort(c("x" = "Screen type(s) not found in metadata."))
-    }
 
-    # Check available screen types in the Seurat object
+    meta_data <- screened_seurat[[]]
+    all_screen_types <- colnames(meta_data)
     available_screens <- grep(
         "sc[a-zA-Z_]+$|DEGAS$",
-        names(screened_seurat@meta.data),
+        names(meta_data),
         value = TRUE
     )
-
-    # Validate screen_type input
-    if (length(screen_type) == 0) {
+    if (!group_by %chin% all_screen_types) {
         cli::cli_abort(c(
-            "x" = "Please provide at least one screen algorithm type ({.var screen_type}).",
-            "i" = "Available screen types: {.val {available_screens}}"
+            "x" = "Grouping variable not found in metadata.",
+            ">" = "Available grouping variables: {.val {all_screen_types}}"
         ))
     }
-
-    # Check if all requested screen types are available
-    missing_screens <- setdiff(screen_type, available_screens)
-    if (length(missing_screens) > 0) {
+    # Check available screen types in the Seurat object
+    if (is.null(screen_type)) {
+        screen_type <- available_screens
+    } else if (
+        !all(purrr::map_vec(
+            screen_type,
+            ~ . %chin% all_screen_types # We don't use `available_screens` for the sake of compatibility to other groups
+        ))
+    ) {
         cli::cli_abort(c(
-            "x" = "Screen type(s) not found in metadata: {.val {missing_screens}}",
-            "i" = "Available screen types: {.val {available_screens}}"
+            "x" = "Screen type(s) not found in metadata.",
+            ">" = "Available screen types: {.val {available_screens}}"
         ))
     }
 
@@ -171,7 +164,7 @@ ScreenFractionPlot <- function(
 
     # Function to create plot for single screen type
     SinglePlot <- function(single_screen_type, title_suffix = "") {
-        stats_df <- screened_seurat@meta.data %>%
+        stats_df <- meta_data %>%
             dplyr::count(!!sym(group_by), !!sym(single_screen_type)) %>%
             tidyr::complete(
                 !!sym(group_by),
@@ -229,14 +222,14 @@ ScreenFractionPlot <- function(
         ) +
             ggplot2::geom_col(position = "stack", width = stack_width) +
             ggplot2::scale_y_continuous(
-                labels = scales::percent_format(accuracy = 1),
+                labels = function(x) paste0(round(x * 100L, 0L), "%"),
                 expand = c(0, 0),
                 breaks = seq(0, 1, 0.1)
             ) +
             ggplot2::scale_fill_manual(
                 values = plot_color
             ) +
-            ggplot2::theme_classic(base_size = 14) +
+            ggplot2::theme_classic(base_size = 14L) +
             ggplot2::labs(
                 x = x_lab,
                 y = y_lab,

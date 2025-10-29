@@ -42,6 +42,13 @@ remotes::install_github("WangLabCSU/SigBridgeR")
 install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 ```
 
+It is recommended to install the following packages to improve runtime speed.
+
+```{r,install_extra_packages,eval=FALSE}
+install.packages("matrixStats")
+install.packages("preprocessCore")
+```
+
 ## 📓 Documentation
 
 Get Started:

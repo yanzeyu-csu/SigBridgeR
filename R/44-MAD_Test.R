@@ -136,5 +136,5 @@ mad.test <- function(x, na.rm = TRUE) {
     )
 
     class(result) <- "htest"
-    return(result)
+    result
 }

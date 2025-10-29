@@ -12,7 +12,7 @@
 #'                        Must contain columns with screening types marked as "Positive".
 #' @param screen_type Character vector of screening types to analyze.
 #'                    Default: NULL, indicating that a self-search pattern will be used.
-#' @param show_plot Whether to show the upset plot. Default: TRUE.
+#' @param show_plot Whether to show the upset plot. Default: FALSE
 #' @param n_intersections Number of intersections to display in the plot. Default: 20.
 #' @param x_lab Label for the x-axis. Default: "Screen Set Intersections".
 #' @param y_lab Label for the y-axis. Default: "Number of Cells".
@@ -67,7 +67,7 @@
 ScreenUpset <- function(
     screened_seurat,
     screen_type = NULL,
-    show_plot = TRUE,
+    show_plot = FALSE,
     n_intersections = 20,
     x_lab = "Screen Set Intersections",
     y_lab = "Number of Cells",
@@ -159,6 +159,14 @@ ScreenUpset <- function(
         count = counts
     )
 
+    # Arguments allocated to ggplot2::theme() and ggupset::theme_combmatrix()
+    dots <- list(...)
+    dots$combmatrix.panel.point.color.fill <- combmatrix_point_color
+    dots$combmatrix.label.make_space <- FALSE
+
+    theme_args <- FilterArgs4Func(dots, ggplot2::theme)
+    combmatrix_args <- FilterArgs4Func(dots, ggupset::theme_combmatrix)
+
     # Create UpSet plot
     upset <- ggplot2::ggplot(
         intersection_data,
@@ -176,12 +184,9 @@ ScreenUpset <- function(
             y = y_lab,
             title = title
         ) +
-        ggupset::theme_combmatrix(
-            combmatrix.panel.point.color.fill = combmatrix_point_color,
-            combmatrix.label.make_space = FALSE
-        ) +
+        rlang::exec(ggupset::theme_combmatrix, !!!combmatrix_args) +
         ggplot2::theme_minimal() +
-        ggplot2::theme(...)
+        rlang::exec(ggplot2::theme, !!!theme_args)
 
     if (show_plot) {
         print(upset)
@@ -189,5 +194,5 @@ ScreenUpset <- function(
 
     cli::cli_alert_success("ScreenUpset completed.")
 
-    return(list(plot = upset, stats = intersection_data))
+    list(plot = upset, stats = intersection_data)
 }

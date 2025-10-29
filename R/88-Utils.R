@@ -21,9 +21,10 @@ Rownames2Col <- function(.data, var = "rowname") {
     if (is.null(lhs)) {
         return(rhs)
     }
-    return(lhs)
+    lhs
 }
 
+#' @title Check if all objects are identical
 #' @keywords internal
 all_identical <- function(..., names = NULL) {
     objs <- list(...)
@@ -49,5 +50,14 @@ all_identical <- function(..., names = NULL) {
         }
     }
 
-    return(result)
+    result
+}
+
+#' @title Filter dots arguments for a function
+#
+#' @keywords internal
+FilterArgs4Func <- function(args_list, fun) {
+    fun_formals <- names(formals(fun))
+    fun_formals <- fun_formals[fun_formals != "..."]
+    args_list[names(args_list) %chin% fun_formals]
 }

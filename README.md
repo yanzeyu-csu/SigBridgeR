@@ -1,3 +1,5 @@
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 # **SigBridgeR** <a href="https://wanglabcsu.github.io/SigBridgeR/"><img src="man/figures/logo_white.png" alt="sigbridger website" align="right" height="139"/></a>
 
 [![Repo Status](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)[![License: GPL3](https://img.shields.io/badge/license-GPL3-blue.svg)](https://cran.r-project.org/web/licenses/GPL3) [![](https://img.shields.io/badge/devel%20version-2.5.3-blue.svg)](https://github.com/WangLabCSU/SigBridgeR) [![R CMD check](https://github.com/WangLabCSU/SigBridgeR/workflows/R-CMD-check/badge.svg)](https://github.com/WangLabCSU/SigBridgeR/actions) [![registry status badge](https://wanglabcsu.r-universe.dev/badges/:registry)](https://wanglabcsu.r-universe.dev/)
@@ -15,7 +17,7 @@ Usually we recommend installing the latest release from GitHub because of the la
 1.  Install the development version from GitHub:
 
 ``` r
-if(!requireNamespace("remotes")) {
+if (!requireNamespace("remotes")) {
   install.packages("remotes")
 }
 remotes::install_github("WangLabCSU/SigBridgeR")
@@ -25,6 +27,13 @@ remotes::install_github("WangLabCSU/SigBridgeR")
 
 ``` r
 install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
+```
+
+It is recommended to install the following packages to improve runtime speed.
+
+``` r
+install.packages("matrixStats")
+install.packages("preprocessCore")
 ```
 
 ## 📓 Documentation
