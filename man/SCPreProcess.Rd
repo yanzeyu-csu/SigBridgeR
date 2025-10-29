@@ -36,15 +36,95 @@ SCPreProcess(sc, ...)
   ...
 )
 
-\method{SCPreProcess}{matrix}(sc, ...)
+\method{SCPreProcess}{matrix}(
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+  data_filter.percent.mt = 20L,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{SCPreProcess}{data.frame}(sc, ...)
+\method{SCPreProcess}{data.frame}(
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+  data_filter.percent.mt = 20L,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{SCPreProcess}{dgCMatrix}(sc, ...)
+\method{SCPreProcess}{dgCMatrix}(
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+  data_filter.percent.mt = 20L,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{SCPreProcess}{AnnDataR6}(sc, meta_data = NULL, ...)
+\method{SCPreProcess}{AnnDataR6}(
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-", "^mt-"),
+  data_filter = TRUE,
+  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
+  data_filter.percent.mt = 20L,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, ...)
+\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:

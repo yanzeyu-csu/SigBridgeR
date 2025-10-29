@@ -586,51 +586,51 @@ runCCMTL.optimized <- function(
         ))
     }
 
-    cmd <- paste0(
-        DEGAS.pyloc,
-        " ",
-        tmpDir,
-        model_type,
-        "MTL.py",
-        paste(
-            "",
-            tmpDir,
-            DEGAS.train_steps,
-            DEGAS.scbatch_sz,
-            DEGAS.patbatch_sz,
-            DEGAS.hidden_feats,
-            DEGAS.do_prc,
-            DEGAS.lambda1,
-            DEGAS.lambda2,
-            DEGAS.lambda3,
-            DEGAS.seed
-        )
-    )
-    # cmd_args <- as.character(c(
-    #     paste0(tmpDir, model_type, "MTL.py"),
+    # cmd <- paste0(
+    #     DEGAS.pyloc,
+    #     " ",
     #     tmpDir,
-    #     DEGAS.train_steps,
-    #     DEGAS.scbatch_sz,
-    #     DEGAS.patbatch_sz,
-    #     DEGAS.hidden_feats,
-    #     DEGAS.do_prc,
-    #     DEGAS.lambda1,
-    #     DEGAS.lambda2,
-    #     DEGAS.lambda3,
-    #     DEGAS.seed
-    # ))
+    #     model_type,
+    #     "MTL.py",
+    #     paste(
+    #         "",
+    #         tmpDir,
+    #         DEGAS.train_steps,
+    #         DEGAS.scbatch_sz,
+    #         DEGAS.patbatch_sz,
+    #         DEGAS.hidden_feats,
+    #         DEGAS.do_prc,
+    #         DEGAS.lambda1,
+    #         DEGAS.lambda2,
+    #         DEGAS.lambda3,
+    #         DEGAS.seed
+    #     )
+    # )
+    cmd_args <- as.character(c(
+        paste0(tmpDir, model_type, "MTL.py"),
+        tmpDir,
+        DEGAS.train_steps,
+        DEGAS.scbatch_sz,
+        DEGAS.patbatch_sz,
+        DEGAS.hidden_feats,
+        DEGAS.do_prc,
+        DEGAS.lambda1,
+        DEGAS.lambda2,
+        DEGAS.lambda3,
+        DEGAS.seed
+    ))
     if (verbose) {
         ts_cli$cli_alert_info("Training...")
     }
 
-    # Execute system command
-    system(command = cmd) # tested with processx::run but failed
-    # result <- processx::run(
-    #     command = DEGAS.pyloc, # 主命令/脚本
-    #     args = cmd_args, # 所有参数
-    #     echo = verbose, # 是否显示输出
-    #     error_on_status = TRUE # 如果命令失败则抛出错误
-    # )
+    # * Execute system command
+    # system(command = cmd) # if processx::run failed, use `system` instead
+    result <- processx::run(
+        command = DEGAS.pyloc,
+        args = cmd_args,
+        echo = verbose,
+        error_on_status = TRUE
+    )
 
     readOutputFiles.optimized(
         tmpDir = tmpDir,
