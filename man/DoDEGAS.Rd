@@ -17,7 +17,7 @@ DoDEGAS(
   env_params = list(),
   degas_params = list(),
   normality_test_method = c("jarque-bera", "d'agostino", "kolmogorov-smirnov"),
-  verbose,
+  verbose = TRUE,
   ...
 )
 }
@@ -73,6 +73,8 @@ For survival: matrix with two columns (time and event status). Can be NULL, matr
 }}
 
 \item{normality_test_method}{Method for normality testing: "jarque-bera", "d'agostino", or "kolmogorov-smirnov"}
+
+\item{verbose}{Logical, whether to print messages.}
 
 \item{...}{for future compatibility}
 }

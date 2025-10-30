@@ -799,7 +799,7 @@ sf.test <- function(x) {
     if ((n < 5 || n > 5000)) {
         stop("sample size must be between 5 and 5000")
     }
-    y <- qnorm(stats::ppoints(n, a = 3 / 8))
+    y <- stats::qnorm(stats::ppoints(n, a = 3 / 8))
     W <- cor(x, y)^2
     u <- log(n)
     v <- log(u)

@@ -21,6 +21,7 @@ DoScissor(
    cell_evaluation.benchmark_data = "path_to_file.RData",
    cell_evaluation.FDR = 0.05,
    cell_evaluation.bootstrap_n = 100,
+   verbose = TRUE,
    ...
 )
 }

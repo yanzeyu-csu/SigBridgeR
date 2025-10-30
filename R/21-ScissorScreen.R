@@ -23,6 +23,7 @@
 #'    cell_evaluation.benchmark_data = "path_to_file.RData",
 #'    cell_evaluation.FDR = 0.05,
 #'    cell_evaluation.bootstrap_n = 100,
+#'    verbose = TRUE,
 #'    ...
 #' )
 #'
@@ -394,6 +395,8 @@ Scissor.v5.optimized <- function(
             quality_check %>%
                 asplit(2) %>%
                 purrr::map_dbl(mean) %>%
+                round(digits = 6) %>%
+                paste(sep = "   ", collapse = "   ") %>% # 3 space
                 cli::cli_text()
             cli::cli_text(
                 strrep("-", floor(getOption("width") / 2)),

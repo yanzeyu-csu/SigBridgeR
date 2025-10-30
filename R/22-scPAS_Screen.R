@@ -335,11 +335,11 @@ scPAS.optimized <- function(
             intersect(rownames(bulk_dataset), var_features)
         } else if (is.character(nfeature) && length(nfeature) > 1) {
             intersect(rownames(bulk_dataset), nfeature)
+        } else {
+            cli::cli_abort(c(
+                "x" = "{.arg nfeature} must be a numeric value, a character vector of gene names, or {.val NULL}. "
+            ))
         }
-
-        cli::cli_abort(c(
-            "x" = "{.arg nfeature} must be a numeric value or a character vector of gene names."
-        ))
     } else {
         if (verbose) {
             ts_cli$cli_alert_info(
@@ -388,7 +388,7 @@ scPAS.optimized <- function(
 
     # Step 1: Quantile normalization with matrix optimization
     if (verbose) {
-        ts_cli$cli_alert_info("Quantile normalization of bulk data.")
+        ts_cli$cli_alert_info("Quantile normalizing bulk data...")
     }
 
     Expression_bulk <- normalize.quantiles(as.matrix(bulk_dataset[

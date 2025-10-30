@@ -107,7 +107,8 @@ DoscAB <- function(
         Object = sc_data,
         bulk_dataset = matched_bulk,
         phenotype = phenotype,
-        method = phenotype_class
+        method = phenotype_class,
+        verbose = verbose
     )
 
     if (verbose) {
@@ -118,9 +119,9 @@ DoscAB <- function(
         scAB_obj,
         K_max = 20L,
         repeat_times = 10L,
-        maxiter = 2000L,
+        maxiter = 2000L, # default in scAB
         seed = 0L,
-        verbose = FALSE
+        verbose = verbose
     )
 
     if (verbose) {
@@ -175,6 +176,8 @@ DoscAB <- function(
 #' @param bulk_dataset matrix of bulk data
 #' @param phenotype Phenotype data, a matrix with two columns "time" and "state", or a vector
 #' @param method method "survival" or "binary"
+#' @param verbose Logical, whether to print messages.
+#' @param ... For future updates.
 #'
 #' @return a scAB_data
 #'
@@ -186,7 +189,9 @@ create_scAB.v5 <- function(
     Object,
     bulk_dataset,
     phenotype,
-    method = c("survival", "binary")
+    method = c("survival", "binary"),
+    verbose = TRUE,
+    ...
 ) {
     # cell neighbors
     if ("RNA_snn" %chin% names(Object@graphs)) {
@@ -324,7 +329,7 @@ select_K.optimized <- function(
             dist_K[Ki_idx, Kj] <- sum(diff_matrix^2) # equivalent to `norm(., "F")^2`
         }
         if (verbose) {
-            message(sprintf(
+            cli::cli_li(sprintf(
                 "loss of %d: %.6f",
                 Ki,
                 mean(dist_K[Ki_idx, ])

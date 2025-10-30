@@ -72,9 +72,9 @@ mad.test <- function(x, na.rm = TRUE) {
     )
 
     # Calculate median and MAD
-    median_val <- dt[, median(`value`)]
+    median_val <- dt[, stats::median(`value`)]
     abs_dev <- abs(dt$`value` - median_val)
-    mad_val <- median(abs_dev)
+    mad_val <- stats::median(abs_dev)
     mad_adjusted <- mad_val * 1.4826
 
     # Determine threshold based on sample size

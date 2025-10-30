@@ -13,7 +13,9 @@ DoscPP(
   ref_group = 0,
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
-  probs = c(0.2, NULL)
+  probs = c(0.2, NULL),
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{

@@ -53,8 +53,9 @@ install.packages("preprocessCore")
 
 Get Started:
 
--   [Quick Started Guide](vignettes/Quick_Start.md)
+-   [A Quick Started Guide](vignettes/Quick_Start.md)
 -   [Full Tutorial](vignettes/Full_Tutorial.md) for more details
+-   View [Github Webpage](https://wanglabcsu.github.io/SigBridgeR/)
 -   Use `?SigBridgeR::function_name` to access the help documents in R.
 
 If you encounter problems, please see:

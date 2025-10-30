@@ -8,7 +8,9 @@ create_scAB.v5(
   Object,
   bulk_dataset,
   phenotype,
-  method = c("survival", "binary")
+  method = c("survival", "binary"),
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -19,6 +21,10 @@ create_scAB.v5(
 \item{phenotype}{Phenotype data, a matrix with two columns "time" and "state", or a vector}
 
 \item{method}{method "survival" or "binary"}
+
+\item{verbose}{Logical, whether to print messages.}
+
+\item{...}{For future updates.}
 }
 \value{
 a scAB_data

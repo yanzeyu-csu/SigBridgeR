@@ -572,7 +572,8 @@ FilterTumorCell <- function(
     column2only_tumor = NULL,
     verbose = TRUE
 ) {
-    obj <- AddMisc(obj, self_dim = dim(.), cover = TRUE)
+    raw_dim <- dim(obj)
+    obj <- AddMisc(obj, self_dim = raw_dim, cover = TRUE)
 
     if (is.null(column2only_tumor)) {
         return(obj)
@@ -595,10 +596,12 @@ FilterTumorCell <- function(
         labels
     )
 
+    obj = obj[, tumor_cells]
+
     AddMisc(
-        seurat_obj = obj[, tumor_cells],
-        raw_dim = dim(obj),
-        self_dim = dim(.),
+        seurat_obj = obj,
+        raw_dim = raw_dim,
+        self_dim = dim(obj),
         column2only_tumor = column2only_tumor,
         cover = TRUE
     )

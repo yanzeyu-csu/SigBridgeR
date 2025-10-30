@@ -136,6 +136,7 @@ ScreenFractionPlot <- function(
     if (!group_by %chin% all_screen_types) {
         cli::cli_abort(c(
             "x" = "Grouping variable not found in metadata.",
+            ">" = "Current: {.val {group_by}}",
             ">" = "Available grouping variables: {.val {all_screen_types}}"
         ))
     }

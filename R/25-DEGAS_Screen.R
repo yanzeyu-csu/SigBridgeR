@@ -45,6 +45,7 @@
 #'   - DEGAS.lambda3: regularization parameter 3 (default: 3.0)
 #'   - DEGAS.seed: random seed (default: 2)
 #' @param normality_test_method Method for normality testing: "jarque-bera", "d'agostino", or "kolmogorov-smirnov"
+#' @param verbose Logical, whether to print messages.
 #' @param ... for future compatibility
 #'
 #' @return A list containing:
@@ -128,7 +129,7 @@ DoDEGAS <- function(
         "d'agostino",
         "kolmogorov-smirnov"
     ),
-    verbose,
+    verbose = TRUE,
     ...
 ) {
     # Robustness checks
@@ -1308,7 +1309,7 @@ LabelBinaryCells <- function(
         test_method,
         "jarque-bera" = jb.test.modified(pred_dt$diff)$p.value,
         "d'agostino" = dagostino.test(pred_dt$diff)$p.value[3],
-        "kolmogorov-smirnov" = ks.test(pred_dt$diff, "pnorm")$p.value
+        "kolmogorov-smirnov" = stats::ks.test(pred_dt$diff, "pnorm")$p.value
     )
 
     # Apply labeling based on normality test result
@@ -1591,7 +1592,7 @@ LabelSurvivalCells <- function(
         test_method,
         "jarque-bera" = jb.test.modified(pred_vec)$p.value,
         "d'agostino" = dagostino.test(pred_vec)$p.value[3],
-        "kolmogorov-smirnov" = ks.test(pred_vec, "pnorm")$p.value
+        "kolmogorov-smirnov" = stats::ks.test(pred_vec, "pnorm")$p.value
     )
 
     pred_dt[,
