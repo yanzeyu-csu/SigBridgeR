@@ -61,7 +61,7 @@ vignette: >
 
 ### 0.1 Introduction to SigBridgeR
 
-SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk RNA expression and sample related phenotype data (e.g. patient survival, age, etc). It integrates many single cell phenotypic screening methods ([8. References](#8-references)) and performs as a unified integration panel.
+SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk RNA expression and sample related phenotype data (e.g. patient survival, age, etc). It integrates many single cell phenotypic screening methods ([8. References](#8-references)) and provides unified preprocessing, parameter tuning, and visualization approaches,performing as a unified integration panel.
 
 ------------------------------------------------------------------------
 
@@ -74,10 +74,10 @@ Install **SigBridgeR** using one of these methods:
 Usually we recommend installing the latest release from GitHub because of the latest features and bug fixes.
 
 ```{r,install_from_github,eval=FALSE}
-if(!requireNamespace("remotes")) {
-  install.packages("remotes")
+if(!requireNamespace("pak")) {
+  install.packages("pak")
 }
-remotes::install_github("WangLabCSU/SigBridgeR")
+pak::pkg_install("WangLabCSU/SigBridgeR")
 ```
 
 ### 1.2 Release from r-universe
