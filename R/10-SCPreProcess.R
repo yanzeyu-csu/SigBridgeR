@@ -29,7 +29,8 @@
 #' @param quality_control Logical indicating whether to perform mitochondrial
 #'    percentage quality control. Defaults to `TRUE`.
 #' @param quality_control.pattern Character pattern to identify mitochondrial
-#'    genes. Customized patterns are supported. Defaults to `"^MT-"`.
+#'    genes, ribosomal protein genes, or other unwanted genes, as well as combinations
+#'    of these genes. Customized patterns are supported. Defaults to `"^MT-"`.
 #' @param data_filter Logical indicating whether to filter cells based on
 #'    quality metrics. Defaults to `TRUE`.
 #' @param data_filter.nFeature_RNA_thresh Numeric vector of length 2 specifying
@@ -120,7 +121,7 @@ SCPreProcess.default <- function(
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
-    quality_control.pattern = c("^MT-", "^mt-"),
+    quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
     data_filter.nFeature_RNA_thresh = c(200L, 6000L),
     data_filter.percent.mt = 20L,
@@ -140,7 +141,7 @@ SCPreProcess.default <- function(
         chk::chk_character(column2only_tumor)
     }
 
-    sc_seurat <- Seurat::CreateSeuratObject(
+    sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
         project = project,
         meta.data = meta_data,
@@ -149,16 +150,12 @@ SCPreProcess.default <- function(
     )
 
     if (quality_control) {
-        if (length(quality_control.pattern) != 1) {
-            quality_control.pattern %<>%
-                MatchArg(choices = c("^MT-", "^mt-"), default = "^MT-")
-        }
-
         chk::chk_character(quality_control.pattern)
 
-        sc_seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(
-            sc_seurat,
-            pattern = quality_control.pattern
+        sc_seurat <- QCPatternFilter(
+            obj = sc_seurat,
+            pattern = quality_control.pattern,
+            verbose = verbose
         )
     }
     if (data_filter) {
@@ -168,8 +165,7 @@ SCPreProcess.default <- function(
             data_filter.nFeature_RNA_thresh[1],
             data_filter.nFeature_RNA_thresh[2]
         )
-        chk::chk_numeric(data_filter.percent.mt)
-        chk::chk_range(data_filter.percent.mt, c(0, 100))
+        chk::chk_range(data_filter.percent.mt, range = c(0, 100))
 
         sc_seurat <- subset(
             x = sc_seurat,
@@ -460,20 +456,12 @@ SCPreProcess.Seurat <- function(
     )
     updated_res <- SafelyUpdateSeuratObject(sc)
     # Successful repair
-    if (is.null(updated_res$error)) {
-        if (verbose) {
-            ts_cli$cli_alert_success(cli::col_green(
-                "Successfully repaired the Seurat object"
-            ))
-        }
-        return(FilterTumorCell(
-            obj = updated_res$result,
-            column2only_tumor = column2only_tumor,
-            verbose = verbose
+    if (is.null(updated_res$error) && verbose) {
+        ts_cli$cli_alert_success(cli::col_green(
+            "Successfully repaired the Seurat object"
         ))
-    }
-    # Failure to repair
-    if (verbose) {
+    } else if (verbose) {
+        # Failure to repair
         cli::cli_alert_danger(updated_res$error)
         cli::cli_warn(
             "Seurat object repair failed. It is recommended to rebuild the Seurat object. Filtering is still being performed but may not be reliable."
@@ -584,7 +572,7 @@ FilterTumorCell <- function(
     column2only_tumor = NULL,
     verbose = TRUE
 ) {
-    obj %<>% AddMisc(self_dim = dim(.), cover = TRUE)
+    obj <- AddMisc(obj, self_dim = dim(.), cover = TRUE)
 
     if (is.null(column2only_tumor)) {
         return(obj)
@@ -614,4 +602,89 @@ FilterTumorCell <- function(
         column2only_tumor = column2only_tumor,
         cover = TRUE
     )
+}
+
+#' @title Calculate Percentage of Features Matching Patterns
+#'
+#' @description
+#' This function calculates the percentage of counts coming from features matching
+#' specified patterns (e.g., mitochondrial genes, ribosomal genes) and adds them
+#' as metadata columns to the Seurat object.
+#'
+#' @param obj A seurat object.
+#' @param pattern Character pattern to identify mitochondrial
+#'    genes, ribosomal protein genes, or other unwanted genes, as well as combinations
+#'    of these genes. Customized patterns are supported.
+#' @param verbose logical, whether to print progress messages
+#' @param ... Additional arguments passed to \code{\link[Seurat]{PercentageFeatureSet}}
+#'
+#' @details
+#' The function automatically generates friendly column names based on the patterns:
+#' - "mt" for mitochondrial patterns
+#' - "rp" for ribosomal patterns
+#' - "rrna" for ribosomal RNA patterns
+#' - For combined patterns (using |), creates names like "mt_rp"
+#' - For other patterns, creates cleaned lowercase names
+#'
+#' @keywords internal
+#' @family single_cell_preprocess
+#'
+QCPatternFilter <- function(
+    obj,
+    pattern = c("^MT-", "^mt-", "^RP[SL]", "^MT-|^RP[SL]"),
+    verbose = TRUE,
+    ...
+) {
+    Pattern2Colname <- function(pat) {
+        pat_lower <- tolower(pat)
+
+        if (grepl("\\|", pat)) {
+            # Handle combined patterns (with | separator)
+            parts <- strsplit(pat, "|", fixed = TRUE)[[1]]
+            names <- purrr::map_chr(parts, function(p) {
+                dplyr::case_when(
+                    grepl("mt", p_lower) ~ "mt",
+                    grepl("rp", p_lower) ~ "rp",
+                    grepl("rrna|rna[0-9]", p_lower) ~ "rrna",
+                    TRUE ~ tolower(gsub("[^[:alnum:]]", "", p))
+                )
+            })
+
+            paste(sort(unique(names)), collapse = "_")
+        } else {
+            # Handle single patterns
+            dplyr::case_when(
+                grepl("mt", pat_lower) ~ "mt",
+                grepl("rp", pat_lower) ~ "rp",
+                grepl("rrna|rna[0-9]", pat_lower) ~ "rrna",
+                TRUE ~ {
+                    clean <- gsub("[^[:alnum:]]", "_", pat)
+                    clean <- gsub("_+", "_", clean) # Collapse multiple underscores
+                    clean <- gsub("^_+|_+$", "", clean) # Trim leading/trailing underscores
+                    tolower(clean)
+                }
+            )
+        }
+    }
+
+    for (pat in pattern) {
+        col_name <- paste0("percent.", Pattern2Colname(pat))
+
+        if (col_name %chin% colnames(obj[[]])) {
+            if (verbose) {
+                cli::cli_warn(
+                    "Column {.val {col_name}} already exists. Skipping pattern: {.val {pat}}",
+                )
+            }
+            next
+        }
+
+        obj[[col_name]] <- Seurat::PercentageFeatureSet(
+            obj,
+            pattern = pat,
+            ...
+        )
+    }
+
+    obj
 }

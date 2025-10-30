@@ -1,7 +1,8 @@
 ---
 title: "Full Tutorial"
 date: '`r Sys.Date()`'
-output: html_document
+output: 
+  html_document: null
 knit: knitted
 vignette: >
   %\VignetteIndexEntry{Full Tutorial}
@@ -60,7 +61,7 @@ vignette: >
 
 ### 0.1 Introduction to SigBridgeR
 
-SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk expression and sample_related phenotype data at a pan-cancer level. It integrates functionality from these R packages: [sunduanchen/Scissor](https://github.com/sunduanchen/Scissor), [Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/), [WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP), [aiminXie/scPAS](https://github.com/aiminXie/scPAS) and [tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
+SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in **R**) is an R package for screening cells highly associated with phenotype data using single-cell RNA-seq, bulk RNA expression and sample related phenotype data (e.g. patient survival, age, etc). It integrates many single cell phenotypic screening methods ([8. References](#8-references)) and performs as a unified integration panel.
 
 ------------------------------------------------------------------------
 

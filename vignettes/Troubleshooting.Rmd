@@ -2,7 +2,8 @@
 title: "Troubleshooting"
 author: "Exceret"
 date: '`r Sys.Date()`'
-output: html_document
+output: 
+  html_document: null
 knit: knitted
 vignette: >
   %\VignetteIndexEntry{Troubleshooting}
@@ -22,7 +23,7 @@ This vignette provides solutions to common problems you might encounter when usi
 
 To solve this problem, you need to install `preprocessCore` without threading support. Try:
 
-```{bash,eval=FALSE}
+```shell
 # ! shell
 git clone https://github.com/bmbolstad/preprocessCore.git
 cd preprocessCore
@@ -208,7 +209,7 @@ import tensorflow as tf
 tf.__version__
 ```
 
-```{bash,eval=FALSE}
+```shell
 # make sure you've entered the Conda environment you want to check, i.e. r-reticulate-degas
 conda list tensorflow
 

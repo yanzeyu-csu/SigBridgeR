@@ -41,6 +41,10 @@ DoscPP(
 \item{estimate_cutoff}{Effect size threshold for \strong{continuous} traits (default: 0.2)}
 
 \item{probs}{A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)}
+
+\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
+
+\item{...}{For future update.}
 }
 \value{
 A list containing:

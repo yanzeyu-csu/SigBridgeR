@@ -4,12 +4,14 @@
 \alias{LabelContinuousCells}
 \title{Label Continuous Phenotype Cells Using MAD Testing}
 \usage{
-LabelContinuousCells(pred_dt)
+LabelContinuousCells(pred_dt, verbose = TRUE)
 }
 \arguments{
 \item{pred_dt}{A data.table containing prediction scores for multiple
 phenotypic conditions. Must contain a 'cell_id' column and one or more
 columns with prediction scores for different phenotypes.}
+
+\item{verbose}{Logical, whether to print messages.}
 }
 \value{
 The input \code{pred_dt} with an additional column:

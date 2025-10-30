@@ -20,7 +20,8 @@ Filter tumor cells from Seurat object.
 Other single_cell_preprocess: 
 \code{\link{ClusterAndReduce}()},
 \code{\link{FindRobustElbow}()},
-\code{\link{ProcessSeuratObject}()}
+\code{\link{ProcessSeuratObject}()},
+\code{\link{QCPatternFilter}()}
 }
 \concept{single_cell_preprocess}
 \keyword{internal}

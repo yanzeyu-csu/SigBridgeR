@@ -33,6 +33,8 @@
 #' @param Log2FC_cutoff Minimum log2 fold-change for binary markers (default: 0.585)
 #' @param estimate_cutoff Effect size threshold for **continuous** traits (default: 0.2)
 #' @param probs A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)
+#' @param verbose Logical indicating whether to print progress messages. Default: `TRUE`.
+#' @param ... For future update.
 #'
 #' @return A list containing:
 #' \describe{
@@ -93,12 +95,18 @@ DoscPP <- function(
     ref_group = 0,
     Log2FC_cutoff = 0.585,
     estimate_cutoff = 0.2,
-    probs = c(0.2, NULL)
+    probs = c(0.2, NULL),
+    verbose = TRUE,
+    ...
 ) {
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    phenotype_class %<>% MatchArg(c("Binary", "Continuous", "Survival"), NULL)
+    phenotype_class <- MatchArg(
+        phenotype_class,
+        c("Binary", "Continuous", "Survival"),
+        NULL
+    )
     chk::chk_number(ref_group)
     chk::chk_range(Log2FC_cutoff)
     chk::chk_range(estimate_cutoff)
@@ -124,9 +132,10 @@ DoscPP <- function(
         }
     }
 
-    ts_cli$cli_alert_info(cli::col_green("Start scPP screening."))
-
-    ts_cli$cli_alert_info("Finding markers...")
+    if (verbose) {
+        ts_cli$cli_alert_info(cli::col_green("Start scPP screening."))
+        ts_cli$cli_alert_info("Finding markers...")
+    }
 
     matched_bulk <- as.data.frame(matched_bulk)
     # decide which type of phenotype data is used
@@ -136,22 +145,22 @@ DoscPP <- function(
             dplyr::rename("Feature" = 2) %>%
             dplyr::mutate(Feature = as.numeric(`Feature`))
     }
-    if (tolower(phenotype_class) == "binary") {
+    gene_list <- if (tolower(phenotype_class) == "binary") {
         Check0VarRows(matched_bulk)
-        gene_list <- ScPP::marker_Binary(
+        ScPP::marker_Binary(
             bulk_data = matched_bulk,
             features = phenotype,
             ref_group = ref_group,
             Log2FC_cutoff = Log2FC_cutoff
         )
     } else if (tolower(phenotype_class) == "continuous") {
-        gene_list <- ScPP::marker_Continuous(
+        ScPP::marker_Continuous(
             bulk_data = matched_bulk,
             features = phenotype$Feature,
             estimate_cutoff = estimate_cutoff
         )
-    } else if (tolower(phenotype_class) == "survival") {
-        gene_list <- ScPP::marker_Survival(
+    } else {
+        ScPP::marker_Survival(
             bulk_data = matched_bulk,
             survival_data = phenotype
         )
@@ -162,31 +171,32 @@ DoscPP <- function(
     neg_null <- FALSE
     if ("gene_pos" %chin% names(l)) {
         # Cannot combine the conditions due to the feature of `gene_list`
-        if (l[["gene_pos"]] == 0) {
+        if (l[["gene_pos"]] == 0 && verbose) {
             ts_cli$cli_alert_info("No significant positive genes found")
             pos_null <- TRUE
         }
     }
     if ("gene_neg" %chin% names(l)) {
-        if (l[["gene_neg"]] == 0) {
+        if (l[["gene_neg"]] == 0 && verbose) {
             ts_cli$cli_alert_info("No significant negative genes found")
             neg_null <- TRUE
         }
     }
     if (pos_null && neg_null) {
-        ts_cli$cli_alert_info(
-            cli::col_yellow("scPP screening exits 1.")
-        )
-        return(list(
-            scRNA_data = "`scPP` is not applicable to the current data."
+        cli::cli_warn(c(
+            "scPP is not applicable to the current data. Returning {.val NULL}",
+            "scPP screening exits 1."
         ))
+        return(NULL)
     }
 
-    ts_cli$cli_alert_info("Screening...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Screening...")
+    }
 
     # *Start screen
     scPP_result <- rlang::try_fetch(
-        ScPP.optimized(sc_data, gene_list, probs = probs),
+        ScPP.optimized(sc_data, gene_list, probs = probs, verbose = verbose),
         error = function(e) {
             cli::cli_abort(c("x" = "ScPP screening failed:", ">" = e$message))
         }
@@ -194,20 +204,20 @@ DoscPP <- function(
     sc_data[[]] <- scPP_result$metadata
     sc_data <- AddMisc(sc_data, scPP_type = label_type, cover = FALSE)
 
-    ts_cli$cli_alert_success(cli::col_green("scPP screening done."))
+    if (verbose) {
+        ts_cli$cli_alert_success(cli::col_green("scPP screening done."))
+    }
 
-    return(
-        list(
-            scRNA_data = sc_data,
-            gene_list = list(
-                genes_pos = scPP_result$Genes_pos,
-                genes_neg = scPP_result$Genes_neg
-            ),
-            AUC = dplyr::select(
-                scPP_result$metadata,
-                "scPP_AUCup",
-                "scPP_AUCdown"
-            )
+    list(
+        scRNA_data = sc_data,
+        gene_list = list(
+            genes_pos = scPP_result$Genes_pos,
+            genes_neg = scPP_result$Genes_neg
+        ),
+        AUC = dplyr::select(
+            scPP_result$metadata,
+            "scPP_AUCup",
+            "scPP_AUCdown"
         )
     )
 }
@@ -293,7 +303,12 @@ DoscPP <- function(
 #' @keywords internal
 #' @family scPP
 #'
-ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
+ScPP.optimized <- function(
+    sc_dataset,
+    geneList,
+    probs = c(0.2, NULL),
+    verbose
+) {
     # Set default probs if NULL
     probs <- probs %||% seq(0.2, 0.45, by = 0.05)
 
@@ -311,12 +326,12 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
         # OPTIMIZATION MODE: Find optimal probs
         # ============================================================
         probs_optimal <- .OptimizationMode(sc_dataset, geneList, probs)
-        return(.SingleProbMode(sc_dataset, geneList, probs_optimal))
+        return(.SingleProbMode(sc_dataset, geneList, probs_optimal, verbose))
     } else {
         # ============================================================
         # FIXED THRESHOLD MODE: Single prob profiling
         # ============================================================
-        return(.SingleProbMode(sc_dataset, geneList, probs))
+        return(.SingleProbMode(sc_dataset, geneList, probs, verbose))
     }
 }
 
@@ -324,7 +339,7 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
 #' @keywords internal
 #' @family scPP
 #' @seealso [ScPP.optimized()]
-.SingleProbMode <- function(sc_dataset, geneList, probs) {
+.SingleProbMode <- function(sc_dataset, geneList, probs, verbose) {
     set.seed(123)
 
     # Extract gene sets
@@ -333,15 +348,17 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     if (length(geneList_AUC) != 2) {
         cli::cli_abort("geneList must contain 'gene_pos' and 'gene_neg'")
     }
-
-    ts_cli$cli_alert_info(
-        "Running fixed threshold mode with prob = {.val {probs}}"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Running fixed threshold mode with prob = {.val {probs}}"
+        )
+    }
 
     # Get RNA data
     rna_data <- SeuratObject::LayerData(sc_dataset)
-
-    ts_cli$cli_alert_info("Computing AUC scores...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Computing AUC scores...")
+    }
 
     # Compute AUCell scores
     cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
@@ -385,16 +402,18 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     metadata_dt[, scPP := "Neutral"]
     metadata_dt[cell_id %chin% scPP_pos, scPP := "Positive"]
     metadata_dt[cell_id %chin% scPP_neg, scPP := "Negative"]
-
-    ts_cli$cli_alert_success(
-        "Classified {.val {length(scPP_pos)}} Positive, {.val {length(scPP_neg)}} Negative cells"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_success(
+            "Classified {.val {length(scPP_pos)}} Positive, {.val {length(scPP_neg)}} Negative cells"
+        )
+    }
 
     # Update Seurat object
     sc_dataset$scPP <- metadata_dt$scPP
     Seurat::Idents(sc_dataset) <- "scPP"
-
-    ts_cli$cli_alert_info("Finding markers...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Finding markers...")
+    }
 
     # Find markers
     markers <- Seurat::FindMarkers(
@@ -428,25 +447,26 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
         genes_neg,
         "There are no genes significantly upregulated in `Negative` compared to `Positive`."
     )
-
-    ts_cli$cli_alert_success(
-        "Found {.val {length(genes_pos)}} positive markers, {.val {length(genes_neg)}} negative markers"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_success(
+            "Found {.val {length(genes_pos)}} positive markers, {.val {length(genes_neg)}} negative markers"
+        )
+    }
 
     # Return results
-    return(list(
+    list(
         metadata = as.data.frame(metadata_dt) %>%
             Col2Rownames("cell_id"),
         Genes_pos = genes_pos,
         Genes_neg = genes_neg
-    ))
+    )
 }
 
 
 #' @keywords internal
 #' @family scPP
 #' @seealso [ScPP.optimized()]
-.OptimizationMode <- function(sc_dataset, geneList, probs) {
+.OptimizationMode <- function(sc_dataset, geneList, probs, verbose) {
     set.seed(123)
 
     # Extract gene sets
@@ -464,14 +484,18 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     }
 
     n_probs <- length(probs)
-    ts_cli$cli_alert_info(
-        "Running optimization mode: testing {.val {n_probs}} threshold{?s}"
-    )
+
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Running optimization mode: testing {.val {n_probs}} threshold{?s}"
+        )
+    }
 
     # Get RNA data
     rna_data <- SeuratObject::LayerData(sc_dataset)
-
-    ts_cli$cli_alert_info("Computing AUC scores...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Computing AUC scores...")
+    }
 
     # Compute AUCell scores once
     cellrankings <- AUCell::AUCell_buildRankings(rna_data, plotStats = FALSE)
@@ -501,18 +525,23 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     colnames(NES_dif_res) <- c("prob", "NES_dif")
     NES_dif_res[, "prob"] <- probs
 
-    ts_cli$cli_alert_info("Testing thresholds and computing NES differences...")
-
-    # Progress bar
-    cli::cli_progress_bar(
-        "Optimizing threshold",
-        total = n_probs,
-        format = "{cli::pb_spin} Testing prob {cli::pb_current}/{cli::pb_total} [{cli::pb_elapsed}]"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Testing thresholds and computing NES differences..."
+        )
+        # Progress bar
+        cli::cli_progress_bar(
+            "Optimizing threshold",
+            total = n_probs,
+            format = "{cli::pb_spin} Testing prob {cli::pb_current}/{cli::pb_total} [{cli::pb_elapsed}]"
+        )
+    }
 
     # Iterate through probability thresholds
     for (i in seq_len(n_probs)) {
-        cli::cli_progress_update()
+        if (verbose) {
+            cli::cli_progress_update()
+        }
 
         prob_i <- probs[i]
 
@@ -600,8 +629,9 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
             NES_dif_res[i, "NES_dif"] <- nes_pos - nes_neg
         }
     }
-
-    cli::cli_progress_done()
+    if (verbose) {
+        cli::cli_progress_done()
+    }
 
     # Convert to data.frame and find optimal
     NES_dif_res <- as.data.frame(NES_dif_res)
@@ -619,15 +649,16 @@ ScPP.optimized <- function(sc_dataset, geneList, probs = c(0.2, NULL)) {
     opt_prob <- NES_dif_res$prob[opt_idx]
     opt_nes <- NES_dif_res$NES_dif[opt_idx]
 
-    ts_cli$cli_alert_success(
-        "Optimal threshold: {.val {opt_prob}} (NES difference: {.val {round(opt_nes, 3)}})"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_success(
+            "Optimal threshold: {.val {opt_prob}} (NES difference: {.val {round(opt_nes, 3)}})"
+        )
+        # Show summary of valid results
+        valid_summary <- NES_dif_res[valid_results, ]
+        ts_cli$cli_alert_info(
+            "Valid results: {.val {sum(valid_results)}}/{.val {n_probs}} thresholds"
+        )
+    }
 
-    # Show summary of valid results
-    valid_summary <- NES_dif_res[valid_results, ]
-    ts_cli$cli_alert_info(
-        "Valid results: {.val {sum(valid_results)}}/{.val {n_probs}} thresholds"
-    )
-
-    return(opt_prob)
+    opt_prob
 }

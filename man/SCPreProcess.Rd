@@ -22,7 +22,7 @@ SCPreProcess(sc, ...)
   min_cells = 400L,
   min_features = 0L,
   quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
+  quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
   data_filter.nFeature_RNA_thresh = c(200L, 6000L),
   data_filter.percent.mt = 20L,
@@ -155,7 +155,8 @@ cell for it to be included in the analysis. Defaults to \code{0}.}
 percentage quality control. Defaults to \code{TRUE}.}
 
 \item{quality_control.pattern}{Character pattern to identify mitochondrial
-genes. Customized patterns are supported. Defaults to \code{"^MT-"}.}
+genes, ribosomal protein genes, or other unwanted genes, as well as combinations
+of these genes. Customized patterns are supported. Defaults to \code{"^MT-"}.}
 
 \item{data_filter}{Logical indicating whether to filter cells based on
 quality metrics. Defaults to \code{TRUE}.}

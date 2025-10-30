@@ -568,7 +568,7 @@ BulkPreProcess <- function(
     }
 
     if (gene_symbol_conversion) {
-        filtered_counts %<>% SymbolConvert()
+        filtered_counts <- SymbolConvert(filtered_counts)
         if (verbose) {
             ts_cli$cli_alert_success("Gene symbol conversion done")
         }

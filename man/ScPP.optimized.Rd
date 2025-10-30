@@ -4,7 +4,7 @@
 \alias{ScPP.optimized}
 \title{scPP Screening with Optimal Threshold Detection}
 \usage{
-ScPP.optimized(sc_dataset, geneList, probs = c(0.2, NULL))
+ScPP.optimized(sc_dataset, geneList, probs = c(0.2, NULL), verbose)
 }
 \arguments{
 \item{sc_dataset}{A Seurat object containing single-cell RNA-seq data.

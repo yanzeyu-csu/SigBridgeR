@@ -21,6 +21,8 @@
 #' @param alpha_2 Coefficent of cell-cell similarity regularization (default=5e-05).
 #' @param maxiter NMF optimization iterations (default=2000).
 #' @param tred Z-score threshold (default=2).
+#' @param verbose Logical indicating whether to print progress messages. Default: `TRUE`.
+#' @param ... For future update.
 #'
 #' @return A list containing:
 #' \describe{
@@ -66,12 +68,14 @@ DoscAB <- function(
     alpha = 0.005,
     alpha_2 = 5e-05,
     maxiter = 2000,
-    tred = 2
+    tred = 2,
+    verbose = TRUE,
+    ...
 ) {
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    phenotype_class %<>% MatchArg(c("binary", "survival"), NULL)
+    phenotype_class <- MatchArg(phenotype_class, c("binary", "survival"), NULL)
     chk::chk_range(alpha)
     chk::chk_range(alpha_2)
     chk::chk_number(maxiter)
@@ -95,7 +99,9 @@ DoscAB <- function(
         }
     }
 
-    ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
+    if (verbose) {
+        ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
+    }
 
     scAB_obj <- create_scAB.v5(
         Object = sc_data,
@@ -104,7 +110,9 @@ DoscAB <- function(
         method = phenotype_class
     )
 
-    ts_cli$cli_alert_info("Selecting K...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Selecting K...")
+    }
 
     k <- select_K.optimized(
         scAB_obj,
@@ -115,9 +123,11 @@ DoscAB <- function(
         verbose = FALSE
     )
 
-    ts_cli$cli_alert_info(
-        "Run NMF with phenotype and cell-cell similarity regularization at K = {.val {k}}"
-    )
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Run NMF with phenotype and cell-cell similarity regularization at K = {.val {k}}"
+        )
+    }
 
     scAB_result <- scAB.optimized(
         Object = scAB_obj,
@@ -127,7 +137,9 @@ DoscAB <- function(
         maxiter = maxiter
     )
 
-    ts_cli$cli_alert_info("Screening cells...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Screening cells...")
+    }
 
     sc_data <- findSubset.optimized(
         sc_data,
@@ -145,11 +157,13 @@ DoscAB <- function(
             cover = FALSE
         )
 
-    ts_cli$cli_alert_info(
-        cli::col_green("scAB screening done.")
-    )
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            cli::col_green("scAB screening done.")
+        )
+    }
 
-    return(list(scRNA_data = sc_data, scAB_result = scAB_result))
+    list(scRNA_data = sc_data, scAB_result = scAB_result)
 }
 
 
@@ -176,29 +190,37 @@ create_scAB.v5 <- function(
 ) {
     # cell neighbors
     if ("RNA_snn" %chin% names(Object@graphs)) {
-        A <- as.matrix(SeuratObject::Graphs(object = Object, slot = "RNA_snn"))
-        cli::cli_alert_info(
-            " Using {.val RNA_snn} graph for network."
-        )
+        A <- Matrix::Matrix(SeuratObject::Graphs(
+            object = Object,
+            slot = "RNA_snn"
+        ))
+        if (verbose) {
+            cli::cli_alert_info(
+                " Using {.val RNA_snn} graph for network."
+            )
+        }
     } else if ("integrated_snn" %chin% names(Object@graphs)) {
-        A <- as.matrix(SeuratObject::Graphs(
+        A <- Matrix::Matrix(SeuratObject::Graphs(
             object = Object,
             slot = "integrated_snn"
         ))
-        cli::cli_alert_info(
-            "Using {.val integrated_snn} graph for network."
-        )
+
+        if (verbose) {
+            cli::cli_alert_info(
+                "Using {.val integrated_snn} graph for network."
+            )
+        }
     } else {
         cli::cli_abort(c(
             "x" = "No `RNA_snn` or `integrated_snn` graph in the given Seurat object. Please check `Object@graphs`."
         ))
     }
-    diag(A) <- 0
-    A[which(A != 0)] <- 1
-    degrees <- rowSums(A)
-    D <- diag(degrees)
-    eps <- 2.2204e-256
-    D12 <- diag(1 / sqrt(pmax(degrees, eps)))
+    Matrix::diag(A) <- 0
+    A@x[which(A@x != 0)] <- 1
+    degrees <- Matrix::rowSums(A)
+    D <- Matrix::diag(degrees)
+    eps <- 2.2204e-256 # In the original implementation of scAB, a custom-defined `eps` is used instead of `.Machine$double.eps`.
+    D12 <- Matrix::diag(1 / sqrt(pmax(degrees, eps)))
 
     L <- D12 %*% (D - A) %*% D12 # Normalized Graph Laplacian
     Dhat <- D12 %*% (D) %*% D12
@@ -212,9 +234,11 @@ create_scAB.v5 <- function(
     dataset1 <- Matrix::Matrix(dataset1)
     rownames(dataset1) <- common
     colnames(dataset1) <- colnames(dataset0)
+
     ncol_bulk <- ncol(bulk_dataset)
     Expression_bulk <- as.matrix(dataset1[, seq_len(ncol_bulk)])
     Expression_cell <- as.matrix(dataset1[, (ncol_bulk + 1):ncol(dataset1)])
+
     X <- stats::cor(Expression_bulk, Expression_cell)
     # X <- X / norm(X, "F")
     X <- X / sqrt(sum(X^2))
@@ -230,14 +254,15 @@ create_scAB.v5 <- function(
     obj <- list(
         X = Matrix::Matrix(X),
         S = Matrix::Matrix(S),
-        L = Matrix::Matrix(L),
-        D = Matrix::Matrix(Dhat),
-        A = Matrix::Matrix(Ahat),
+        L = L,
+        D = Dhat,
+        A = Ahat,
         phenotype = phenotype,
         method = method
     )
     class(obj) <- "scAB_data"
-    return(obj)
+
+    obj
 }
 
 #' @title Selection of Parameter K for Non-negative Matrix Factorization
@@ -323,7 +348,8 @@ select_K.optimized <- function(
         }
     }
     K <- Ki - 1
-    return(eval(K))
+
+    eval(K)
 }
 
 #' @title Non-negative Matrix Factorization from scAB
@@ -402,12 +428,12 @@ NMF.optimized <- function(X, K, maxiter = 2000L, tol = 1e-5) {
 
     final_loss <- sum((X - W %*% H)^2)
 
-    return(list(
+    list(
         W = W,
         H = H,
         iter = iter,
         loss = final_loss
-    ))
+    )
 }
 
 
@@ -488,13 +514,13 @@ scAB.optimized <- function(
             old_eucl <- loss_func(X, W, H, S, L, alpha, alpha_2)
         }
     }
-    return(list(
+    list(
         W = W,
         H = H,
         iter = iter,
         loss = old_eucl,
         method = Object$method
-    ))
+    )
 }
 
 #' @title Subsets identification

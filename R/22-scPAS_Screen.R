@@ -20,6 +20,7 @@
 #' @param permutation_times Number of permutations to perform (default: 2000)
 #' @param FDR_threshold Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)
 #' @param independent Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)
+#' @param verbose Logical. Whether to print progress messages (default: TRUE)
 #' @param ... Additional arguments passed to `DoscPAS` functions
 #'
 #' @return A Seurat object from scPAS analysis
@@ -54,27 +55,36 @@ DoscPAS <- function(
     permutation_times = 2000L,
     FDR_threshold = 0.05,
     independent = TRUE,
+    verbose = TRUE,
     ...
 ) {
+    # robust
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     chk::chk_flag(imputation)
+    chk::chk_flag(independent)
+
     if (imputation) {
-        imputation_method %<>% MatchArg(c("KNN", "ALRA"))
+        # default imputation_method is KNN
+        imputation_method <- MatchArg(imputation_method, c("KNN", "ALRA"))
     }
     if (!is.null(alpha)) {
         chk::chk_range(alpha)
     }
-    network_class %<>% MatchArg(c("SC", "bulk"))
-    scPAS_family %<>% MatchArg(c("cox", "gaussian", "binomial"), NULL)
+    # default network_class is SC
+    network_class <- MatchArg(network_class, c("SC", "bulk"))
+    # No default for scPAS_family
+    scPAS_family <- MatchArg(
+        scPAS_family,
+        c("cox", "gaussian", "binomial"),
+        NULL
+    )
     purrr::walk(
         list(nfeature, permutation_times, FDR_threshold),
         ~ chk::chk_number
     )
-    chk::chk_flag(independent)
 
-    # robust
     if (scPAS_family == "cox") {
         if (is.null(intersect(colnames(matched_bulk), rownames(phenotype)))) {
             cli::cli_abort(c(
@@ -89,7 +99,9 @@ DoscPAS <- function(
         }
     }
 
-    ts_cli$cli_alert_info(cli::col_green("Start scPAS screening."))
+    if (verbose) {
+        ts_cli$cli_alert_info(cli::col_green("Start scPAS screening."))
+    }
 
     scPAS_result <- scPAS.optimized(
         bulk_dataset = as.matrix(matched_bulk),
@@ -116,15 +128,17 @@ DoscPAS <- function(
         dplyr::contains("scPAS_")
     )
 
-    ts_cli$cli_alert_success(
-        cli::col_green("scPAS screening done.")
-    )
+    if (verbose) {
+        ts_cli$cli_alert_success(
+            cli::col_green("scPAS screening done.")
+        )
+    }
 
-    return(list(
+    list(
         scRNA_data = scPAS_result,
         stats = detailed_info,
         para = scPAS_result@misc$scPAS_para
-    ))
+    )
 }
 
 
@@ -179,6 +193,9 @@ DoscPAS <- function(
 #'   for statistical testing. Default: 2000.
 #' @param FDR.threshold Numeric value specifying the false discovery rate
 #'   threshold for identifying phenotype-associated cells. Default: 0.05.
+#' @param verbose Logical indicating whether to print progress messages. Default: `TRUE`.
+#' @param ... Additional arguments to be passed to `scPAS.optimized()`. Currently
+#'   none are supported.
 #'
 #' @return
 #' Returns the input Seurat object with the following additions:
@@ -295,7 +312,9 @@ scPAS.optimized <- function(
     independent = TRUE,
     family = c("gaussian", "binomial", "cox"),
     permutation_times = 2000,
-    FDR.threshold = 0.05
+    FDR.threshold = 0.05,
+    verbose = TRUE,
+    ...
 ) {
     # Set default assay
     Seurat::DefaultAssay(sc_dataset) <- assay
@@ -312,19 +331,28 @@ scPAS.optimized <- function(
                 nfeatures = nfeature
             )
             var_features <- Seurat::VariableFeatures(sc_dataset)
+
             intersect(rownames(bulk_dataset), var_features)
         } else if (is.character(nfeature) && length(nfeature) > 1) {
             intersect(rownames(bulk_dataset), nfeature)
         }
+
+        cli::cli_abort(c(
+            "x" = "{.arg nfeature} must be a numeric value or a character vector of gene names."
+        ))
     } else {
-        ts_cli$cli_alert_info(
-            "The single-cell data is not a Seurat object, running default Seurat pipeline."
-        )
+        if (verbose) {
+            ts_cli$cli_alert_info(
+                "The single-cell data is not a Seurat object, running default Seurat pipeline."
+            )
+        }
+
         sc_dataset <- SCPreProcess(
             sc_dataset,
             quality_control.pattern = c("^MT-"),
             verbose = FALSE
         )
+
         if (is.null(nfeature)) {
             intersect(rownames(bulk_dataset), rownames(sc_dataset))
         } else if (is.numeric(nfeature)) {
@@ -335,6 +363,7 @@ scPAS.optimized <- function(
                 nfeatures = nfeature
             )
             var_features <- Seurat::VariableFeatures(sc_dataset)
+
             intersect(rownames(bulk_dataset), var_features)
         } else {
             intersect(rownames(bulk_dataset), nfeature)
@@ -358,8 +387,11 @@ scPAS.optimized <- function(
     }
 
     # Step 1: Quantile normalization with matrix optimization
-    ts_cli$cli_alert_info("Quantile normalization of bulk data.")
-    Expression_bulk <- preprocessCore::normalize.quantiles(as.matrix(bulk_dataset[
+    if (verbose) {
+        ts_cli$cli_alert_info("Quantile normalization of bulk data.")
+    }
+
+    Expression_bulk <- normalize.quantiles(as.matrix(bulk_dataset[
         common_genes,
     ]))
     rownames(Expression_bulk) <- common_genes
@@ -374,11 +406,13 @@ scPAS.optimized <- function(
         )
         assay <- Seurat::DefaultAssay(sc_dataset)
     }
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Extracting single-cell expression profiles..."
+        )
+    }
 
-    ts_cli$cli_alert_info(
-        "Extracting single-cell expression profiles..."
-    )
-    sc_exprs <- SeuratObject::LayerData(sc_dataset)
+    sc_exprs <- SeuratObject::LayerData(sc_dataset) # Get expression data from Seurat
     Expression_cell <- sc_exprs[common_genes, ]
 
     # Clean up memory using data.table approach
@@ -397,17 +431,21 @@ scPAS.optimized <- function(
     x <- Matrix::t(Expression_bulk)
 
     # Step 3: Network construction with matrix optimizations
-    if (network_class == 'bulk') {
-        ts_cli$cli_alert_info(
-            "Constructing a gene-gene similarity by bulk data..."
-        )
-        cor.m <- cor(x)
+    cor.m <- if (network_class == 'bulk') {
+        if (verbose) {
+            ts_cli$cli_alert_info(
+                "Constructing a gene-gene similarity by bulk data..."
+            )
+        }
+        cor(x)
     } else {
-        ts_cli$cli_alert_info(
-            "Constructing a gene-gene similarity by single cell data..."
-        )
+        if (verbose) {
+            ts_cli$cli_alert_info(
+                "Constructing a gene-gene similarity by single cell data..."
+            )
+        }
         # Use matrix operations for efficient correlation
-        cor.m <- scPAS::sparse.cor(Matrix::t(Expression_cell))
+        scPAS::sparse.cor(Matrix::t(Expression_cell))
     }
 
     # Network construction
@@ -422,28 +460,34 @@ scPAS.optimized <- function(
     gc(verbose = FALSE)
 
     # Step 4: Model optimization with purrr functional programming
-    ts_cli$cli_alert_info(
-        "Optimizing the network-regularized sparse regression model..."
-    )
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Optimizing the network-regularized sparse regression model..."
+        )
+    }
 
     # Prepare Y based on family using purrr pattern matching
     family_processor <- list(
         binomial = function() {
             y <- as.numeric(phenotype)
-            z <- table(y)
-            ts_cli$cli_alert_info(
-                "Current phenotype contains {.val {z[1]}} {tag[1]} and {.val {z[2]}} {tag[2]} samples."
-            )
-            ts_cli$cli_alert_info(
-                "Perform {.strong logistic} regression on the given phenotypes..."
-            )
+            if (verbose) {
+                z <- table(y)
+                ts_cli$cli_alert_info(
+                    "Current phenotype contains {.val {z[1]}} {tag[1]} and {.val {z[2]}} {tag[2]} samples."
+                )
+                ts_cli$cli_alert_info(
+                    "Perform {.strong logistic} regression on the given phenotypes..."
+                )
+            }
             y
         },
         gaussian = function() {
             y <- as.numeric(phenotype)
-            ts_cli$cli_alert_info(
-                "Perform linear regression on the given phenotypes..."
-            )
+            if (verbose) {
+                ts_cli$cli_alert_info(
+                    "Perform linear regression on the given phenotypes..."
+                )
+            }
             y
         },
         cox = function() {
@@ -456,9 +500,11 @@ scPAS.optimized <- function(
                     class = "IncorrectNumberOfColumns"
                 )
             }
-            ts_cli$cli_alert_info(
-                "Perform cox regression on the given phenotypes..."
-            )
+            if (verbose) {
+                ts_cli$cli_alert_info(
+                    "Perform cox regression on the given phenotypes..."
+                )
+            }
             y
         }
     )
@@ -467,6 +513,7 @@ scPAS.optimized <- function(
 
     alpha <- alpha %||%
         c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+
     lambda <- c()
     for (i in seq_along(alpha)) {
         set.seed(123)
@@ -501,66 +548,67 @@ scPAS.optimized <- function(
 
         names(Coefs) <- colnames(x)
 
-        # Fast feature counting using logical indexing
-        pos_features <- colnames(x)[Coefs > 0]
-        neg_features <- colnames(x)[Coefs < 0]
-        percentage <- (length(pos_features) + length(neg_features)) / ncol(x)
+        if (verbose) {
+            # Feature counting
+            pos_features <- colnames(x)[Coefs > 0]
+            neg_features <- colnames(x)[Coefs < 0]
+            percentage <- (length(pos_features) + length(neg_features)) /
+                ncol(x)
 
-        cli::cli_h2("At alpha = {.val {alpha[i]}}")
-        cli::cli_text("lambda = {.val {fit0$lambda.min}}")
-        cli::cli_text(
-            "scPAS identified {.val {length(pos_features)}} risk+ features and {.val {length(neg_features)}} risk- features."
-        )
-        percentage_show <- round(percentage * 100, digits = 3)
-        cli::cli_text(
-            "The percentage of selected feature is: {.val {percentage_show}}%"
-        )
+            cli::cli_h2("At alpha = {.val {alpha[i]}}")
+            cli::cli_text("lambda = {.val {fit0$lambda.min}}")
+            cli::cli_text(
+                "scPAS identified {.val {length(pos_features)}} risk+ features and {.val {length(neg_features)}} risk- features."
+            )
+            percentage_show <- round(percentage * 100, digits = 3)
+            cli::cli_text(
+                "The percentage of selected feature is: {.val {percentage_show}}%"
+            )
+        }
+
         if (percentage < cutoff) {
             break
         }
     }
 
-    # Step 5: Risk score calculation with matrix optimizations
-    ts_cli$cli_alert_info("Calculating quantified risk scores...")
+    # Step 5: Risk score calculation
+    if (verbose) {
+        ts_cli$cli_alert_info("Calculating quantified risk scores...")
+    }
 
-    # Fast sparse matrix scaling and risk calculation
+    # Sparse matrix scaling and risk calculation
     scaled_exp <- Seurat:::FastSparseRowScale(
         Expression_cell,
         display_progress = FALSE
     )
     scaled_exp[is.na(scaled_exp)] <- 0
-    scaled_exp <- methods::as(scaled_exp, "dgCMatrix")
-
-    # Fast matrix multiplication for risk scores
+    scaled_exp <- Matrix::Matrix(scaled_exp) # Probably a dgCMatrix
+    # Matrix multiplication for risk scores
     risk_score <- Matrix::crossprod(scaled_exp, Coefs)
 
-    # Step 6: Permutation test with purrr and matrix optimizations
-    ts_cli$cli_alert_info(
-        "Qualitative identification by permutation test program with {.val {permutation_times}} times random perturbations..."
-    )
+    # Step 6: Permutation test
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Qualitative identification by permutation test program with {.val {permutation_times}} times random perturbations..."
+        )
+    }
 
     set.seed(12345)
 
-    randomPermutation_list <- lapply(
+    randomPermutation <- vapply(
         seq_len(permutation_times),
         function(i) {
             set.seed(1234 + i)
             sample(Coefs, length(Coefs), replace = FALSE)
-        }
+        },
+        numeric(length(Coefs))
     )
 
-    randomPermutation <- matrix(
-        unlist(randomPermutation_list),
-        nrow = length(Coefs),
-        ncol = permutation_times,
-        byrow = FALSE
-    )
-    randomPermutation <- as(randomPermutation, "dgCMatrix")
-    rownames(randomPermutation) <- names(Coefs)
-
+    randomPermutation <- Matrix::Matrix(randomPermutation) # Probably a dgeMatrix
     # Matrix multiplication for background scores
     risk_score.background <- Matrix::crossprod(scaled_exp, randomPermutation)
-    rm(randomPermutation_list, randomPermutation)
+    rm(randomPermutation)
+
     # Calculate background statistics
     if (independent) {
         risk_bg_matrix <- as.matrix(risk_score.background)
@@ -575,18 +623,16 @@ scPAS.optimized <- function(
     }
     gc(verbose = FALSE)
 
-    # Z-score calculation using vectorized operations with numerical stability
+    # Z-score calculation
     # Add small epsilon to avoid division by zero
     sd.background[sd.background == 0] <- .Machine$double.eps
-    # Z-score calculation using vectorized operations
     Z <- (risk_score[, 1] - mean.background) / sd.background
 
     # Fast p-value and FDR calculation
     p.value <- stats::pnorm(abs(Z), mean = 0, sd = 1, lower.tail = FALSE)
     q.value <- stats::p.adjust(p.value, method = 'BH')
 
-    # Use data.table for fast data frame creation
-    risk_score_data.frame <- data.table::data.table(
+    risk_score_df <- data.table::data.table(
         cell = colnames(Expression_cell),
         raw_score = risk_score[, 1],
         Z.statistics = Z,
@@ -595,7 +641,7 @@ scPAS.optimized <- function(
     )
 
     # Fast conditional labeling using data.table
-    risk_score_data.frame[,
+    risk_score_df[,
         cell_label := data.table::fcase(
             Z > 0 & q.value <= FDR.threshold ,
             "Positive"                       ,
@@ -619,11 +665,11 @@ scPAS.optimized <- function(
         cover = FALSE
     )
 
-    sc_dataset$scPAS_RS <- risk_score_data.frame$raw_score
-    sc_dataset$scPAS_NRS <- risk_score_data.frame$Z.statistics
-    sc_dataset$scPAS_Pvalue <- risk_score_data.frame$p.value
-    sc_dataset$scPAS_FDR <- risk_score_data.frame$FDR
-    sc_dataset$scPAS <- risk_score_data.frame$cell_label
+    sc_dataset$scPAS_RS <- risk_score_df$raw_score
+    sc_dataset$scPAS_NRS <- risk_score_df$Z.statistics
+    sc_dataset$scPAS_Pvalue <- risk_score_df$p.value
+    sc_dataset$scPAS_FDR <- risk_score_df$FDR
+    sc_dataset$scPAS <- risk_score_df$cell_label
 
     return(sc_dataset)
 }

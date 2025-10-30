@@ -19,7 +19,9 @@ scPAS.optimized(
   independent = TRUE,
   family = c("gaussian", "binomial", "cox"),
   permutation_times = 2000,
-  FDR.threshold = 0.05
+  FDR.threshold = 0.05,
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -80,6 +82,11 @@ for statistical testing. Default: 2000.}
 
 \item{FDR.threshold}{Numeric value specifying the false discovery rate
 threshold for identifying phenotype-associated cells. Default: 0.05.}
+
+\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
+
+\item{...}{Additional arguments to be passed to \code{scPAS.optimized()}. Currently
+none are supported.}
 }
 \value{
 Returns the input Seurat object with the following additions:

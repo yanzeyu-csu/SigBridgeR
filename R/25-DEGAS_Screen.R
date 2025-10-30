@@ -103,10 +103,6 @@
 #' \code{\link{LabelSurvivalCells}} for survival classification
 #' \code{\link{LabelContinuousCells}} for continuous classification
 #'
-#' @importFrom purrr walk map_chr map_dfr
-#' @importFrom magrittr %>%
-#' @importFrom data.table as.data.table fifelse setnames `:=`
-#' @importFrom stats ks.test qnorm median
 #' @family screen_method
 #' @family DEGAS
 #'
@@ -132,6 +128,7 @@ DoDEGAS <- function(
         "d'agostino",
         "kolmogorov-smirnov"
     ),
+    verbose,
     ...
 ) {
     # Robustness checks
@@ -145,17 +142,24 @@ DoDEGAS <- function(
     }
     chk::chk_list(env_params)
     chk::chk_list(degas_params)
-    phenotype_class %<>% MatchArg(c("binary", "continuous", "survival"), NULL)
-
-    ts_cli$cli_alert_info(cli::col_green("Starting DEGAS Screen"))
+    phenotype_class <- MatchArg(
+        phenotype_class,
+        c("binary", "continuous", "survival"),
+        NULL
+    )
+    if (verbose) {
+        ts_cli$cli_alert_info(cli::col_green("Starting DEGAS Screen"))
+    }
 
     # Auto-choose normality test method
-    normality_test_method %<>%
-        MatchArg(c(
+    normality_test_method <- MatchArg(
+        normality_test_method,
+        c(
             "jarque-bera",
             "d'agostino",
             "kolmogorov-smirnov"
-        ))
+        )
+    )
 
     # DEGAS path must contain "/"
     if (!grepl("/$", tmp_dir)) {
@@ -219,6 +223,7 @@ DoDEGAS <- function(
     on.exit({
         # Clean up global variables
         rm(list = names(degas_params), envir = .GlobalEnv)
+        gc(verbose = FALSE)
     })
 
     # model.type auto-detection
@@ -246,9 +251,13 @@ DoDEGAS <- function(
     )
 
     # Architecture auto-chosen
-    if (length(degas_params$DEGAS.architecture) != 1) {
-        degas_params$DEGAS.architecture <- "DenseNet"
-    }
+    degas_params$DEGAS.architecture <- MatchArg(
+        degas_params$DEGAS.architecture,
+        c(
+            "DenseNet",
+            "Standard"
+        )
+    )
 
     # formatting phenotype
     pheno_df <- if (!is.null(phenotype)) {
@@ -264,26 +273,29 @@ DoDEGAS <- function(
 
     # Check if single-cell level phenotype is specified
     meta_data <- sc_data[[]]
-    sc_pheno <- if (!is.null(sc_data.pheno_colname)) {
-        if (any(grepl(sc_data.pheno_colname, colnames(meta_data)))) {
+    sc_pheno <-
+        if (
+            !is.null(sc_data.pheno_colname) &&
+                sc_data.pheno_colname %chin% colnames(meta_data)
+        ) {
             Vec2sparse(meta_data[[sc_data.pheno_colname]])
         } else {
-            cli::cli_warn(
-                "single-cell phenotype specified but not found in meta.data, using {.val NULL} now"
-            )
+            if (!is.null(sc_data.pheno_colname)) {
+                cli::cli_warn(
+                    "single-cell phenotype specified but not found in meta.data, using {.val NULL}"
+                )
+            }
             NULL
         }
-    } else {
-        NULL
-    }
 
     # Python-like data formats
     sc_mat <- SeuratObject::LayerData(sc_data)
     cm_genes <- intersect(rownames(matched_bulk), rownames(sc_mat))
     t_sc_mat <- Matrix::t(sc_mat[cm_genes, ])
     t_matched_bulk <- Matrix::t(matched_bulk[cm_genes, ])
-
-    ts_cli$cli_alert_info("Setting up Environment...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Setting up Environment...")
+    }
 
     # Check if environment exists
     existing_envs <- ListPyEnv.conda(verbose = FALSE)
@@ -314,7 +326,7 @@ DoDEGAS <- function(
                 }
             )
         )
-    } else {
+    } else if (verbose) {
         cli::cli_alert_info(
             "Existing environment {.val {env_params$env.name}} found"
         )
@@ -333,7 +345,9 @@ DoDEGAS <- function(
     # DEGAS needs some global variables to be set up
     list2env(degas_params, envir = .GlobalEnv)
 
-    ts_cli$cli_alert_info("Training DEGAS model...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Training DEGAS model...")
+    }
 
     # Train DEGAS model
     ccModel1 <- do.call(
@@ -348,12 +362,15 @@ DoDEGAS <- function(
             architecture = DEGAS.architecture,
             FFdepth = DEGAS.ff_depth,
             Bagdepth = DEGAS.bag_depth,
-            DEGAS.seed = DEGAS.seed
+            DEGAS.seed = DEGAS.seed,
+            verbose = verbose
         )
     )
     names(ccModel1) <- glue::glue("ccModel_{seq_len(DEGAS.bag_depth)}")
 
-    ts_cli$cli_alert_info("Predicting and Labeling...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Predicting and Labeling...")
+    }
 
     # Predict with DEGAS model
     t_sc_preds <- data.table::as.data.table(predClassBag.optimized(
@@ -375,8 +392,9 @@ DoDEGAS <- function(
         }
     }
     t_sc_preds[, "cell_id" := rownames(t_sc_mat)]
-
-    ts_cli$cli_alert_info("Labeling screened cells...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Labeling screened cells...")
+    }
 
     # What we get from DEGAS are the probabilities of the cells belonging to each class.
     # We need to convert these to labels.
@@ -387,14 +405,19 @@ DoDEGAS <- function(
             pheno_colnames = pheno_df_colnames,
             select_fraction = select_fraction,
             test_method = normality_test_method,
-            min_threshold = min_thresh
+            min_threshold = min_thresh,
+            verbose = verbose
         ),
-        "continuous" = LabelContinuousCells(pred_dt = t_sc_preds),
+        "continuous" = LabelContinuousCells(
+            pred_dt = t_sc_preds,
+            verbose = verbose
+        ),
         "survival" = LabelSurvivalCells(
             pred_dt = t_sc_preds,
             select_fraction = select_fraction,
             test_method = normality_test_method,
-            min_threshold = min_thresh
+            min_threshold = min_thresh,
+            verbose = verbose
         )
     )
 
@@ -409,15 +432,16 @@ DoDEGAS <- function(
             DEGAS_para = degas_params,
             cover = FALSE
         )
-
-    ts_cli$cli_alert_info(cli::col_green("DEGAS Screen done."))
+    if (verbose) {
+        ts_cli$cli_alert_info(cli::col_green("DEGAS Screen done."))
+    }
 
     # result
-    return(list(
+    list(
         scRNA_data = sc_data,
         model = ccModel1,
         DEGAS_prediction = t_sc_preds
-    ))
+    )
 }
 
 
@@ -690,6 +714,7 @@ setClass(
 #'   in the ensemble.
 #' @param DEGAS.seed Integer specifying the base random seed for reproducible
 #'   model training. Each model in the ensemble uses a derived seed.
+#' @param verbose Logical, whether to print messages.
 #'
 #' @return
 #' Returns a list of trained CCMTL model objects from the bootstrap aggregation
@@ -755,11 +780,14 @@ runCCMTLBag.optimized <- function(
     architecture,
     FFdepth,
     Bagdepth,
-    DEGAS.seed
+    DEGAS.seed,
+    verbose = TRUE
 ) {
-    ts_cli$cli_alert_info(glue::glue(
-        "{FFdepth}-layer {architecture} {model_type} DEGAS model"
-    ))
+    if (verbose) {
+        ts_cli$cli_alert_info(glue::glue(
+            "{FFdepth}-layer {architecture} {model_type} DEGAS model"
+        ))
+    }
 
     if (!dir.exists(tmpDir)) {
         dir.create(tmpDir, recursive = TRUE)
@@ -777,7 +805,7 @@ runCCMTLBag.optimized <- function(
     py_check <- processx::run(command = DEGAS.pyloc, args = "--version")
     if (!is.null(py_check$error)) {
         cli::cli_abort("Python check failed: ", py_check$error$message)
-    } else {
+    } else if (verbose) {
         ts_cli$cli_alert_info(glue::glue(
             "Python check passed, using {py_check$stdout}"
         ))
@@ -1168,6 +1196,7 @@ predClassBag.optimized <- function(ccModel, Exp, scORpat) {
 #' @param min_threshold Numeric value specifying the minimum score difference
 #'   required for a cell to be considered "Positive". This ensures biological
 #'   relevance by filtering out weak associations. Default: 0.7.
+#' @param verbose Logical, whether to print messages.
 #'
 #' @return
 #' The input `pred_dt` with three additional columns:
@@ -1240,7 +1269,8 @@ LabelBinaryCells <- function(
     pheno_colnames,
     select_fraction,
     test_method,
-    min_threshold = 0.7 # Added minimum threshold parameter
+    min_threshold = 0.7, # Added minimum threshold parameter
+    verbose = TRUE
 ) {
     chk::chk_length(pheno_colnames, 2)
     # Try to find the reference group in the column names
@@ -1251,14 +1281,19 @@ LabelBinaryCells <- function(
         value = TRUE
     )
     if (nchar(ctrl_col) == 0) {
-        cli::cli_alert_info(
-            "Using {.val {pheno_colnames[2]}} as reference group"
-        )
+        if (verbose) {
+            cli::cli_alert_info(
+                "Using {.val {pheno_colnames[2]}} as reference group"
+            )
+        }
+
         pred_dt[, "diff" := .SD[[pheno_colnames[1]]] - .SD[[pheno_colnames[2]]]]
     } else {
-        cli::cli_alert_info(
-            "Using {.val {ctrl_col}} as reference group"
-        )
+        if (verbose) {
+            cli::cli_alert_info(
+                "Using {.val {ctrl_col}} as reference group"
+            )
+        }
 
         pred_dt[,
             "diff" := .SD[[setdiff(pheno_colnames, ctrl_col)]] -
@@ -1306,18 +1341,22 @@ LabelBinaryCells <- function(
                     actual_n_positive <- length(valid_positions)
                     actual_thresh <- min_threshold
 
-                    cli::cli_alert_info(
-                        "Original threshold {.val {original_thresh}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
-                    )
+                    if (verbose) {
+                        cli::cli_alert_info(
+                            "Original threshold {.val {original_thresh}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
+                        )
+                    }
                 } else {
                     valid_positions <- positive_positions
                     actual_thresh <- original_thresh
                     actual_n_positive <- n_positive
                 }
 
-                cli::cli_alert_info(
-                    "Scores over {.val {actual_thresh}} are considered `Positive`."
-                )
+                if (verbose) {
+                    cli::cli_alert_info(
+                        "Scores over {.val {actual_thresh}} are considered `Positive`."
+                    )
+                }
 
                 # Create labels using vectorized operations
                 labels <- rep("Other", .N)
@@ -1337,15 +1376,16 @@ LabelBinaryCells <- function(
                 # Apply minimum threshold constraint
                 actual_thresh <- max(quantile_val, min_threshold)
 
-                if (quantile_val < min_threshold) {
+                if (quantile_val < min_threshold && verbose) {
                     cli::cli_alert_info(
                         "Original threshold {.val {round(quantile_val, 4)}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
                     )
                 }
-
-                cli::cli_alert_info(
-                    "Scores over {.val {round(actual_thresh, 4)}} are considered `Positive`."
-                )
+                if (verbose) {
+                    cli::cli_alert_info(
+                        "Scores over {.val {round(actual_thresh, 4)}} are considered `Positive`."
+                    )
+                }
 
                 # Use data.table's fast ifelse
                 data.table::fifelse(diff > actual_thresh, "Positive", "Other")
@@ -1357,10 +1397,11 @@ LabelBinaryCells <- function(
     positive_count <- pred_dt[label == "Positive", .N]
     total_count <- nrow(pred_dt)
     actual_fraction <- round(positive_count / total_count, 4)
-
-    cli::cli_alert_success(
-        "Labeled {.val {positive_count}} cells as Positive ({.val {actual_fraction * 100}}% of total)."
-    )
+    if (verbose) {
+        cli::cli_alert_success(
+            "Labeled {.val {positive_count}} cells as Positive ({.val {actual_fraction * 100}}% of total)."
+        )
+    }
 
     pred_dt
 }
@@ -1374,6 +1415,7 @@ LabelBinaryCells <- function(
 #' @param pred_dt A data.table containing prediction scores for multiple
 #'   phenotypic conditions. Must contain a 'cell_id' column and one or more
 #'   columns with prediction scores for different phenotypes.
+#' @param verbose Logical, whether to print messages.
 #'
 #' @return
 #' The input `pred_dt` with an additional column:
@@ -1415,8 +1457,12 @@ LabelBinaryCells <- function(
 #' @keywords internal
 #' @family DEGAS
 #'
-LabelContinuousCells <- function(pred_dt) {
-    ts_cli$cli_alert_info("Searching for various phenotype-associated cells...")
+LabelContinuousCells <- function(pred_dt, verbose = TRUE) {
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Searching for various phenotype-associated cells..."
+        )
+    }
 
     # Use matrix operations for efficient MAD testing across predictions
     label_cols <- setdiff(names(pred_dt), "cell_id")
@@ -1470,6 +1516,7 @@ LabelContinuousCells <- function(pred_dt) {
 #' @param test_method Character string specifying the statistical test to use
 #'   for normality assessment of hazard scores. One of: `"jarque-bera"`,
 #'   `"d'agostino"`, `"kolmogorov-smirnov"`.
+#' @param verbose Logical, whether to print messages.
 #'
 #' @return
 #' The input `pred_dt` with an additional column:
@@ -1532,9 +1579,12 @@ LabelSurvivalCells <- function(
     pred_dt,
     select_fraction,
     test_method,
-    min_threshold = 0.7 # Added minimum threshold parameter
+    min_threshold = 0.7, # Added minimum threshold parameter
+    verbose = TRUE
 ) {
-    ts_cli$cli_alert_info("Searching for survival-associated cells...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Searching for survival-associated cells...")
+    }
 
     pred_vec <- pred_dt[["Hazard"]]
     normality_test_pval <- switch(
@@ -1569,22 +1619,26 @@ LabelSurvivalCells <- function(
                         above_min_thresh
                     )
 
-                    # Update actual number of positive cells
-                    actual_n_positive <- length(valid_positions)
+                    # * Update actual number of positive cells
+                    # actual_n_positive <- length(valid_positions)
                     actual_thresh <- min_threshold
 
-                    cli::cli_alert_info(
-                        "Original threshold {.val {original_thresh}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
-                    )
+                    if (verbose) {
+                        cli::cli_alert_info(
+                            "Original threshold {.val {original_thresh}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
+                        )
+                    }
                 } else {
                     valid_positions <- positive_positions
                     actual_thresh <- original_thresh
-                    actual_n_positive <- n_positive
+                    # actual_n_positive <- n_positive
                 }
 
-                cli::cli_alert_info(
-                    "Scores over {.val {actual_thresh}} are considered `Positive`."
-                )
+                if (verbose) {
+                    cli::cli_alert_info(
+                        "Scores over {.val {actual_thresh}} are considered `Positive`."
+                    )
+                }
 
                 # Create labels using vectorized operations
                 labels <- rep("Other", .N)
@@ -1603,15 +1657,17 @@ LabelSurvivalCells <- function(
                 # Apply minimum threshold constraint
                 actual_thresh <- max(quantile_val, min_threshold)
 
-                if (quantile_val < min_threshold) {
+                if (quantile_val < min_threshold && verbose) {
                     cli::cli_alert_info(
                         "Original threshold {.val {round(quantile_val, 4)}} below minimum {.val {min_threshold}}, using {.val {actual_thresh}} instead"
                     )
                 }
 
-                cli::cli_alert_info(
-                    "Scores over {.val {round(actual_thresh, 4)}} are considered `Positive`."
-                )
+                if (verbose) {
+                    cli::cli_alert_info(
+                        "Scores over {.val {round(actual_thresh, 4)}} are considered `Positive`."
+                    )
+                }
 
                 data.table::fifelse(
                     `Hazard` > actual_thresh,

@@ -181,31 +181,21 @@ normalize.quantiles <- function(x, copy = TRUE, keep.names = FALSE, ...) {
 
     na_positions <- is.na(mat)
 
-    # 核心算法：完全向量化
-
-    # 1. 对每列排序
     sorted_mat <- apply(mat, 2, sort, na.last = TRUE)
 
-    # 2. 计算目标分布（每行的均值）
     target_dist <- rowMeans(sorted_mat, na.rm = TRUE)
 
-    # 3. 创建排名矩阵（完全向量化）
-    # 对整个矩阵进行排名操作
     rank_mat <- apply(mat, 2, function(col) {
         match(col, sort(col, na.last = NA))
     })
 
-    # 4. 使用矩阵索引一次性分配所有值
-    # 为每个元素分配对应排名的目标分布值
     for (j in seq_len(cols)) {
         valid_idx <- !is.na(rank_mat[, j])
         mat[valid_idx, j] <- target_dist[rank_mat[valid_idx, j]]
     }
 
-    # 5. 恢复NA值
     mat[na_positions] <- NA
 
-    # 恢复行列名
     if (keep.names) {
         rownames(mat) <- orig_rownames
         colnames(mat) <- orig_colnames

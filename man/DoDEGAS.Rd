@@ -17,6 +17,7 @@ DoDEGAS(
   env_params = list(),
   degas_params = list(),
   normality_test_method = c("jarque-bera", "d'agostino", "kolmogorov-smirnov"),
+  verbose,
   ...
 )
 }

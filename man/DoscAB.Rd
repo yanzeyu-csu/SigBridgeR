@@ -13,7 +13,9 @@ DoscAB(
   alpha = 0.005,
   alpha_2 = 5e-05,
   maxiter = 2000,
-  tred = 2
+  tred = 2,
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -40,6 +42,10 @@ DoscAB(
 \item{maxiter}{NMF optimization iterations (default=2000).}
 
 \item{tred}{Z-score threshold (default=2).}
+
+\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
+
+\item{...}{For future update.}
 }
 \value{
 A list containing:

@@ -20,6 +20,7 @@ DoscPAS(
   permutation_times = 2000L,
   FDR_threshold = 0.05,
   independent = TRUE,
+  verbose = TRUE,
   ...
 )
 }
@@ -53,6 +54,8 @@ DoscPAS(
 \item{FDR_threshold}{Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)}
 
 \item{independent}{Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)}
+
+\item{verbose}{Logical. Whether to print progress messages (default: TRUE)}
 
 \item{...}{Additional arguments passed to \code{DoscPAS} functions}
 }

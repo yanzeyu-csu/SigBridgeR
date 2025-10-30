@@ -14,6 +14,7 @@ Scissor.v5.optimized(
   family = c("gaussian", "binomial", "cox"),
   Save_file = "Scissor_inputs.RData",
   Load_file = NULL,
+  verbose = TRUE,
   ...
 )
 }

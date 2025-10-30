@@ -129,8 +129,12 @@ Screen <- function(
     }
     available_phenotype_class <- c("binary", "survival", "continuous")
     available_screen_method <- c("Scissor", "scPP", "scPAS", "scAB", "DEGAS")
-    phenotype_class %<>% MatchArg(available_phenotype_class, NULL)
-    screen_method %<>% MatchArg(available_screen_method, NULL)
+    phenotype_class <- MatchArg(
+        phenotype_class,
+        available_phenotype_class,
+        NULL
+    )
+    screen_method <- MatchArg(screen_method, available_screen_method, NULL)
 
     switch(
         screen_method,

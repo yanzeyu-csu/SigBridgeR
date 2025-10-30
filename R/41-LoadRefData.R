@@ -22,7 +22,11 @@ LoadRefData <- function(
     cache = TRUE,
     timeout = 60
 ) {
-    data_type %<>% MatchArg(c("survival", "binary", "continuous"), NULL)
+    data_type <- MatchArg(
+        data_type,
+        c("survival", "binary", "continuous"),
+        NULL
+    )
     if (!is.null(path)) {
         chk::chk_dir(path)
     } else {

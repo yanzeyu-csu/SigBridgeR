@@ -14,7 +14,8 @@ runCCMTLBag.optimized(
   architecture,
   FFdepth,
   Bagdepth,
-  DEGAS.seed
+  DEGAS.seed,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -47,6 +48,8 @@ in the ensemble.}
 
 \item{DEGAS.seed}{Integer specifying the base random seed for reproducible
 model training. Each model in the ensemble uses a derived seed.}
+
+\item{verbose}{Logical, whether to print messages.}
 }
 \value{
 Returns a list of trained CCMTL model objects from the bootstrap aggregation

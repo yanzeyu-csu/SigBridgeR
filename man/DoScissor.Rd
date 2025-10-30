@@ -65,6 +65,8 @@ Higher values increase specificity.}
 
 \item{cell_evaluation.bootstrap_n}{Number of bootstrap iterations for cell evaluation (default: 100).}
 
+\item{verbose}{Logical to print progress messages (default: TRUE).}
+
 \item{...}{Additional arguments passed to \code{Scissor.v5.optimized}.}
 }
 \value{

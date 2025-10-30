@@ -36,7 +36,8 @@ Normalize, find variable features, scale, and run PCA
 Other single_cell_preprocess: 
 \code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
-\code{\link{FindRobustElbow}()}
+\code{\link{FindRobustElbow}()},
+\code{\link{QCPatternFilter}()}
 }
 \concept{single_cell_preprocess}
 \keyword{internal}

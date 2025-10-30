@@ -1,7 +1,7 @@
 # ? Global variables
 
 #' @importFrom data.table `:=` `%chin%`
-#' @importFrom magrittr %>% %<>%
+#' @importFrom dplyr %>%
 #' @importFrom Matrix Matrix
 NULL
 

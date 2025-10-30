@@ -4,7 +4,13 @@
 \alias{LabelSurvivalCells}
 \title{Label Survival-Associated Phenotype Cells Based on Hazard Scores}
 \usage{
-LabelSurvivalCells(pred_dt, select_fraction, test_method, min_threshold = 0.7)
+LabelSurvivalCells(
+  pred_dt,
+  select_fraction,
+  test_method,
+  min_threshold = 0.7,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{pred_dt}{A data.table containing hazard scores for cells. Must contain
@@ -18,6 +24,8 @@ constraints.}
 \item{test_method}{Character string specifying the statistical test to use
 for normality assessment of hazard scores. One of: \code{"jarque-bera"},
 \code{"d'agostino"}, \code{"kolmogorov-smirnov"}.}
+
+\item{verbose}{Logical, whether to print messages.}
 }
 \value{
 The input \code{pred_dt} with an additional column:

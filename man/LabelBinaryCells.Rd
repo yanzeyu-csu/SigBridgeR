@@ -9,7 +9,8 @@ LabelBinaryCells(
   pheno_colnames,
   select_fraction,
   test_method,
-  min_threshold = 0.7
+  min_threshold = 0.7,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ for normality assessment. One of: \code{"jarque-bera"}, \code{"d'agostino"},
 \item{min_threshold}{Numeric value specifying the minimum score difference
 required for a cell to be considered "Positive". This ensures biological
 relevance by filtering out weak associations. Default: 0.7.}
+
+\item{verbose}{Logical, whether to print messages.}
 }
 \value{
 The input \code{pred_dt} with three additional columns:

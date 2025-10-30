@@ -174,7 +174,7 @@ SetupPyEnv.conda <- function(
         chk::chk_named(packages)
     }
     #   Default method is `reticulate`
-    method %<>% MatchArg(c("reticulate", "system", "environment"))
+    method <- MatchArg(method, c("reticulate", "system", "environment"))
 
     if (verbose) {
         cli::cli_h1("Setting up Conda Python Environment")
@@ -733,7 +733,7 @@ ListPyEnv.default <- function(
     verbose = TRUE,
     ...
 ) {
-    env_type %<>% MatchArg(c("all", "conda", "venv", "virtualenv"))
+    env_type <- MatchArg(env_type, c("all", "conda", "venv", "virtualenv"))
     switch(
         env_type,
         "conda" = ListPyEnv.conda(
