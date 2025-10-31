@@ -13,7 +13,6 @@
         -   [1.1 Stable Release from
             GitHub](#11-stable-release-from-github)
         -   [1.2 Release from r-universe](#12-release-from-r-universe)
-        -   [1.8 Check Dependencies](#18-check-dependencies)
     -   [2. Loading and preprocessing
         data](#2-loading-and-preprocessing-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
@@ -28,7 +27,6 @@
                 data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
                 -   [Quality Control Metrics
                     Reported](#quality-control-metrics-reported)
-                -   [Visualization Output](#visualization-output)
                 -   [Recommended Parameter
                     Adjustments](#recommended-parameter-adjustments)
             -   [2.2.2 Gene Symbol
@@ -76,13 +74,12 @@
 
 SigBridgeR (short for **Sig**nificant cell-to-phenotype **Bridge** in
 **R**) is an R package for screening cells highly associated with
-phenotype data using single-cell RNA-seq, bulk expression and
-sample\_related phenotype data at a pan-cancer level. It integrates
-functionality from these R packages:
-[sunduanchen/Scissor](https://github.com/sunduanchen/Scissor),
-[Qinran-Zhang/scAB](https://github.com/Qinran-Zhang/scAB/),
-[WangX-Lab/ScPP](https://github.com/WangX-Lab/ScPP),[aiminXie/scPAS](https://github.com/aiminXie/scPAS)
-and [tsteelejohnson91/DEGAS](https://github.com/tsteelejohnson91/DEGAS).
+phenotype data using single-cell RNA-seq, bulk RNA expression and sample
+related phenotype data (e.g. patient survival, age, etc). It integrates
+many single cell phenotypic screening methods ([8.
+References](#8-references)) and provides unified preprocessing,
+parameter tuning, and visualization approaches,performing as a unified
+integration panel.
 
 ------------------------------------------------------------------------
 
@@ -95,92 +92,27 @@ Install **SigBridgeR** using one of these methods:
 Usually we recommend installing the latest release from GitHub because
 of the latest features and bug fixes.
 
-    if(!requireNamespace("remotes")) {
-      install.packages("remotes")
+    if(!requireNamespace("pak")) {
+      install.packages("pak")
     }
-    remotes::install_github("WangLabCSU/SigBridgeR")
+    pak::pkg_install("WangLabCSU/SigBridgeR")
 
 ### 1.2 Release from r-universe
 
     install.packages("SigBridgeR", repos = "https://wanglab.r-universe.dev")
 
-### 1.8 Check Dependencies
-
-You can use this function to quickly verify installed dependencies and
-their versions:
-
-    CheckPkgs <- function(packages) {
-      CheckSinglePkg <- function(pkg_spec) {
-        installed <- requireNamespace(pkg_spec$pkg, quietly = TRUE)
-        current_version <- NA_character_
-        
-        if (installed) {
-          current_version <- as.character(utils::packageVersion(pkg_spec$pkg))
-          
-          if (!is.null(pkg_spec$version)) {
-            installed <- current_version >= pkg_spec$version
-          }
-        }
-        
-        data.frame(
-          Package = pkg_spec$pkg,
-          Required_Version = if (is.null(pkg_spec$version)) "Any" else pkg_spec$version,
-          Installed = installed,
-          Current_Version = if (installed) current_version else NA,
-          stringsAsFactors = FALSE
-        )
-      }
-      
-      result <- do.call(rbind, lapply(packages, CheckSinglePkg))
-      rownames(result) <- NULL  
-        
-      return(result)
-    }
-
-    CheckPkgs(list(
-      list(pkg = "Seurat", version = "5.3.0"),
-      list(pkg = "dplyr", version = "1.1.4"),
-      list(pkg = "cli", version = "3.6.5"),
-      list(pkg = "AUCell", version = "1.26.0"),
-      list(pkg = "future", version = "1.67.0"),
-      list(pkg = "IDConverter", version = "0.3.5"),
-      list(pkg = "Matrix", version = "1.7.3"),
-      list(pkg = "matrixStats", version = "1.5.0"),
-      list(pkg = "reticulate", version = "1.43.0"),
-      list(pkg = "scAB", version = "1.0.0"),
-      list(pkg = "Scissor", version = "2.0.0"),
-      list(pkg = "scPAS", version = "0.2.0"),
-      list(pkg = "ScPP", version = "0.0.0.9000"),
-      list(pkg = "tibble", version = "3.3.0"),
-      list(pkg = "tidyr", version = "1.3.1"),
-      list(pkg = "data.table", version = "1.17.8"),
-      list(pkg = "ggforce", version = "0.5.0"),
-      list(pkg = "ggplot2", version = "4.0.0"),
-      list(pkg = "ggupset", version = "0.4.1"),
-      list(pkg = "purrr", version = "1.1.0"),
-      list(pkg = "edgeR", version = "4.2.2"),
-      list(pkg = "scales", version = "1.4.0"),
-      list(pkg = "preprocessCore", version = "1.66.0"),
-      # suggest
-      list(pkg = "randomcoloR", version = "1.1.0.1"),
-      list(pkg = "patchwork", version = "1.3.2"),
-      list(pkg = "org.Hs.eg.db", verion = "3.19.1"),
-      list(pkg = "zeallot", version = "0.1.0"),
-      list(pkg = "ggVennDiagram", version = "1.5.4")
-      )
-    )
-
 If you encounter compatibility issues, you can install the version of
-the package indicated here.
+the package indicated in [7. Troubleshooting](#7-troubleshooting).
 
 ------------------------------------------------------------------------
 
 ## 2. Loading and preprocessing data
 
-First load the packages:
+First load the packages, you will see a version number message
+indicating successful loading:
 
     library(SigBridgeR)
-    library(Seurat)
+    # ✔ SigBridgeR v2.5.2 loaded
 
 ### 2.1 Single-cell RNA-seq Data
 
@@ -197,8 +129,9 @@ use.
 
     your_seurat <- SCPreProcess(
       your_matrix,
+      # Parameters used in Seurat preprocessing pipeline
       meta_data = NULL,
-      project = "Screen_Single_Cell", # Parameters used in Seurat preprocessing pipeline
+      project = "Screen_Single_Cell", 
       min_cells = 400,
       min_features = 0,
       normalization_method = "LogNormalize",
@@ -208,6 +141,7 @@ use.
       resolution = 0.6,
       dims = 1:10,
       verbose = TRUE,
+      # Parameters used in SigBridgeR workflow
       future_global_maxsize = 6 * 1024^3,
       quality_control = TRUE,
       quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
@@ -229,7 +163,8 @@ use.
 2.  **Mitochondrial QC (default: ON)**
 
     -   A single regular expression (`^MT-` or `^mt-`) is used to
-        compute the percentage of mitochondrial reads per cell.  
+        compute the percentage of mitochondrial reads per cell.
+        Customized regexps are also supported.
     -   The metric is stored in `object$percent.mt` for later filtering.
 
 3.  **Cell filtering (default: ON)**  
@@ -249,11 +184,7 @@ use.
         algorithm (default: *vst*).  
     -   Expression values of those features are scaled to unit variance.
 
-5.  **Append extra observations**  
-    If the input object contains an `obs` slot, it is merged into
-    `object@meta.data`.
-
-6.  **Dimensionality reduction and clustering**  
+5.  **Dimensionality reduction and clustering**  
     `ClusterAndReduce()` runs:
 
     -   PCA -&gt; nearest-neighbour graph -&gt; Louvain clustering
@@ -261,11 +192,10 @@ use.
     -   UMAP for two-dimensional visualization.  
     -   Optionally removes very small or low-quality clusters.
 
-7.  **Tumour-cell flagging**  
-    `FilterTumorCell()` creates a binary label (1 = Tumour, 0 = Normal)
-    from the column specified by `column2only_tumor`.  
-    The new label can be used downstream to restrict analyses to
-    malignant cells.
+6.  **Tumour-cell flagging**  
+    `FilterTumorCell()` use a binary label (Tumour, Normal) from the
+    column specified by `column2only_tumor` and filters the Seurat
+    object to contain only the cancer cells.
 
 #### 2.1.2 (Option B) Start from AnnDataR6 Object
 
@@ -279,8 +209,9 @@ the following code:
 
     your_seurat <- SCPreProcess(
       anndata_obj,
+      # Parameters used in Seurat preprocessing pipeline
       meta_data = NULL,
-      project = "Screen_Single_Cell", # Parameters used in Seurat preprocessing pipeline
+      project = "Screen_Single_Cell", 
       min_cells = 400,
       min_features = 0,
       normalization_method = "LogNormalize",
@@ -290,6 +221,7 @@ the following code:
       resolution = 0.6,
       dims = 1:10,
       verbose = TRUE,
+      # Parameters used in SigBridgeR workflow
       future_global_maxsize = 6 * 1024^3,
       quality_control = TRUE, 
       quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
@@ -392,39 +324,81 @@ refer to and use the following code:
        verbose = TRUE
     )
 
-The function returns a filtered count matrix after applying quality
-control steps. The order of filtering is: first genes, then samples.
+The function returns a filtered bulk count matrix after applying quality
+control steps.
 
 ##### Quality Control Metrics Reported
 
--   Data Integrity: Number of missing values detected
+-   Gene Filtering:
 
--   Gene Count: Total number of genes after filtering
+    First, lowly expressed genes are removed, retaining genes that have
+    an expression level reaching `min_count_threshold` in at least
+    `min_gene_expressed` samples. This step is based on statistical
+    power considerations, as lowly expressed genes are prone to
+    false-positive results in differential analysis.
 
--   Sample Read Depth: Total reads per sample
+-   Sample Filtering:
 
--   Gene Detection Rate: Number of genes detected per sample
+    Subsequently, low-quality samples are filtered based on three core
+    indicators:  
 
--   Sample Correlation: Pearson correlation between samples
+    -   Sequencing Depth: The total number of reads must reach
+        `min_total_reads`.
+    -   Library Complexity: The number of detected genes must exceed
+        `min_genes_detected`.
+    -   Sample Consistency: When quality checking is enabled, the
+        average correlation between samples must meet the
+        `min_correlation` threshold.
 
--   PCA Variance: Variance explained by first two principal components
+-   Data Integrity Check: Identifies technical anomalies; too many
+    missing values may indicate experimental issues.
+
+-   Feature Expression Filtering: Uses a count threshold rather than a
+    proportion threshold to avoid over-penalizing small samples. Genes
+    must be stably expressed in multiple samples to ensure the
+    reliability of statistical tests.
+
+-   Sample-Level Filtering:
+
+    Comprehensively evaluates technical quality:  
+    Sequencing depth ensures detection sensitivity, the number of
+    detected genes reflects library diversity, and sample correlation
+    (Pearson) validates experimental reproducibility. PCA analysis
+    further identifies batch effects and outlier samples.
+
+-   PCA Variance:
+
+    Variance explained by first two principal components.  
+    When `show_plot_results = TRUE`, the function generates PCA plot
+    colored by experimental condition
 
 -   Batch Effects: Proportion of genes significantly affected by batch
 
-##### Visualization Output
-
-When `show_plot_results = TRUE`, the function generates:
-
-PCA plot colored by experimental condition
-
 ##### Recommended Parameter Adjustments
 
--   For low-depth sequencing data: reduce `min_total_reads` and
-    `min_genes_detected`
+Parameter settings need to balance data quality and information
+retention:
 
--   For noisy datasets: increase `min_correlation` threshold
+-   For Low-Depth Sequencing Data:
 
--   For large datasets: set `check = FALSE` for faster processing
+    Should relax `min_total_reads` and `min_genes_detected` due to
+    technical limitations rather than quality issues causing low
+    indicators.
+
+-   For Noisy Datasets:
+
+    Need to increase the `min_correlation` threshold to strengthen
+    sample consistency requirements and exclude technical variation
+    interference.
+
+-   For Large Datasets:
+
+    Consider setting `check = FALSE` to enable only partial filtering
+    functions and speed up the process.
+
+All parameters are set based on empirical values, and users should make
+appropriate adjustments according to the specific experimental design
+and sequencing platform characteristics.
 
 #### 2.2.2 Gene Symbol Conversion
 
@@ -438,8 +412,9 @@ package.
 
     your_bulk_data <- SymbolConvert(your_bulk_data)
 
-You can also use the `org.Hs.eg.db` package for gene symbol matching if
-you prefer not to use SymbolConvert’s built-in `IDConverter`.
+You can also use other package like `org.Hs.eg.db` for gene symbol
+matching if you prefer not to use SymbolConvert’s built-in
+`IDConverter`.
 
     library(org.Hs.eg.db)
 
@@ -462,7 +437,8 @@ Bascially you can just use your phenotype data directly. If you are
 confused about the structure `Screen()` requires, please refer to
 [Section 5](#example).
 
-You can use this function to check NA values:
+You can use this function to check NA values, which tells you the
+location of NA values in your phenotype data:
 
     # `max_print`: output how many NA location messages at one time if NA exists
     CheckNA <- function(data, max_print = 5) {
@@ -593,8 +569,8 @@ You can use this function to check NA values:
 
 ## 3. Screening Cells Associated with Phenotype
 
-The function **`Screen`** provide 4 different options for screening
-cells associated with phenotype, These 4 algorithms come from the
+The function **`Screen`** provide 5 different options for screening
+cells associated with phenotype, These 5 algorithms come from the
 repositories mentioned in [Section 0.1](#01-introduction-to-sigbridger),
 and you can choose one of them to screen your cells.
 
@@ -688,10 +664,12 @@ can also be applied.
 **Returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
--   `scissor_result`: The result of Scissor screening
+-   `scissor_result`: The result of Scissor screening, including the
+    parameters used
 -   `reliability_test`: Reliability test results
+-   `cell_evaluation`: Cell evaluation results
 
-**Cell level Evaluation**:
+**Cell level Evaluation & Reliability Test**:
 
 You can use `cell_evalutaion = TRUE` and `reliability_test = TRUE` to
 obtain some supporting information for each Scissor selected cell.
@@ -736,6 +714,11 @@ from the `scPAS`’s documentation):
         searching vector. If `alpha = NULL`, a default searching vector
         is used. The range of alpha is in `[0,1]`. A larger alpha lays
         more emphasis on the l1 norm.
+    -   `cutoff`: Numeric. Cutoff for the percentage of the scPAS
+        selected cells in total cells when `alpha = NULL`. This
+        parameter is used to restrict the number of the scPAS selected
+        cells. A cutoff less than 50% (default 20%) is recommended
+        depending on the input data.
     -   `network_class`: The source of feature-feature similarity
         network. By default this is set to sc and the other one is bulk.
 
@@ -814,9 +797,6 @@ Parameters pass to `...` when using `scPP` method :
 -   `AUC`: A data.frame with area under the ROC curve
 
 ### 3.5 (Option E) DEGAS Screening
-
-**This method is not recommended because of intractable dependence
-control.**
 
 Parameters pass to `...` when using `DEGAS` method
 
@@ -908,9 +888,10 @@ Parameters pass to `...` when using `DEGAS` method
 
 This code chunk will CREATE a conda environment called
 “**r-reticulate-degas**” with python 3.9.15, and install the required
-packages for DEGAS. If an environment with the same name already exists,
-it will directly use this environment without creating a new one (unless
-specified `env_params = list(env.recreate=TRUE)`).
+packages (tensorflow, protobuf) for DEGAS. If an environment with the
+same name already exists, it will directly use this environment without
+creating a new one (unless specified
+`env_params = list(env.recreate=TRUE)`).
 
 You can use `ListPyEnvs()` to list all the python environments in your
 system, including virtual environments. Both Windows and Unix-like
@@ -948,22 +929,28 @@ results of these methods. The Seurat object or a results list from
         your_scissor_result, 
         your_scPAS_result, 
         your_scAB_result, 
-        your_scPP_result
+        your_scPP_result,
+        your_DEGAS_result
     )
 
     # * mixed input form is alse supported 
 
-    merged_seurat=MergeResult(
+    merged_seurat = MergeResult(
         your_scissor_result$scRNA_data, 
         your_scPAS_result$scRNA_data, 
         your_scAB_result, 
         your_scPP_result,
+        your_DEGAS_result
     )
 
 This function simply merges the `meta.data` and `misc` slots of the
 input Seurat objects. Please note that the intermediate data (e.g.,
 `scissor_result$reliability.test` or `scab_result$scAB_result`) will not
 be preserved in this process.
+
+**returning structure**:
+
+A Seurat object with merged `meta.data` and `misc` slots.
 
 ------------------------------------------------------------------------
 
@@ -983,9 +970,9 @@ Suppose you have performed all algorithm screening on your Seurat object
 and wish to examine the distribution across different celltypes and
 patient, you may reference and use the following code:
 
-    library(patchwork)
     library(zeallot)
     # library(Seurat)
+    # library(patchwork)
     # library(purrr)
 
     c(
@@ -994,10 +981,12 @@ patient, you may reference and use the following code:
         scissor_umap,
         scab_umap,
         scpas_umap,
-        scpp_umap
+        scpp_umap，
+        degas_umap
     ) %<-%
         purrr::map(
-            c("celltype", "patient", "scissor", "scAB", "scPAS", "scPP"), # make sure these column names exist
+            # make sure these column names exist
+            c("celltype", "patient", "scissor", "scAB", "scPAS", "scPP", "DEGAS"), 
             ~ Seurat::DimPlot(
                 your_seurat_obj,
                 group.by = .x,
@@ -1014,18 +1003,19 @@ patient, you may reference and use the following code:
         scab_umap +
         scpas_umap +
         scpp_umap +
-        plot_layout(ncol = 2)
+        degas_umap +
+        patchwork::plot_layout(ncol = 3)
 
     umaps
 
-This will generate six UMAP plots separately.
+This will generate seven UMAP plots separately.
 
 Or suppose you have performed `scPAS` screening on your Seurat object
 and want to visualize the distribution of prediction confidence scores,
 you may reference and use the following code:
 
-    library(patchwork)
     library(zeallot)
+    library(patchwork)
     # library(Seurat)
     # library(purrr)
 
@@ -1075,7 +1065,6 @@ your Seurat object, and you want to check the proportion of positive
 cells across different patients. You can refer to and use the following
 code:
 
-    # based on `ggplot2`
     plot <- ScreenFractionPlot(
        screened_seurat = scpas_result$scRNA_data, 
        group_by = "patient", # grouping basis for the x-axis
@@ -1102,14 +1091,14 @@ If a single screen\_type is specified
 
 -   `stats`: A data frame containing the proportion of positive cells
     for each group.
--   `plot`: A ggplot object.
+-   `plot`: A ggplot2 object.
 
 If multiple screen\_types are specified
 
 -   `stats`: A list containing data frames containing the proportion of
     positive cells for each group.
--   `plot`: A list containing each ggplot objects.
--   `combined_plot`: A ggplot object containing all the plots (2\*2
+-   `plot`: A list containing each ggplot2 objects.
+-   `combined_plot`: A ggplot2 object containing all the plots (2\*2
     grid).
 
 ### 4.3 Venn diagram for screening results
@@ -1122,6 +1111,15 @@ selected by each algorithm. You can refer to and use the following code:
 **example**:
 
     library(ggVennDiagram)
+
+    # # *If you have merged the results, you can use the following code instead:
+    # c(scissor_pos, scab_pos, scpas_pos, scpp_pos, degas_pos) %<-%
+    #     purrr::map(
+    #         c("scissor", "scAB", "scPAS", "scPP", "DEGAS"),
+    #         ~ colnames(merged_seurat)[
+    #             which(merged_seurat[[.x]] == "Positive")
+    #         ]
+    #     )
 
     # * get the cell vectors
     scissor_pos <- colnames(scissor_result$scRNA_data)[
@@ -1136,16 +1134,12 @@ selected by each algorithm. You can refer to and use the following code:
     scpp_pos <- colnames(scissor_result$scRNA_data)[
         which(scpp_result$scRNA_data$scPP == "Positive")
     ]
-    # # *If you have merged the results, you can use the following code instead:
-    # c(scissor_pos, scab_pos, scpas_pos, scpp_pos) %<-%
-    #     purrr::map(
-    #         c("scissor", "scAB", "scPAS", "scPP"),
-    #         ~ colnames(merged_seurat)[
-    #             which(merged_seurat[[.x]] == "Positive")
-    #         ]
-    #     )
+    degas_pos <- colnames(degas_result$scRNA_data)[
+        which(degas_result$scRNA_data$DEGAS == "Positive")
+    ]
 
-    all_cells <- colnames(your_seurat_obj) # this obj can be changed to other
+
+    all_cells <- colnames(your_seurat_obj) 
 
     # * create a list of cell vectors
     pos_venn = list(
@@ -1153,6 +1147,7 @@ selected by each algorithm. You can refer to and use the following code:
         scpas = scpas_pos,
         scab = scab_pos,
         scpp = scpp_pos,
+        degas = degas_pos,
         all_cells = all_cells
         # * you can add more groups here
     )
@@ -1167,6 +1162,7 @@ selected by each algorithm. You can refer to and use the following code:
             "scPAS",
             "scAB",
             "scPP",
+            "DEGAS",
             "All cells"
         ),
         # * the colors of each group
@@ -1175,6 +1171,7 @@ selected by each algorithm. You can refer to and use the following code:
             "#37ae00ff", 
             "#2a2a94ff",
             "#9c8200ff",
+            "#bb14adff",
             "#008383ff"
         )
     ) +
@@ -1218,7 +1215,7 @@ Key parameters for `ScreenUpset`:
 
 **returning structure**:
 
--   `plot`: A ggplot object.
+-   `plot`: A ggplot2 object.
 -   `stats`: A data frame containing the numbers of positive cells for
     each group.
 
@@ -1347,7 +1344,7 @@ two groups, which will be stored in the `condition` column.
     # Warning: Sample outliers: 7 sample(s) detected
     # ✔ [2025/10/11 09:17:50] BulkPreProcess completed
 
-And we will see a principle component analysis plot.
+And we will see a PCA plot.
 
     knitr::include_graphics("vignettes/example_figures/bulk_preprocess_pca.png")
 
@@ -1384,10 +1381,11 @@ First, we use `scissor` to screen cells associated with survival.
     # ℹ [2025/09/08 17:03:21] Perform cox regression on the given clinical outcomes:
     # ✔ Statistics data saved to `Scissor_inputs.RData`.
     # ℹ [2025/09/08 17:03:22] Screening...
-    # [1] "alpha = 0.05"
-    # [1] "Scissor identified 246 Scissor+ cells and 244 Scissor- cells."
-    # [1] "The percentage of selected cell is: 44.831%"
-    # ----------------------------------------------------------------------------------------------------
+    #
+    # ── At alpha = 0.05 ──
+    #
+    # Scissor identified 265 Scissor+ cells and 73 Scissor- cells.
+    # The percentage of selected cell is: 30.924%
 
     table(scissor_result$scRNA_data$scissor)
     # Negative  Neutral Positive 
@@ -1472,29 +1470,28 @@ specified any particular parameters.
         screen_method = "scPAS",
         alpha = 0.05
     )
-    # ℹ [2025/09/08 17:04:15] Start scPAS screening.
-    # [1] "Step 1:Quantile normalization of bulk data."
-    # [1] "Step 2: Extracting single-cell expression profiles...."
-    # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
+    # ℹ [2025/10/20 16:24:27] Start scPAS screening.
+    # ℹ [2025/10/20 16:24:29] Quantile normalization of bulk data.
+    # ℹ [2025/10/20 16:24:29] Extracting single-cell expression profiles...
+    # ℹ [2025/10/20 16:24:29] Constructing a gene-gene similarity by single cell data...
     # Building SNN based on a provided distance matrix
     # Computing SNN
-    # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
-    # [1] "Perform cox regression on the given clinical outcomes:"
-    # [1] "alpha = 0.05"
-    # [1] "lambda = 0.499586979737535"
-    # [1] "scPAS identified 46 rick+ features and 16 rick- features."
-    # [1] "The percentage of selected feature is: 35.838%"
-
-    # [1] "|**************************************************|"
-    # [1] "Step 5: calculating quantified risk scores...."
-    # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
-    # [1] "Finished."
-    # ✔ [2025/09/08 17:04:24] scPAS screening done.
+    # ℹ [2025/10/20 16:24:30] Optimizing the network-regularized sparse regression model...
+    # ℹ [2025/10/20 16:24:30] Perform cox regression on the given phenotypes...
+    # 
+    # ── At alpha = 0.05 ──
+    # 
+    # lambda = 0.776168989003421
+    # scPAS identified 59 risk+ features and 61 risk- features.
+    # The percentage of selected feature is: 13.73%
+    # ℹ [2025/10/20 16:24:49] Calculating quantified risk scores...
+    # ℹ [2025/10/20 16:24:49] Qualitative identification by permutation test program with 2000 times random perturbations...
+    # ✔ [2025/10/20 16:24:50] scPAS screening done.
 
     table(scpas_result$scRNA_data$scPAS)
 
-    # Neutral Positive 
-    #    1092        1 
+    # Negative  Neutral Positive 
+    #       5     1085        3 
 
 As you can see, due to differences in data and algorithms, not every
 screening algorithm is able to screen out cells. You can adjust the
@@ -1510,92 +1507,52 @@ scPAS Screening](#32-option-b-scpas-screening)
         label_type = "survival",
         phenotype_class = "survival",
         screen_method = "scPAS",
-        alpha = NULL
+        alpha = NULL,
+        cutoff = 0.2 
     )
-    # ℹ [2025/09/22 18:46:25] Start scPAS screening.
-    # [1] "Step 1:Quantile normalization of bulk data."
-    # [1] "Step 2: Extracting single-cell expression profiles...."
-    # [1] "Step 3: Constructing a gene-gene similarity by single cell data...."
+    # ℹ [2025/10/20 16:43:31] Start scPAS screening.
+    # ℹ [2025/10/20 16:43:32] Quantile normalization of bulk data.
+    # ℹ [2025/10/20 16:43:32] Extracting single-cell expression profiles...
+    # ℹ [2025/10/20 16:43:32] Constructing a gene-gene similarity by single cell data...
     # Building SNN based on a provided distance matrix
     # Computing SNN
-    # [1] "Step 4: Optimizing the network-regularized sparse regression model...."
-    # [1] "Perform cox regression on the given clinical outcomes:"
-    # [1] "alpha = 0.001"
-    # [1] "lambda = 7.88965313498356"
-    # [1] "scPAS identified 449 rick+ features and 236 rick- features."
-    # [1] "The percentage of selected feature is: 78.375%"
+    # ℹ [2025/10/20 16:43:33] Optimizing the network-regularized sparse regression model...
+    # ℹ [2025/10/20 16:43:33] Perform cox regression on the given phenotypes...
+    # 
+    # ── At alpha = 0.001 ──
+    # 
+    # lambda = 7.61825638357188
+    # scPAS identified 315 risk+ features and 366 risk- features.
+    # The percentage of selected feature is: 77.918%
+    # 
+    # ── At alpha = 0.005 ──
+    # 
+    # lambda = 3.68743152046651
+    # scPAS identified 193 risk+ features and 231 risk- features.
+    # The percentage of selected feature is: 48.513%
+    # 
+    # ── At alpha = 0.01 ──
+    # 
+    # lambda = 2.55333682907113
+    # scPAS identified 137 risk+ features and 158 risk- features.
+    # The percentage of selected feature is: 33.753%
+    # 
+    # ── At alpha = 0.05 ──
+    # 
+    # lambda = 0.776168989003421
+    # scPAS identified 59 risk+ features and 61 risk- features.
+    # The percentage of selected feature is: 13.73%
+    # ℹ [2025/10/20 16:44:55] Calculating quantified risk scores...
+    # ℹ [2025/10/20 16:44:55] Qualitative identification by permutation test program with 2000 times random perturbations...
+    # ✔ [2025/10/20 16:44:57] scPAS screening done.
 
-    # [1] "alpha = 0.005"
-    # [1] "lambda = 3.32139271651783"
-    # [1] "scPAS identified 279 rick+ features and 159 rick- features."
-    # [1] "The percentage of selected feature is: 50.114%"
-
-    # [1] "alpha = 0.01"
-    # [1] "lambda = 2.5241108003373"
-    # [1] "scPAS identified 207 rick+ features and 102 rick- features."
-    # [1] "The percentage of selected feature is: 35.355%"
-
-    # [1] "alpha = 0.05"
-    # [1] "lambda = 0.8038196391727"
-    # [1] "scPAS identified 82 rick+ features and 24 rick- features."
-    # [1] "The percentage of selected feature is: 12.128%"
-
-    # [1] "alpha = 0.1"
-    # [1] "lambda = 0.441095530835556"
-    # [1] "scPAS identified 57 rick+ features and 12 rick- features."
-    # [1] "The percentage of selected feature is: 7.895%"
-
-    # [1] "alpha = 0.2"
-    # [1] "lambda = 0.220547765417778"
-    # [1] "scPAS identified 42 rick+ features and 12 rick- features."
-    # [1] "The percentage of selected feature is: 6.178%"
-
-    # [1] "alpha = 0.3"
-    # [1] "lambda = 0.154032875529483"
-    # [1] "scPAS identified 37 rick+ features and 9 rick- features."
-    # [1] "The percentage of selected feature is: 5.263%"
-
-    # [1] "alpha = 0.4"
-    # [1] "lambda = 0.115524656647112"
-    # [1] "scPAS identified 33 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 4.691%"
-
-    # [1] "alpha = 0.5"
-    # [1] "lambda = 0.0924197253176895"
-    # [1] "scPAS identified 30 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 4.348%"
-
-    # [1] "alpha = 0.6"
-    # [1] "lambda = 0.0770164377647413"
-    # [1] "scPAS identified 29 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 4.233%"
-
-    # [1] "alpha = 0.7"
-    # [1] "lambda = 0.0660140895126354"
-    # [1] "scPAS identified 28 rick+ features and 8 rick- features."
-    # [1] "The percentage of selected feature is: 4.119%"
-
-    # [1] "alpha = 0.8"
-    # [1] "lambda = 0.0577623283235559"
-    # [1] "scPAS identified 27 rick+ features and 7 rick- features."
-    # [1] "The percentage of selected feature is: 3.890%"
-
-    # [1] "alpha = 0.9"
-    # [1] "lambda = 0.0537890889507252"
-    # [1] "scPAS identified 24 rick+ features and 7 rick- features."
-    # [1] "The percentage of selected feature is: 3.547%"
-
-    # [1] "|**************************************************|"
-    # [1] "Step 5: calculating quantified risk scores...."
-    # [1] "Step 6: qualitative identification by permutation test program with 2000 times random perturbations"
-    # [1] "Finished."
-    # ✔ [2025/09/22 18:51:16] scPAS screening done.
-
-Now there may be some significant cells appearing.
+Generally speaking, a larger alpha means looser screening. However, it
+still won’t result in the occurence of too many false-positive cells.
+You can also adjust the `cutoff` parameter as you like.
 
     table(scpas_result$scRNA_data$scPAS)
     # Negative  Neutral Positive 
-    #        2     1086        5 
+    #        5     1085        3 
 
 Now we use scAB, scPP and DEGAS to screen cells.
 
@@ -1686,7 +1643,7 @@ merged since screening methods performed on the same data.
     # attr(,"package")
     # [1] "SeuratObject"
 
-    colnames(screen_result@meta.data)
+    colnames(screen_result[[]])
     #  [1] "orig.ident"      "nCount_RNA"      "nFeature_RNA"    "RNA_snn_res.0.1" "seurat_clusters" "scissor"         "scPAS_RS"        "scPAS_NRS"       "scPAS_Pvalue"    "scPAS_FDR"      
     # [11] "scPAS"           "scAB"            "scAB_Subset1"    "Subset1_loading" "scAB_Subset2"    "Subset2_loading" "scPP_AUCup"      "scPP_AUCdown"    "scPP"            "DEGAS"            
 
@@ -1696,7 +1653,7 @@ diagram to see the situation.
     library(ggVennDiagram)
     library(zeallot)
 
-    # color palette
+    # * color palette
     set.seed(123)
     my_colors <- randomcoloR::distinctColorPalette(
       length(unique(screen_result$seurat_clusters)),
@@ -1795,7 +1752,7 @@ cells are shown in the set plot.
 
     knitr::include_graphics("vignettes/example_figures/upset.png")
 
-[<img src="example_figures/upset.png" data-fig-align="center" width="700"
+[<img src="example_figures/upset.png" data-fig-align="center" width="600"
 alt="upset" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/upset.png))
 
 A bar chart showing proportions can also be used to examine the
@@ -1939,6 +1896,11 @@ UMAP is the most commonly used type of plot in academic literature.
 
 [<img src="example_figures/umaps.png" data-fig-align="center" width="400"
 alt="umaps" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/umaps.png))
+
+All the analysis has been completed, and we can save the data for future
+use.
+
+    SeuratObject::SaveSeuratRds(object = screen_result, filename = "screened_result.rds")
 
 ### 5.2 Continuous phenotype associated cell screening
 
@@ -2217,7 +2179,7 @@ alt="elbow" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/ex
 ## 7. Troubleshooting
 
 View
-[\[Troubleshooting\](https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html)
+Troubleshooting[(https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html)
 for troubleshooting, especially for the environment setup.
 
 Session information:

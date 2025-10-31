@@ -191,8 +191,6 @@ can pass its Python location to `reticulate::use_condaenv()`.
 This is due to the issue with the tensorflow package. Use the following
 method to check if the tensorflow package can be imported.
 
-    # ! python 
-
     # make sure you are using the correct python, i.e. r-reticulate-degas
     import sys
 
@@ -201,8 +199,6 @@ method to check if the tensorflow package can be imported.
     import tensorflow as tf
 
     tf.__version__
-
-    # ! shell
 
     # make sure you've entered the Conda environment you want to check, i.e. r-reticulate-degas
     conda list tensorflow
