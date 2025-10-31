@@ -30,10 +30,10 @@ Usually we recommend installing the latest release from GitHub because of the la
 1.  Install the development version from GitHub:
 
 ```{r,install_from_github,eval=FALSE}
-if (!requireNamespace("remotes")) {
-  install.packages("remotes")
+if (!requireNamespace("pak")) {
+  install.packages("pak")
 }
-remotes::install_github("WangLabCSU/SigBridgeR")
+pak::pkg_install("WangLabCSU/SigBridgeR")
 ```
 
 2.  Install from r-universe:
