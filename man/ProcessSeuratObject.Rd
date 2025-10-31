@@ -37,7 +37,7 @@ Other single_cell_preprocess:
 \code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
-\code{\link{QCPatternFilter}()}
+\code{\link{QCPatternDetect}()}
 }
 \concept{single_cell_preprocess}
 \keyword{internal}

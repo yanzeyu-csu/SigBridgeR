@@ -42,11 +42,16 @@ pak::pkg_install("WangLabCSU/SigBridgeR")
 install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 ```
 
-It is recommended to install the following packages to improve runtime speed.
+It is recommended to install the following packages:
 
 ```{r,install_extra_packages,eval=FALSE}
-install.packages("matrixStats")
-install.packages("preprocessCore")
+# For better performance.
+pak::pkg_install(c("matrixStats", "preprocessCore", "tidyr"))
+
+# For seamless integration with other file types such as `h5ad`
+pak::pkg_install("anndata")
+# or
+pak::pkg_install("anndataR") # both are supported
 ```
 
 ## 📓 Documentation

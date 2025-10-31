@@ -91,13 +91,6 @@
 #' }
 #'
 #' @export
-#' @importFrom dplyr count group_by mutate ungroup pull filter arrange
-#' @importFrom tidyr complete
-#' @importFrom ggplot2 ggplot aes geom_col scale_y_continuous scale_fill_manual
-#' @importFrom ggplot2 theme_classic labs theme element_text element_line
-#' @importFrom glue glue
-#' @importFrom patchwork wrap_plots plot_annotation
-#'
 #' @family visualization_function
 #'
 ScreenFractionPlot <- function(
@@ -129,8 +122,8 @@ ScreenFractionPlot <- function(
     meta_data <- screened_seurat[[]]
     all_screen_types <- colnames(meta_data)
     available_screens <- grep(
-        "sc[a-zA-Z_]+$|DEGAS$",
-        names(meta_data),
+        "sc[a-zA-Z]+$|DEGAS$",
+        colnames(meta_data),
         value = TRUE
     )
     if (!group_by %chin% all_screen_types) {
@@ -167,11 +160,7 @@ ScreenFractionPlot <- function(
     SinglePlot <- function(single_screen_type, title_suffix = "") {
         stats_df <- meta_data %>%
             dplyr::count(!!sym(group_by), !!sym(single_screen_type)) %>%
-            tidyr::complete(
-                !!sym(group_by),
-                !!sym(single_screen_type),
-                fill = list(`n` = 0)
-            ) %>%
+            complete_counts(!!sym(group_by), !!sym(single_screen_type)) %>%
             dplyr::group_by(!!sym(group_by)) %>%
             dplyr::mutate(Total = sum(`n`)) %>%
             dplyr::ungroup() %>%
@@ -296,4 +285,43 @@ ScreenFractionPlot <- function(
         plot = plots_list,
         combined_plot = combined_plot
     )
+}
+
+#' @title A Function to Replace `tidyr::complete()`
+#' @description
+#' Detects if `tidyr::complete()` is available and uses it if so.
+#' Otherwise, uses `expand.grid()` and `dplyr::left_join()` to achieve the same result.
+#'
+#' @keywords internal
+complete_counts <- function(data, ..., fill = list(n = 0)) {
+    cols <- rlang::enquos(...)
+    col_names <- purrr::map_chr(cols, rlang::quo_name)
+
+    if (rlang::is_installed("tidyr")) {
+        # usee tidyr::complete
+        return(getExportedValue("tidyr", "complete")(
+            data,
+            !!!cols,
+            fill = fill
+        ))
+    }
+    # use expand.grid + left_join
+    unique_vals <- purrr::map(col_names, ~ unique(data[[.x]]))
+
+    all_combos <- do.call(
+        expand.grid,
+        c(
+            unique_vals,
+            list(stringsAsFactors = FALSE)
+        )
+    ) %>%
+        stats::setNames(col_names)
+
+    dplyr::left_join(all_combos, data, by = col_names) %>%
+        dplyr::mutate(
+            dplyr::across(
+                dplyr::all_of(names(fill)),
+                ~ dplyr::coalesce(.x, fill[[dplyr::cur_column()]])
+            )
+        )
 }

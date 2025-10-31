@@ -26,7 +26,7 @@ vignette: >
     -   [2. Loading and preprocessing data](#2-loading-and-preprocessing-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
             -   [2.1.1 (Option A) Start from Raw Matrix](#211-option-a-start-from-raw-matrix)
-            -   [2.1.2 (Option B) Start from AnnDataR6 Object](#212-option-b-start-from-anndatar6-object)
+            -   [2.1.2 (Option B) Start from AnnData Object](#212-option-b-start-from-anndata-object)
             -   [2.1.8 (Optional) Filter Out Tumor Cells](#218-optional-filter-out-tumor-cells)
         -   [2.2 Bulk expression data](#22-bulk-expression-data)
             -   [2.2.1 Evaluate the quality of your bulk RNA-seq data](#221-evaluate-the-quality-of-your-bulk-rna-seq-data)
@@ -122,9 +122,9 @@ your_seurat <- SCPreProcess(
   dims = 1:10,
   verbose = TRUE,
   # Parameters used in SigBridgeR workflow
-  future_global_maxsize = 6 * 1024^3,
   quality_control = TRUE,
-  quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+  # Filter mitochondrial genes, human for '^MT-', mouse for '^mt-', or specify your own pattern
+  quality_control.pattern = c("^MT-"), 
   data_filter = TRUE,
   data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
   data_filter.percent.mt = 20,
@@ -167,16 +167,31 @@ your_seurat <- SCPreProcess(
 6.  **Tumour-cell flagging**\
     `FilterTumorCell()` use a binary label (Tumour, Normal) from the column specified by `column2only_tumor` and filters the Seurat object to contain only the cancer cells. 
 
-#### 2.1.2 (Option B) Start from AnnDataR6 Object
+#### 2.1.2 (Option B) Start from AnnData Object
 
-`SCPreProcess` also supports AnnData objects. You may reference and use the following code:
+`SCPreProcess` also supports AnnData objects, which is a popular format for storing single-cell data. You can use package `anndata` or `anndataR` to read in your AnnData object from `.h5ad` file. 
+
+You may reference and use the following code to read in your file via `anndata`:
 
 ```{r,scpreprocessing_anndata,eval=FALSE}
 reticulate::use_pythonenv("The_path_to_your_python") 
 # reticulate::use_condaenv("conda_env_name")
 
 anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other file formats, make sure the matrix is in obj$X.
+```
 
+Or use `anndataR` to read in your file:
+
+```{r,scpreprocessing_anndatar,eval=FALSE}
+reticulate::use_pythonenv("The_path_to_your_python") 
+# reticulate::use_condaenv("conda_env_name")
+
+anndata_obj <- anndataR::read_h5ad("path_to_your_file.h5ad") # basically no difference 
+```
+
+Then just pass it to `SCPreProcess`:
+
+```{r,scpreprocessing_in_anndata,eval=FALSE}
 your_seurat <- SCPreProcess(
   anndata_obj,
   # Parameters used in Seurat preprocessing pipeline
@@ -192,9 +207,10 @@ your_seurat <- SCPreProcess(
   dims = 1:10,
   verbose = TRUE,
   # Parameters used in SigBridgeR workflow
-  future_global_maxsize = 6 * 1024^3,
   quality_control = TRUE, 
-  quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+  # Filter mitochondrial genes and ribosomal protein genes, 
+  # human for '^MT-', mouse for '^mt-'. You can specify your own pattern
+  quality_control.pattern = c("^MT-|^RP[SL]"), 
   data_filter = TRUE,
   data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
   data_filter.percent.mt = 20,
@@ -208,6 +224,7 @@ The description of data (meta.data) in `anndata_obj$obs` will be add to `your_se
 **helpful documentation:**
 
 -   [AnnData for R](https://github.com/dynverse/anndata)
+-   [{anndataR}: An R package for working with AnnData objects](https://github.com/scverse/anndataR)
 
 #### 2.1.8 (Optional) Filter Out Tumor Cells
 
@@ -225,8 +242,8 @@ your_seurat <- SCPreProcess(your_seurat, column2only_tumor = "Tissue")
 >
 > ```{r,choose_tumor_column,eval=FALSE}
 > # For glioblastoma (GBM)
-> seurat_obj@meta.data$is_tumor <- ifelse(
->  grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj@meta.data$Celltype, ignore.case = TRUE),
+> seurat_obj[[]]$is_tumor <- ifelse(
+>  grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj[[]]$Celltype, ignore.case = TRUE),
 >  "Tumor",  # or "Tumour" 
 >  "Normal"  # or "Non-Tumor" 
 > )

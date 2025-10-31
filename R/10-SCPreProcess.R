@@ -14,32 +14,40 @@
 #'
 #' @param sc Input data, one of:
 #'    - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
-#'    - `AnnDataR6`: Python AnnData object via reticulate
+#'    - `R6`: Python AnnData object, obtained via package `anndata` or `anndataR`
 #'    - `Seurat`: Preprocessed Seurat object
 #' @param meta_data A data.frame containing metadata for each cell. It will be
-#'    added to the Seurat object as `@meta.data`. If `NULL`, it will be
-#'    extracted from the input object if possible.
+#'    added to the Seurat object as `@meta.data`. If sc is an anndata object,
+#'    `obs` will be automatically used.
 #' @param column2only_tumor A character of column names in `meta_data`, used to
 #'    filter the Seurat object to only tumor cells. If `NULL`, no filtering is performed.
 #' @param project A character of project name, used to name the Seurat object.
 #' @param min_cells Minimum number of cells that must express a feature for it
-#'    to be included in the analysis. Defaults to `400`.
+#'    to be included in the analysis. Defaults to `400L`.
 #' @param min_features Minimum number of features that must be detected in a
-#'    cell for it to be included in the analysis. Defaults to `0`.
-#' @param quality_control Logical indicating whether to perform mitochondrial
-#'    percentage quality control. Defaults to `TRUE`.
-#' @param quality_control.pattern Character pattern to identify mitochondrial
-#'    genes, ribosomal protein genes, or other unwanted genes, as well as combinations
+#'    cell for it to be included in the analysis. Defaults to `0L`.
+#' @param quality_control Logical, for identification of the proportion of mitochondrial genes,
+#'    ribosomal protein genes, or other types of genes (without filtering),
+#'    the results will be stored in `meta.data`. Defaults to `TRUE`.
+#' @param quality_control.pattern A vector or character containing regex pattern(s) to identify
+#'    mitochondrial genes, ribosomal protein genes, or other unwanted genes, as well as combinations
 #'    of these genes. Customized patterns are supported. Defaults to `"^MT-"`.
 #' @param data_filter Logical indicating whether to filter cells based on
 #'    quality metrics. Defaults to `TRUE`.
-#' @param data_filter.nFeature_RNA_thresh Numeric vector of length 2 specifying
-#'    the minimum and maximum number of features per cell. Defaults to `c(200, 6000)`.
+#' @param data_filter.thresh A list containing filtering thresholds for different quality metrics:
+#'    \itemize{
+#'      \item `nFeature_RNA_thresh`: Numeric vector of length 2 specifying the minimum and maximum
+#'            number of features per cell. Defaults to `c(200L, 6000L)`
+#'      \item `percent.mt`: Maximum mitochondrial percentage allowed. Defaults to `20L`
+#'      \item `percent.rp`: Maximum ribosomal protein percentage allowed. Not used in default
+#'            unless ribosomal protein genes filter pattern (like `^RP[LS]`) is added to
+#'            `quality_control.pattern`
+#'    }
 #' @param data_filter.percent.mt Maximum mitochondrial percentage allowed.
-#'    Defaults to `20`.
+#'    Defaults to `20L`.
 #' @param normalization_method Method for normalization: "LogNormalize", "CLR",
 #'    or "RC". Defaults to `"LogNormalize"`.
-#' @param scale_factor Scaling factor for normalization. Defaults to `10000`.
+#' @param scale_factor Scaling factor for normalization. Defaults to `10000L`.
 #' @param scale_features Features to use for scaling. If NULL, uses all variable
 #'    features. Defaults to `NULL`.
 #' @param selection_method Method for variable feature selection: "vst", "mvp",
@@ -54,13 +62,33 @@
 #'
 #' @return A Seurat object containing:
 #' \itemize{
-#'   \item Data filter and quality control
 #'   \item Normalized and scaled expression data
-#'   \item Variable features
-#'   \item PCA/tSNE/UMAP reductions
-#'   \item Cluster identities
+#'   \item Variable features identified by selection method
+#'   \item PCA, t-SNE, and UMAP dimensionality reductions
+#'   \item Cluster identities at specified resolution
+#'   \item Quality control metrics in `@meta.data`
 #'   \item When tumor cells filtered: original dimensions in `@misc$raw_dim`
 #'   \item Final dimensions in `@misc$self_dim`
+#'   \item Quality control column names in `@misc$qc_colnames`
+#' }
+#'
+#' @details
+#' \strong{Quality Control Patterns:}
+#' The function supports flexible pattern matching for quality control, for example:
+#' \itemize{
+#'   \item \code{"^MT-"} - Mitochondrial genes (default)
+#'   \item \code{"^RP\[LS\]"} - Ribosomal protein genes
+#'   \item \code{"^\[rt\]rna"} - rRNA and tRNA genes
+#'   \item Custom patterns using regular expressions
+#'   \item Combined patterns: \code{"^MT-|^RP\[LS\]"} for both mitochondrial and ribosomal genes
+#' }
+#'
+#' \strong{Flexible Filtering:}
+#' The filtering system dynamically adapts to detected quality control patterns:
+#' \itemize{
+#'   \item Column names are automatically generated from patterns
+#'   \item Multiple thresholds can be specified in \code{data_filter.thresh}
+#'   \item Use \code{SigBridgeR:::Pattern2Colname} to determine correct column names for custom patterns if still confused
 #' }
 #'
 #' @examples
@@ -123,8 +151,22 @@ SCPreProcess.default <- function(
     quality_control = TRUE,
     quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
-    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-    data_filter.percent.mt = 20L,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        # * only used when specifed in `quality_control.pattern`
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+        # ? When combined pattern is used, like `quality_control.pattern = "^MT-|^RP[LS]"`
+        # ? Use `_` to separate different patterns like this:
+        # percent.mt_rp = 60L
+
+        # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
+        # ? the column names are in lowercase letter form with regular expression symbols removed.
+        # `quality_control.pattern = "^[rt]rna"`
+        # Correct threshhold setting is `percent.rt_rna = 60L`
+
+        # ? Use `SigBridgeR:::Pattern2Colname` to get the correct colname if still confused.
+    ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
     scale_features = NULL,
@@ -152,26 +194,46 @@ SCPreProcess.default <- function(
     if (quality_control) {
         chk::chk_character(quality_control.pattern)
 
-        sc_seurat <- QCPatternFilter(
+        sc_seurat <- QCPatternDetect(
             obj = sc_seurat,
             pattern = quality_control.pattern,
             verbose = verbose
         )
     }
     if (data_filter) {
-        chk::chk_length(data_filter.nFeature_RNA_thresh, 2)
-        chk::chk_numeric(data_filter.nFeature_RNA_thresh)
+        # first 2 numbers will be used
         chk::chk_lt(
-            data_filter.nFeature_RNA_thresh[1],
-            data_filter.nFeature_RNA_thresh[2]
+            data_filter.thresh$nFeature_RNA[1],
+            data_filter.thresh$nFeature_RNA[2]
         )
-        chk::chk_range(data_filter.percent.mt, range = c(0, 100))
+
+        data_filter.thresh <- unlist(data_filter.thresh)
+        # filter expr is a string of the form
+        # which is used to subset the Seurat object
+        nfeat_condition <- expr(
+            nFeature_RNA > !!data_filter.thresh[["nFeature_RNA_thresh1"]] &
+                nFeature_RNA < !!data_filter.thresh[["nFeature_RNA_thresh2"]]
+        )
+
+        # see `QCPatternDetect()` for the column names generation
+        qc_colnames <- unlist(sc_seurat@misc$qc_colnames)
+        # make sure the exact matching works
+        qc_condition <- if (!is.null(qc_colnames)) {
+            purrr::map(
+                qc_colnames,
+                ~ expr(!!sym(.x) < !!data_filter.thresh[[.x]])
+            )
+        } else {
+            NULL
+        }
+        full_expr <- purrr::reduce(
+            .x = c(list(nfeat_condition), qc_condition),
+            .f = function(x, y) expr(!!x & !!y)
+        )
 
         sc_seurat <- subset(
             x = sc_seurat,
-            subset = nFeature_RNA > data_filter.nFeature_RNA_thresh[1] &
-                `nFeature_RNA` < data_filter.nFeature_RNA_thresh[2] &
-                `percent.mt` < data_filter.percent.mt
+            subset = full_expr
         )
     }
     sc_seurat <- ProcessSeuratObject(
@@ -208,7 +270,7 @@ SCPreProcess.matrix <- function(
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
-    quality_control.pattern = c("^MT-", "^mt-"),
+    quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
     data_filter.nFeature_RNA_thresh = c(200L, 6000L),
     data_filter.percent.mt = 20L,
@@ -260,7 +322,7 @@ SCPreProcess.data.frame <- function(
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
-    quality_control.pattern = c("^MT-", "^mt-"),
+    quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
     data_filter.nFeature_RNA_thresh = c(200L, 6000L),
     data_filter.percent.mt = 20L,
@@ -275,7 +337,7 @@ SCPreProcess.data.frame <- function(
 ) {
     # sc is a count matrix
     if (verbose) {
-        ts_cli$cli_alert_info("Start from data.frame, convert to matrix")
+        ts_cli$cli_alert_info("Start from data.frame, convert it to matrix")
     }
     NextMethod(
         generic = "SCPreProcess",
@@ -312,7 +374,7 @@ SCPreProcess.dgCMatrix <- function(
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
-    quality_control.pattern = c("^MT-", "^mt-"),
+    quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
     data_filter.nFeature_RNA_thresh = c(200L, 6000L),
     data_filter.percent.mt = 20L,
@@ -353,10 +415,11 @@ SCPreProcess.dgCMatrix <- function(
     )
 }
 
+# * ---- anndata and anndataR ----
 
 #' @rdname SCPreProcess
 #' @export
-SCPreProcess.AnnDataR6 <- function(
+SCPreProcess.R6 <- function(
     sc,
     meta_data = NULL,
     column2only_tumor = NULL,
@@ -364,7 +427,7 @@ SCPreProcess.AnnDataR6 <- function(
     min_cells = 400L,
     min_features = 0L,
     quality_control = TRUE,
-    quality_control.pattern = c("^MT-", "^mt-"),
+    quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
     data_filter.nFeature_RNA_thresh = c(200L, 6000L),
     data_filter.percent.mt = 20L,
@@ -377,6 +440,7 @@ SCPreProcess.AnnDataR6 <- function(
     verbose = TRUE,
     ...
 ) {
+    # Both `anndata` and `anndataR` are based on R6
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
@@ -615,7 +679,7 @@ FilterTumorCell <- function(
 #' as metadata columns to the Seurat object.
 #'
 #' @param obj A seurat object.
-#' @param pattern Character pattern to identify mitochondrial
+#' @param pattern A character vector or list containing regex patterns to identify mitochondrial
 #'    genes, ribosomal protein genes, or other unwanted genes, as well as combinations
 #'    of these genes. Customized patterns are supported.
 #' @param verbose logical, whether to print progress messages
@@ -632,46 +696,18 @@ FilterTumorCell <- function(
 #' @keywords internal
 #' @family single_cell_preprocess
 #'
-QCPatternFilter <- function(
+QCPatternDetect <- function(
     obj,
     pattern = c("^MT-", "^mt-", "^RP[SL]", "^MT-|^RP[SL]"),
     verbose = TRUE,
     ...
 ) {
-    Pattern2Colname <- function(pat) {
-        pat_lower <- tolower(pat)
+    # Each pattern will be stored in a list
+    colname_mapping <- list()
 
-        if (grepl("\\|", pat)) {
-            # Handle combined patterns (with | separator)
-            parts <- strsplit(pat, "|", fixed = TRUE)[[1]]
-            names <- purrr::map_chr(parts, function(p) {
-                dplyr::case_when(
-                    grepl("mt", p_lower) ~ "mt",
-                    grepl("rp", p_lower) ~ "rp",
-                    grepl("rrna|rna[0-9]", p_lower) ~ "rrna",
-                    TRUE ~ tolower(gsub("[^[:alnum:]]", "", p))
-                )
-            })
-
-            paste(sort(unique(names)), collapse = "_")
-        } else {
-            # Handle single patterns
-            dplyr::case_when(
-                grepl("mt", pat_lower) ~ "mt",
-                grepl("rp", pat_lower) ~ "rp",
-                grepl("rrna|rna[0-9]", pat_lower) ~ "rrna",
-                TRUE ~ {
-                    clean <- gsub("[^[:alnum:]]", "_", pat)
-                    clean <- gsub("_+", "_", clean) # Collapse multiple underscores
-                    clean <- gsub("^_+|_+$", "", clean) # Trim leading/trailing underscores
-                    tolower(clean)
-                }
-            )
-        }
-    }
-
-    for (pat in pattern) {
+    for (pat in unlist(pattern)) {
         col_name <- paste0("percent.", Pattern2Colname(pat))
+        colname_mapping[[pat]] <- col_name
 
         if (col_name %chin% colnames(obj[[]])) {
             if (verbose) {
@@ -682,12 +718,47 @@ QCPatternFilter <- function(
             next
         }
 
-        obj[[col_name]] <- Seurat::PercentageFeatureSet(
+        obj <- Seurat::PercentageFeatureSet(
             obj,
             pattern = pat,
+            col.name = col_name,
             ...
         )
     }
+    # Record these colnames to misc slot for further data filter
+    obj@misc$qc_colnames <- colname_mapping
 
     obj
+}
+
+#' @title convert regex patterns to column names (internal)
+#'
+#' @keywords internal
+Pattern2Colname <- function(pat) {
+    pat_lower <- tolower(pat)
+
+    if (grepl("\\|", pat_lower)) {
+        # Handle combined patterns (with | separator)
+        parts <- strsplit(pat_lower, "|", fixed = TRUE)[[1]]
+        names <- purrr::map_chr(parts, function(p) {
+            dplyr::case_when(
+                grepl("mt", p) ~ "mt",
+                grepl("rp", p) ~ "rp",
+                TRUE ~ tolower(gsub("[^[:alnum:]]", "", p))
+            )
+        })
+
+        return(paste(sort(unique(names)), collapse = "_"))
+    }
+    # Handle single patterns
+    dplyr::case_when(
+        grepl("mt", pat_lower) ~ "mt",
+        grepl("rp", pat_lower) ~ "rp",
+        TRUE ~ {
+            clean <- gsub("[^[:alnum:]]", "_", pat_lower)
+            clean <- gsub("_+", "_", clean) # Collapse multiple underscores
+            clean <- gsub("^_+|_+$", "", clean) # Trim leading/trailing underscores
+            tolower(clean)
+        }
+    )
 }

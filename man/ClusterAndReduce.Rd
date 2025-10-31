@@ -26,7 +26,7 @@ Other single_cell_preprocess:
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
 \code{\link{ProcessSeuratObject}()},
-\code{\link{QCPatternFilter}()}
+\code{\link{QCPatternDetect}()}
 }
 \concept{single_cell_preprocess}
 \keyword{internal}
