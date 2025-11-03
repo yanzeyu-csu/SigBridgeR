@@ -165,7 +165,7 @@ SCPreProcess.default <- function(
         # `quality_control.pattern = "^[rt]rna"`
         # Correct threshhold setting is `percent.rt_rna = 60L`
 
-        # ? Use `SigBridgeR:::Pattern2Colname` to get the correct colname if still confused.
+        # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
     ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
@@ -194,6 +194,12 @@ SCPreProcess.default <- function(
     if (quality_control) {
         chk::chk_character(quality_control.pattern)
 
+        if (verbose) {
+            cli::cli_text(
+                "Using QC patterns {.arg {quality_control.pattern}} to detect metrics"
+            )
+        }
+
         sc_seurat <- QCPatternDetect(
             obj = sc_seurat,
             pattern = quality_control.pattern,
@@ -203,37 +209,81 @@ SCPreProcess.default <- function(
     if (data_filter) {
         # first 2 numbers will be used
         chk::chk_lt(
-            data_filter.thresh$nFeature_RNA[1],
-            data_filter.thresh$nFeature_RNA[2]
+            data_filter.thresh$nFeature_RNA_thresh[1],
+            data_filter.thresh$nFeature_RNA_thresh[2]
+        )
+        if (verbose) {
+            cli::cli_text(
+                "Filtering cells by {.arg nFeature_RNA} and {.arg QC metrics}"
+            )
+        }
+        data_filter.thresh <- utils::modifyList(
+            # default setting
+            list(
+                nFeature_RNA_thresh = c(200L, 6000L),
+                percent.mt = 20L,
+                percent.rp = 60L
+            ),
+            data_filter.thresh
         )
 
-        data_filter.thresh <- unlist(data_filter.thresh)
         # filter expr is a string of the form
         # which is used to subset the Seurat object
-        nfeat_condition <- expr(
-            nFeature_RNA > !!data_filter.thresh[["nFeature_RNA_thresh1"]] &
-                nFeature_RNA < !!data_filter.thresh[["nFeature_RNA_thresh2"]]
+        nfeat_condition <- rlang::expr(
+            nFeature_RNA > !!data_filter.thresh$nFeature_RNA_thresh[1] &
+                nFeature_RNA < !!data_filter.thresh$nFeature_RNA_thresh[2]
         )
 
         # see `QCPatternDetect()` for the column names generation
         qc_colnames <- unlist(sc_seurat@misc$qc_colnames)
-        # make sure the exact matching works
-        qc_condition <- if (!is.null(qc_colnames)) {
+        get_qc_condition <- function() {
+            if (is.null(qc_colnames)) {
+                return(NULL)
+            }
+
+            valid_cols <- qc_colnames[
+                vapply(
+                    qc_colnames,
+                    function(col) {
+                        x <- sc_seurat[[col]]
+                        any(!is.na(x) & x > 0, na.rm = TRUE) &&
+                            var(x, na.rm = TRUE) > 0
+                    },
+                    logical(1)
+                )
+            ]
+
+            if (length(valid_cols) == 0) {
+                return(NULL)
+            }
+
             purrr::map(
-                qc_colnames,
-                ~ expr(!!sym(.x) < !!data_filter.thresh[[.x]])
+                valid_cols,
+                ~ rlang::expr(!!sym(.x) < !!data_filter.thresh[[.x]])
             )
-        } else {
-            NULL
         }
+
         full_expr <- purrr::reduce(
-            .x = c(list(nfeat_condition), qc_condition),
-            .f = function(x, y) expr(!!x & !!y)
+            .x = c(list(nfeat_condition), get_qc_condition()),
+            .f = function(x, y) rlang::expr(!!x & !!y)
         )
+        # be aware of expr is not supported in `subset()`
+        meta <- sc_seurat[[]]
+        logical_vec <- base::with(data = meta, expr = eval(full_expr))
+        keep_cells <- rownames(meta)[logical_vec]
+
+        if (verbose) {
+            cli::cli_text(sprintf(
+                "Kept {%d}/{%d} ({%0.2f}%%) cells after filtering",
+                length(keep_cells),
+                nrow(meta),
+                length(keep_cells) / nrow(meta)
+            ))
+        }
 
         sc_seurat <- subset(
             x = sc_seurat,
-            subset = full_expr
+            cells = keep_cells
         )
     }
     sc_seurat <- ProcessSeuratObject(
@@ -285,7 +335,7 @@ SCPreProcess.matrix <- function(
 ) {
     # sc is a count matrix
     if (verbose) {
-        ts_cli$cli_alert_info("Start from matrix")
+        cli::cli_text("Start from count matrix")
     }
     NextMethod(
         generic = "SCPreProcess",
@@ -337,7 +387,7 @@ SCPreProcess.data.frame <- function(
 ) {
     # sc is a count matrix
     if (verbose) {
-        ts_cli$cli_alert_info("Start from data.frame, convert it to matrix")
+        cli::cli_text("Start from data.frame, convert it to matrix")
     }
     NextMethod(
         generic = "SCPreProcess",
@@ -389,7 +439,7 @@ SCPreProcess.dgCMatrix <- function(
 ) {
     # sc is a count matrix
     if (verbose) {
-        ts_cli$cli_alert_info("Start from dgCMatrix")
+        cli::cli_text("Start from count dgCMatrix")
     }
     NextMethod(
         generic = "SCPreProcess",
@@ -445,7 +495,9 @@ SCPreProcess.R6 <- function(
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
     }
     if (verbose) {
-        ts_cli$cli_alert_info("Start from anndata object")
+        cli::cli_text(
+            "Start from an anndata object, attempt to retrieve the count matrix and metadata from it."
+        )
     }
     meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
         cbind(meta_data, sc$obs)
@@ -539,6 +591,8 @@ SCPreProcess.Seurat <- function(
     )
 }
 
+# * ---- Preprocess ----
+
 #' @title Process a Seurat object (internal)
 #'
 #' @description
@@ -622,11 +676,25 @@ ClusterAndReduce <- function(
 #' @title Filter tumor cells (internal)
 #'
 #' @description
-#' Filter tumor cells from Seurat object.
+#' An internal function that filters tumor cells from a Seurat object based on
+#' metadata column values. This function identifies tumor cells using pattern
+#' matching on cell type labels and creates a subset containing only tumor cells.
+#' It also records dimension information before and after filtering for
+#' traceability.
 #'
 #' @param obj Seurat object with a column to filter out tumor cells.
 #' @param column2only_tumor Name of the column to filter out tumor cells.
 #' @param verbose logical, whether to print progress messages
+#'
+#' @return A Seurat object containing only tumor cells, with the following
+#'         attributes stored in `@misc`:
+#'         \itemize{
+#'           \item `self_dim`: Dimensions of the filtered object
+#'           \item `raw_dim`: Original dimensions before filtering
+#'           \item `column2only_tumor`: The column name used for filtering
+#'         }
+#'         If `column2only_tumor` is `NULL` or the specified column is not found,
+#'         returns the original object unchanged.
 #'
 #' @keywords internal
 #' @family single_cell_preprocess
@@ -644,13 +712,13 @@ FilterTumorCell <- function(
     }
     if (!column2only_tumor %chin% colnames(obj[[]])) {
         cli::cli_warn(
-            "Column '{.emph column2only_tumor}' not found, skip tumor cell filtering"
+            "Column '{.emph {column2only_tumor}}' not found, skip tumor cell filtering"
         )
         return(obj)
     }
     if (verbose) {
-        ts_cli$cli_alert_info(
-            "Filtering tumor cells from '{.emph column2only_tumor}'..."
+        cli::cli_text(
+            "Filtering tumor cells from '{.emph {column2only_tumor}}'..."
         )
     }
 
@@ -660,7 +728,7 @@ FilterTumorCell <- function(
         labels
     )
 
-    obj = obj[, tumor_cells]
+    obj <- obj[, tumor_cells]
 
     AddMisc(
         seurat_obj = obj,
@@ -702,38 +770,82 @@ QCPatternDetect <- function(
     verbose = TRUE,
     ...
 ) {
-    # Each pattern will be stored in a list
-    colname_mapping <- list()
+    # if `pattern` is a list, convert it to a character vector
+    patterns <- unlist(pattern)
+    colname_mapping <- stats::setNames(
+        paste0("percent.", purrr::map_chr(patterns, Pattern2Colname)),
+        patterns
+    )
+    # Maybe these filter already exist in the object
+    existing_cols <- colnames(obj[[]])
+    existing <- colname_mapping %chin% existing_cols
+    patterns_to_process <- names(colname_mapping)[!existing]
 
-    for (pat in unlist(pattern)) {
-        col_name <- paste0("percent.", Pattern2Colname(pat))
-        colname_mapping[[pat]] <- col_name
+    if (verbose && any(existing)) {
+        skipped_cols <- colname_mapping[existing]
+        skipped_patterns <- names(skipped_cols)
 
-        if (col_name %chin% colnames(obj[[]])) {
-            if (verbose) {
-                cli::cli_warn(
-                    "Column {.val {col_name}} already exists. Skipping pattern: {.val {pat}}",
-                )
-            }
-            next
-        }
-
-        obj <- Seurat::PercentageFeatureSet(
-            obj,
-            pattern = pat,
-            col.name = col_name,
-            ...
+        purrr::walk2(
+            skipped_cols,
+            skipped_patterns,
+            ~ cli::cli_warn(
+                "Column {.val {.x}} already exists. Skipping pattern: {.val {.y}}"
+            )
         )
     }
+
+    obj <- purrr::reduce(
+        .x = patterns_to_process,
+        .f = function(obj_acc, pat) {
+            col_name <- colname_mapping[[pat]]
+            obj_acc[[col_name]] <- Seurat::PercentageFeatureSet(
+                obj_acc,
+                pattern = pat,
+                ...
+            )
+            obj_acc
+        },
+        .init = obj
+    )
+
     # Record these colnames to misc slot for further data filter
-    obj@misc$qc_colnames <- colname_mapping
+    obj@misc$qc_colnames <- unname(colname_mapping)
 
     obj
 }
 
 #' @title convert regex patterns to column names (internal)
 #'
+#' @description
+#' An internal utility function that converts regular expression patterns used
+#' for quality control in single-cell RNA-seq analysis into standardized column
+#' names for Seurat object metadata. This function handles both single patterns
+#' and combined patterns with logical OR operators.
+#'
+#' @param pat A character string containing a regular expression pattern or
+#'            multiple patterns combined with `|` (OR operator).
+#'
+#' @return A character string with the standardized column name derived from
+#'         the input pattern(s). The output follows these conventions:
+#'         - Lowercase letters only
+#'         - Special characters removed or replaced with underscores
+#'         - Common patterns mapped to standardized abbreviations
+#'         - Combined patterns sorted alphabetically and joined with underscores
+#'
+#' @examples
+#' \dontrun{
+#' # Internal usage examples
+#' Pattern2Colname("^MT-")                    # Returns "mt"
+#' Pattern2Colname("^RP[LS]")                 # Returns "rp"
+#' Pattern2Colname("^[rt]rna")                # Returns "rt_rna"
+#' Pattern2Colname("^MT-|^RP[LS]")            # Returns "mt_rp"
+#' Pattern2Colname("^HB[AB]?")                # Returns "hb_ab"
+#' Pattern2Colname("Custom_Pattern[0-9]+")    # Returns "custom_pattern_0_9"
+#' }
+#'
 #' @keywords internal
+#' @family single_cell_preprocess
+#'
 Pattern2Colname <- function(pat) {
     pat_lower <- tolower(pat)
 

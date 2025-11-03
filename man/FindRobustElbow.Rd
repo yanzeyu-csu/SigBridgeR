@@ -36,6 +36,7 @@ pbmc <- FindNeighbors(pbmc, dims = 1:optimal_dims)
 Other single_cell_preprocess: 
 \code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
+\code{\link{Pattern2Colname}()},
 \code{\link{ProcessSeuratObject}()},
 \code{\link{QCPatternDetect}()}
 }

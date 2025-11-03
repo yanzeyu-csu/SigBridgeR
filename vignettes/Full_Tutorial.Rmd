@@ -23,7 +23,7 @@ vignette: >
     -   [1. Installation](#1-installation)
         -   [1.1 Stable Release from GitHub](#11-stable-release-from-github)
         -   [1.2 Release from r-universe](#12-release-from-r-universe)
-    -   [2. Loading and preprocessing data](#2-loading-and-preprocessing-data)
+    -   [2. Load and Preprocess data](#2-load-and-preprocess-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
             -   [2.1.1 (Option A) Start from Raw Matrix](#211-option-a-start-from-raw-matrix)
             -   [2.1.2 (Option B) Start from AnnData Object](#212-option-b-start-from-anndata-object)
@@ -34,7 +34,7 @@ vignette: >
                 -   [Recommended Parameter Adjustments](#recommended-parameter-adjustments)
             -   [2.2.2 Gene Symbol Conversion](#222-gene-symbol-conversion)
         -   [2.3 Phenotype Data](#23-phenotype-data)
-    -   [3. Screening Cells Associated with Phenotype](#3-screening-cells-associated-with-phenotype)
+    -   [3. Screen Cells Associated with Phenotype](#3-screen-cells-associated-with-phenotype)
         -   [3.1 (Option A) Scissor Screening](#31-option-a-scissor-screening)
         -   [3.2 (Option B) scPAS Screening](#32-option-b-scpas-screening)
         -   [3.3 (Option C) scAB Screening](#33-option-c-scab-screening)
@@ -89,7 +89,7 @@ If you encounter compatibility issues, you can install the version of the packag
 
 ------------------------------------------------------------------------
 
-## 2. Loading and preprocessing data
+## 2. Load and Preprocess data
 
 First load the packages, you will see a version number message indicating successful loading:
 
@@ -109,7 +109,7 @@ When starting from a raw count matrix (data.frame, matrix or dgCMatrix), `SCPreP
 ```{r,scpreprocessing_raw_matrix,eval=FALSE}
 your_seurat <- SCPreProcess(
   your_matrix,
-  # Parameters used in Seurat preprocessing pipeline
+  # * Parameters used in Seurat preprocessing pipeline
   meta_data = NULL,
   project = "Screen_Single_Cell", 
   min_cells = 400,
@@ -121,13 +121,23 @@ your_seurat <- SCPreProcess(
   resolution = 0.6,
   dims = 1:10,
   verbose = TRUE,
-  # Parameters used in SigBridgeR workflow
+  # * Parameters used in SigBridgeR workflow
   quality_control = TRUE,
   # Filter mitochondrial genes, human for '^MT-', mouse for '^mt-', or specify your own pattern
   quality_control.pattern = c("^MT-"), 
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
-  data_filter.percent.mt = 20,
+  data_filter.thresh = list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    percent.mt = 20L, # mitochondrial genes
+    # percent.rp = 60L # ribosomal protein genes
+
+    # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
+    # ? the column names are in lowercase letter form with regular expression symbols removed.
+    # `quality_control.pattern = "^[rt]rna"`
+    # Correct threshhold setting is `percent.rt_rna = 60L`
+
+    # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
+  ),
   column2only_tumor = NULL,
   ...
 )
@@ -147,8 +157,8 @@ your_seurat <- SCPreProcess(
 3.  **Cell filtering (default: ON)**\
     Cells are retained only if they satisfy **all** of the following:
 
-    -   `nFeature_RNA` lies between the lower and upper bounds defined by `data_filter.nFeature_RNA_thresh`.\
-    -   `percent.mt` is below the user-defined cut-off (`data_filter.percent.mt`).
+    -   `nFeature_RNA` lies between the lower and upper bounds defined by `data_filter.thresh$nFeature_RNA_thresh`.\
+    -   `percent.mt` is below the user-defined cut-off (`data_filter.thresh$percent.mt`).
 
 4.  **Normalisation, variable-feature selection and scaling**\
     Encapsulated in `ProcessSeuratObject()`:
@@ -194,9 +204,9 @@ Then just pass it to `SCPreProcess`:
 ```{r,scpreprocessing_in_anndata,eval=FALSE}
 your_seurat <- SCPreProcess(
   anndata_obj,
-  # Parameters used in Seurat preprocessing pipeline
-  meta_data = NULL,
-  project = "Screen_Single_Cell", 
+  # * Parameters used in Seurat preprocessing pipeline
+  meta_data = NULL, # auto-detect from anndata_obj$obs
+  project = "Screen_Single_Cell",
   min_cells = 400,
   min_features = 0,
   normalization_method = "LogNormalize",
@@ -204,17 +214,20 @@ your_seurat <- SCPreProcess(
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
-  dims = 1:10,
+  dims = NULL, # auto-detect from an elbow plot
   verbose = TRUE,
-  # Parameters used in SigBridgeR workflow
-  quality_control = TRUE, 
-  # Filter mitochondrial genes and ribosomal protein genes, 
-  # human for '^MT-', mouse for '^mt-'. You can specify your own pattern
-  quality_control.pattern = c("^MT-|^RP[SL]"), 
+  # * Parameters used in SigBridgeR workflow
+  quality_control = TRUE,
+  # Filter mitochondrial genes and ribosomal protein genes,
+  quality_control.pattern = c("^MT-", "^RP[SL]"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
-  data_filter.percent.mt = 20,
-  column2only_tumor = NULL,
+  data_filter.thresh = list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    # Corresponding to `quality_control.pattern`
+    percent.mt = 20L, # mitochondrial genes
+    percent.rp = 60L # ribosomal protein genes
+  ),
+  column2only_tumor = "Tissue", # keep only cells from tumor tissues
   ...
 )
 ```
@@ -222,6 +235,8 @@ your_seurat <- SCPreProcess(
 The description of data (meta.data) in `anndata_obj$obs` will be add to `your_seurat@meta.data`.
 
 **helpful documentation:**
+
+For the structure of `anndata`, you can refer to
 
 -   [AnnData for R](https://github.com/dynverse/anndata)
 -   [{anndataR}: An R package for working with AnnData objects](https://github.com/scverse/anndataR)
@@ -506,7 +521,7 @@ CheckNA <- function(data, max_print = 5) {
 
 ------------------------------------------------------------------------
 
-## 3. Screening Cells Associated with Phenotype
+## 3. Screen Cells Associated with Phenotype
 
 The function **`Screen`** provide 5 different options for screening cells associated with phenotype, These 5 algorithms come from the repositories mentioned in [Section 0.1](#01-introduction-to-sigbridger), and you can choose one of them to screen your cells.
 
@@ -517,14 +532,14 @@ Key parameters for `Screen`:
 -   `phenotype`: A data frame of phenotype data after intersecting samples.
 -   `label_type`: A character value specifying the filtering labels are stored in the `Seurat_object@misc` , default: `NULL`.
 -   `phenotype_class`: A character value specifying the phenotype data type, i.e. `"binary"`, `"survival"` or `"continuous"`.
--   `screen_method`: A character value specifying the screening method, i.e. "Scissor", "scPAS", "scAB" or "scPP"
+-   `screen_method`: A character value specifying the screening method, i.e. "Scissor", "scPAS", "scAB", "scPP" or "DEGAS"
 -   `...`: Other parameters for the screening methods.
 
 ### 3.1 (Option A) Scissor Screening
 
 Parameters pass to `...` when using `Scissor` method:
 
--   `path2save_scissor_inputs`: A character value specifying the path to save intermediate data, you can also set `path2load_scissor_cache=NULL` to suppress the saving of intermediate files. Default: `Scissor_inputs.RData`
+-   `path2save_scissor_inputs`: A character value specifying the path to save intermediate data, you can also set `path2load_scissor_cache = NULL` to suppress the saving of intermediate files. Default: `Scissor_inputs.RData`
 -   `path2load_scissor_cahce`: A character value specifying the path to load intermediate data
 -   `alpha`: Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is in `[0,1]`. A larger alpha lays more emphasis on the l1 norm.
 -   `cutoff`: Cutoff for the percentage of the Scissor selected cells in total cells. This parameter is used to restrict the number of the Scissor selected cells. A cutoff less than 50% (default 20%) is recommended depending on the input data.

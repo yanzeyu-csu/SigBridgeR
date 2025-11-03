@@ -25,6 +25,7 @@ FindNeighbors, FindClusters, RunTSNE, RunUMAP
 Other single_cell_preprocess: 
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
+\code{\link{Pattern2Colname}()},
 \code{\link{ProcessSeuratObject}()},
 \code{\link{QCPatternDetect}()}
 }

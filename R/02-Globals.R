@@ -25,6 +25,7 @@ utils::globalVariables(c(
     "cell_id",
     "cell_label",
     "column",
+    "count",
     "condition",
     "DEGAS.architecture",
     "DEGAS.bag_depth",

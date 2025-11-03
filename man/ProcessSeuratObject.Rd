@@ -37,6 +37,7 @@ Other single_cell_preprocess:
 \code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
+\code{\link{Pattern2Colname}()},
 \code{\link{QCPatternDetect}()}
 }
 \concept{single_cell_preprocess}
