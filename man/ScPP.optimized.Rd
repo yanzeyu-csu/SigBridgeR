@@ -4,7 +4,15 @@
 \alias{ScPP.optimized}
 \title{scPP Screening with Optimal Threshold Detection}
 \usage{
-ScPP.optimized(sc_dataset, geneList, probs = c(0.2, NULL), verbose)
+ScPP.optimized(
+  sc_dataset,
+  geneList,
+  probs = c(0.2, NULL),
+  verbose = TRUE,
+  parallel = FALSE,
+  workers = NULL,
+  seed = 123L
+)
 }
 \arguments{
 \item{sc_dataset}{A Seurat object containing single-cell RNA-seq data.
@@ -23,6 +31,8 @@ Must have RNA assay with normalized data.}
 \item Multiple values (e.g., seq(0.2, 0.45, by = 0.05)): Finds optimal threshold
 \item NULL (default): Automatically searches optimal threshold using seq(0.2, 0.45, by = 0.05)
 }}
+
+\item{verbose}{Logical, whether to print progress messages.}
 }
 \value{
 A list with three components:

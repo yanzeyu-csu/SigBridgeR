@@ -101,10 +101,9 @@ SetupPyEnv.default <- function(
 #'   environment if it already exists. Default: FALSE.
 #' @param use_conda_forge Logical indicating whether to use the conda-forge
 #'   channel for package installation. Default: TRUE.
-#' @param verbose Logical indicating whether to display detailed progress
-#'   messages and command output. Default: TRUE.
-#' @param timeout The maximum timeout time when using system commands, default: 30 miniutes
-#' @param ... For future compatibility.
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `timeout`: Numeric specifying the timeout in seconds for package installation. Defaults to `180L`.
 #'
 #' @return
 #' Invisibly returns NULL.
@@ -158,8 +157,6 @@ SetupPyEnv.conda <- function(
     ),
     recreate = FALSE,
     use_conda_forge = TRUE,
-    verbose = TRUE,
-    timeout = 1800000,
     ...
 ) {
     purrr::walk(
@@ -173,6 +170,10 @@ SetupPyEnv.conda <- function(
     if (!is.null(packages)) {
         chk::chk_named(packages)
     }
+
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    timeout <- dots$timeout %||% getFuncOption("timeout")
     #   Default method is `reticulate`
     method <- MatchArg(method, c("reticulate", "system", "environment"))
 
@@ -476,9 +477,8 @@ SetupPyEnv.conda <- function(
 #'   version. Default: NULL.
 #' @param recreate Logical indicating whether to force recreation of the
 #'   virtual environment if it already exists. Default: FALSE.
-#' @param verbose Logical indicating whether to display detailed progress
-#'   messages and command output. Default: TRUE.
-#' @param ... For future compatibility.
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'
 #' @return
 #' Invisibly returns NULL.
@@ -528,7 +528,6 @@ SetupPyEnv.venv <- function(
     packages = c("tensorflow" = "2.4.1", "protobuf" = "3.20.3"),
     python_path = NULL,
     recreate = FALSE,
-    verbose = TRUE,
     ...
 ) {
     # Input validation
@@ -544,6 +543,8 @@ SetupPyEnv.venv <- function(
     if (!is.null(python_path)) {
         chk::chk_file(python_path)
     }
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
 
     if (verbose) {
         cli::cli_h1("Setting up Venv Python Environment")

@@ -3,7 +3,8 @@ title: "Troubleshooting"
 author: "Exceret"
 date: '`r Sys.Date()`'
 output: 
-  html_document: null
+  html_document: 
+    toc: false  
 knit: knitted
 vignette: >
   %\VignetteIndexEntry{Troubleshooting}

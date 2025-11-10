@@ -105,9 +105,6 @@
 #'
 #'
 #' @export
-#' @importFrom glue glue
-#' @importFrom chk chk_subset chk_is
-#' @importFrom cli cli_alert_info cli_abort
 #
 #'
 Screen <- function(
@@ -120,6 +117,8 @@ Screen <- function(
     ...
 ) {
     chk::chk_is(sc_data, "Seurat")
+    chk::chk_length(phenotype_class)
+    chk::chk_length(screen_method)
 
     if (is.null(label_type) || length(label_type) != 1) {
         cli::cli_alert_info(c(
@@ -134,7 +133,11 @@ Screen <- function(
         available_phenotype_class,
         NULL
     )
-    screen_method <- MatchArg(screen_method, available_screen_method, NULL)
+    screen_method <- MatchArg(
+        screen_method,
+        available_screen_method,
+        NULL
+    )
 
     switch(
         screen_method,

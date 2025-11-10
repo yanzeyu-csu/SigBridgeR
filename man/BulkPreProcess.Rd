@@ -9,14 +9,14 @@ BulkPreProcess(
   sample_info = NULL,
   gene_symbol_conversion = FALSE,
   check = TRUE,
-  min_count_threshold = 10,
-  min_gene_expressed = 3,
-  min_total_reads = 1e+06,
-  min_genes_detected = 10000,
+  min_count_threshold = 10L,
+  min_gene_expressed = 3L,
+  min_total_reads = 1000000L,
+  min_genes_detected = 10000L,
   min_correlation = 0.8,
-  n_top_genes = 500,
+  n_top_genes = 500L,
   show_plot_results = TRUE,
-  verbose = TRUE
+  ...
 )
 }
 \arguments{
@@ -42,7 +42,11 @@ BulkPreProcess(
 
 \item{show_plot_results}{Whether to generate visualization plots, default: TRUE}
 
-\item{verbose}{Whether to output detailed information, default: TRUE}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 Filtered count matrix

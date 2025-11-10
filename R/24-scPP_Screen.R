@@ -15,7 +15,6 @@
 #'   Log2FC_cutoff = 0.585,
 #'   estimate_cutoff = 0.2,
 #'   probs = c(0.2, NULL),
-#'   verbose = TRUE,
 #'   ...
 #' )
 #'
@@ -35,8 +34,11 @@
 #' @param Log2FC_cutoff Minimum log2 fold-change for binary markers (default: 0.585)
 #' @param estimate_cutoff Effect size threshold for **continuous** traits (default: 0.2)
 #' @param probs A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)
-#' @param verbose Logical indicating whether to print progress messages. Default: `TRUE`.
-#' @param ... For future update.
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
+#'    - `parallel`: Logical. When `probs` is a numeric vector or NULL, whether to enable parallel mode to search for the optimal `probs` value. Default: `FALSE`.
+#'    - `workers`: Number of workers to use in parallel mode. Default: `NULL` (use all 4 cores).
 #'
 #' @return A list containing:
 #' \describe{
@@ -98,10 +100,8 @@ DoscPP <- function(
     Log2FC_cutoff = 0.585,
     estimate_cutoff = 0.2,
     probs = c(0.2, NULL),
-    verbose = TRUE,
     ...
 ) {
-    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     phenotype_class <- MatchArg(
@@ -134,9 +134,15 @@ DoscPP <- function(
         }
     }
 
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    parallel <- dots$parallel %||% getFuncOption("parallel")
+    workers <- dots$workers %||% getFuncOption("workers")
+    seed <- dots$seed %||% getFuncOption("seed")
+
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Start scPP screening."))
-        ts_cli$cli_alert_info("Finding markers...")
+        ts_cli$cli_alert_info("Finding overall markers...")
     }
 
     matched_bulk <- as.data.frame(matched_bulk)
@@ -197,11 +203,14 @@ DoscPP <- function(
     }
 
     # *Start screen
-    scPP_result <- rlang::try_fetch(
-        ScPP.optimized(sc_data, gene_list, probs = probs, verbose = verbose),
-        error = function(e) {
-            cli::cli_abort(c("x" = "ScPP screening failed:", ">" = e$message))
-        }
+    scPP_result <- ScPP.optimized(
+        sc_dataset = sc_data,
+        geneList = gene_list,
+        probs = probs,
+        verbose = verbose,
+        parallel = parallel,
+        workers = workers,
+        seed = seed
     )
     sc_data[[]] <- scPP_result$metadata
     sc_data <- AddMisc(sc_data, scPP_type = label_type, cover = FALSE)
@@ -246,6 +255,7 @@ DoscPP <- function(
 #'     \item Multiple values (e.g., seq(0.2, 0.45, by = 0.05)): Finds optimal threshold
 #'     \item NULL (default): Automatically searches optimal threshold using seq(0.2, 0.45, by = 0.05)
 #'   }
+#' @param verbose Logical, whether to print progress messages.
 #'
 #' @return
 #' A list with three components:
@@ -309,13 +319,16 @@ ScPP.optimized <- function(
     sc_dataset,
     geneList,
     probs = c(0.2, NULL),
-    verbose
+    verbose = TRUE,
+    parallel = FALSE,
+    workers = NULL,
+    seed = 123L
 ) {
-    # Set default probs if NULL
+    # Set default probs if NULL, serach for optimal probs if vector
     probs <- probs %||% seq(0.2, 0.45, by = 0.05)
 
     # Validate probs
-    if (any(probs <= 0) || any(probs >= 0.5)) {
+    if (any(probs <= 0 | probs >= 0.5)) {
         cli::cli_abort("{.arg probs} must be numeric values between 0 and 0.5")
     }
 
@@ -327,22 +340,41 @@ ScPP.optimized <- function(
         # ============================================================
         # OPTIMIZATION MODE: Find optimal probs
         # ============================================================
-        probs_optimal <- .OptimizationMode(sc_dataset, geneList, probs)
-        return(.SingleProbMode(sc_dataset, geneList, probs_optimal, verbose))
-    } else {
-        # ============================================================
-        # FIXED THRESHOLD MODE: Single prob profiling
-        # ============================================================
-        return(.SingleProbMode(sc_dataset, geneList, probs, verbose))
+        probs <- OptimizationMode(
+            sc_dataset = sc_dataset,
+            geneList = geneList,
+            probs = probs,
+            parallel = parallel,
+            workers = workers,
+            seed = seed
+        )
     }
+    # ============================================================
+    # FIXED THRESHOLD MODE: Single prob profiling
+    # ============================================================
+    FixedProbMode(
+        sc_dataset = sc_dataset,
+        geneList = geneList,
+        probs = probs,
+        verbose = verbose,
+        seed = seed
+    )
 }
 
 
 #' @keywords internal
 #' @family scPP
 #' @seealso [ScPP.optimized()]
-.SingleProbMode <- function(sc_dataset, geneList, probs, verbose) {
-    set.seed(123)
+FixedProbMode <- function(
+    sc_dataset,
+    geneList,
+    probs = 0.2,
+    verbose = TRUE,
+    seed = 123L,
+    ...
+) {
+    chk::chk_length(probs)
+    set.seed(seed)
 
     # Extract gene sets
     geneList_AUC <- geneList[names(geneList) %chin% c("gene_pos", "gene_neg")]
@@ -414,7 +446,9 @@ ScPP.optimized <- function(
     sc_dataset$scPP <- metadata_dt$scPP
     Seurat::Idents(sc_dataset) <- "scPP"
     if (verbose) {
-        ts_cli$cli_alert_info("Finding markers...")
+        ts_cli$cli_alert_info(
+            "Finding markers between `Positive` and `Negative` group..."
+        )
     }
 
     # Find markers
@@ -467,9 +501,18 @@ ScPP.optimized <- function(
 
 #' @keywords internal
 #' @family scPP
+#' @family scPP_optimal_param
 #' @seealso [ScPP.optimized()]
-.OptimizationMode <- function(sc_dataset, geneList, probs, verbose) {
-    set.seed(123)
+OptimizationMode <- function(
+    sc_dataset,
+    geneList,
+    probs,
+    verbose = TRUE,
+    parallel = FALSE,
+    workers = NULL,
+    seed = 123L
+) {
+    set.seed(seed)
 
     # Extract gene sets
     geneList_AUC <- geneList[names(geneList) %in% c("gene_pos", "gene_neg")]
@@ -481,7 +524,7 @@ ScPP.optimized <- function(
 
     if (is.null(genes_sort)) {
         cli::cli_abort(
-            "Optimization mode requires 'genes_sort' in geneList for GSEA analysis"
+            "Optimization mode requires 'genes_sort' in {.arg geneList} for GSEA analysis"
         )
     }
 
@@ -531,108 +574,73 @@ ScPP.optimized <- function(
         ts_cli$cli_alert_info(
             "Testing thresholds and computing NES differences..."
         )
-        # Progress bar
-        cli::cli_progress_bar(
-            "Optimizing threshold",
-            total = n_probs,
-            format = "{cli::pb_spin} Testing prob {cli::pb_current}/{cli::pb_total} [{cli::pb_elapsed}]"
-        )
     }
 
     # Iterate through probability thresholds
-    for (i in seq_len(n_probs)) {
+    if (parallel) {
+        workers <- workers %||% 4L
+        plan("multisession", workers = workers)
+
         if (verbose) {
-            cli::cli_progress_update()
+            ts_cli$cli_alert_info(sprintf(
+                "Using parallel processing with %d workers",
+                workers
+            ))
+        }
+        ProcessSingleProb <- SigBridgeR:::ProcessSingleProb
+
+        ProcessAllProb <- function(i) {
+            ProcessSingleProb(
+                i = i,
+                metadata_dt = metadata_dt,
+                sc_dataset = sc_dataset,
+                probs = probs,
+                quantiles_up = quantiles_up,
+                quantiles_down = quantiles_down,
+                genes_sort = genes_sort
+            )
         }
 
-        prob_i <- probs[i]
-
-        # Get quantile thresholds
-        up_low <- quantiles_up[i]
-        up_high <- quantiles_up[n_probs + i]
-        down_low <- quantiles_down[i]
-        down_high <- quantiles_down[n_probs + i]
-
-        # Identify cells using vectorized operations
-        pos_mask <- metadata_dt$AUCup >= up_high &
-            metadata_dt$AUCdown <= down_low
-        neg_mask <- metadata_dt$AUCup <= up_low &
-            metadata_dt$AUCdown >= down_high
-
-        scPP_pos <- metadata_dt$cell_id[pos_mask]
-        scPP_neg <- metadata_dt$cell_id[neg_mask]
-
-        # Skip if too few cells in either group
-        if (length(scPP_pos) < 3 || length(scPP_neg) < 3) {
-            next
-        }
-
-        # Classify cells
-        metadata_dt[, scPP := "Neutral"]
-        metadata_dt[pos_mask, scPP := "Positive"]
-        metadata_dt[neg_mask, scPP := "Negative"]
-
-        # Update Seurat object
-        sc_dataset$scPP <- metadata_dt$scPP
-        Seurat::Idents(sc_dataset) <- "scPP"
-
-        # Find markers
-        markers <- Seurat::FindMarkers(
-            sc_dataset,
-            ident.1 = "Positive",
-            ident.2 = "Negative",
-            verbose = FALSE
+        results <- future_map(
+            .x = seq_len(n_probs),
+            .f = ProcessAllProb,
+            .progress = verbose,
+            .options = furrr_options(
+                seed = seed,
+                packages = c("Seurat", "data.table", "fgsea", "rlang"),
+                globals = c(
+                    "metadata_dt",
+                    "sc_dataset",
+                    "probs",
+                    "quantiles_up",
+                    "quantiles_down",
+                    "genes_sort",
+                    "ProcessSingleProb"
+                )
+            )
         )
 
-        if (is.null(markers) || nrow(markers) == 0) {
-            next
-        }
-
-        # Filter markers
-        markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
-
-        pos_mask_genes <- markers_mat[, "avg_log2FC"] > 1 &
-            markers_mat[, "p_val_adj"] < 0.05
-        neg_mask_genes <- markers_mat[, "avg_log2FC"] < -1 &
-            markers_mat[, "p_val_adj"] < 0.05
-
-        genes_pos <- rownames(markers)[pos_mask_genes]
-        genes_neg <- rownames(markers)[neg_mask_genes]
-
-        # Check if we have markers in both directions
-        if (length(genes_pos) == 0 || length(genes_neg) == 0) {
-            next
-        }
-
-        # Run GSEA
-        res <- list(
-            Genes_pos = genes_pos,
-            Genes_neg = genes_neg
-        )
-
-        fgsea_res <- rlang::try_fetch(
-            fgsea::fgsea(
-                pathways = res,
-                stats = genes_sort
+        plan("sequential")
+    } else {
+        results <- purrr::map(
+            seq_len(n_probs),
+            ~ ProcessSingleProb(
+                i = .x,
+                metadata_dt = metadata_dt,
+                sc_dataset = sc_dataset,
+                probs = probs,
+                quantiles_up = quantiles_up,
+                quantiles_down = quantiles_down,
+                genes_sort = genes_sort
             ),
-            error = function(e) NULL,
-            warning = function(w) NULL
+            .progress = verbose
         )
-
-        if (is.null(fgsea_res)) {
-            next
-        }
-
-        # Calculate NES difference
-        nes_pos <- fgsea_res$NES[fgsea_res$pathway == "Genes_pos"]
-        nes_neg <- fgsea_res$NES[fgsea_res$pathway == "Genes_neg"]
-
-        if (length(nes_pos) > 0 && length(nes_neg) > 0) {
-            NES_dif_res[i, "NES_dif"] <- nes_pos - nes_neg
-        }
     }
-    if (verbose) {
-        cli::cli_progress_done()
+
+    for (result in results) {
+        if (!is.na(result$NES_dif)) {
+            NES_dif_res[result$index, "NES_dif"] <- result$NES_dif
+        }
     }
 
     # Convert to data.frame and find optimal
@@ -641,9 +649,10 @@ ScPP.optimized <- function(
     # Check if we have any valid results
     valid_results <- !is.na(NES_dif_res$NES_dif)
     if (!any(valid_results)) {
-        cli::cli_abort(
-            "No valid NES differences calculated. Try different probability thresholds."
-        )
+        cli::cli_abort(c(
+            "x" = "No valid NES differences calculated. Try different probability thresholds.",
+            ">" = "Current probs: {.val {probs}}"
+        ))
     }
 
     # Find optimal probability
@@ -663,4 +672,124 @@ ScPP.optimized <- function(
     }
 
     opt_prob
+}
+
+#' @keywords internal
+#' @family scPP_optimal_param
+ProcessSingleProb <- function(
+    i,
+    metadata_dt,
+    sc_dataset,
+    probs,
+    quantiles_up,
+    quantiles_down,
+    genes_sort
+) {
+    prob_i <- probs[i]
+    n_probs <- length(probs)
+
+    # Get quantile thresholds
+    up_low <- quantiles_up[i]
+    up_high <- quantiles_up[n_probs + i]
+    down_low <- quantiles_down[i]
+    down_high <- quantiles_down[n_probs + i]
+
+    # Identify cells with high AUCup and low AUCdown (Positive group)
+    pos_mask <- metadata_dt$AUCup >= up_high &
+        metadata_dt$AUCdown <= down_low
+    # Identify cells with low AUCup and high AUCdown (Negative group)
+    neg_mask <- metadata_dt$AUCup <= up_low &
+        metadata_dt$AUCdown >= down_high
+
+    scPP_pos <- metadata_dt$cell_id[pos_mask]
+    scPP_neg <- metadata_dt$cell_id[neg_mask]
+
+    # Skip if too few cells in either group
+    if (length(scPP_pos) < 3 || length(scPP_neg) < 3) {
+        cli::cli_warn(
+            "Skipping prob {.val {prob_i}} because too few cells in either group"
+        )
+        return(list(index = i, NES_dif = NA_real_))
+    }
+
+    # * Copy one to avoid modifying
+    # Classify cells
+    metadata_dt_copy <- data.table::copy(metadata_dt)
+    metadata_dt_copy[, scPP := "Neutral"]
+    metadata_dt_copy[pos_mask, scPP := "Positive"]
+    metadata_dt_copy[neg_mask, scPP := "Negative"]
+
+    # Update Seurat object
+    sc_dataset_copy <- sc_dataset
+    sc_dataset_copy$scPP <- metadata_dt_copy$scPP
+    Seurat::Idents(sc_dataset_copy) <- "scPP"
+
+    # Find markers
+    markers <- Seurat::FindMarkers(
+        object = sc_dataset_copy,
+        ident.1 = "Positive",
+        ident.2 = "Negative",
+        verbose = FALSE
+    )
+
+    if (is.null(markers) || nrow(markers) == 0) {
+        cli::cli_warn(
+            "Skipping prob {.val {prob_i}} because no markers found"
+        )
+        return(list(index = i, NES_dif = NA_real_))
+    }
+
+    # Filter markers
+    markers_mat <- as.matrix(markers[, c("avg_log2FC", "p_val_adj")])
+
+    pos_mask_genes <- markers_mat[, "avg_log2FC"] > 1 &
+        markers_mat[, "p_val_adj"] < 0.05
+    neg_mask_genes <- markers_mat[, "avg_log2FC"] < -1 &
+        markers_mat[, "p_val_adj"] < 0.05
+
+    genes_pos <- rownames(markers)[pos_mask_genes]
+    genes_neg <- rownames(markers)[neg_mask_genes]
+
+    # Check if we have markers in both directions
+    if (length(genes_pos) == 0 || length(genes_neg) == 0) {
+        cli::cli_warn(
+            "Skipping prob {.val {prob_i}} because no markers found in both directions"
+        )
+        return(list(index = i, NES_dif = NA_real_))
+    }
+
+    # Run GSEA
+    res <- list(
+        Genes_pos = genes_pos,
+        Genes_neg = genes_neg
+    )
+
+    fgsea_res <- rlang::try_fetch(
+        fgsea::fgsea(
+            pathways = res,
+            stats = genes_sort
+        ),
+        error = function(e) NULL
+    )
+
+    if (is.null(fgsea_res)) {
+        cli::cli_warn(
+            "Skipping prob {.val {prob_i}} because GSEA failed"
+        )
+        return(list(index = i, NES_dif = NA_real_))
+    }
+
+    # Calculate NES difference
+    nes_pos <- fgsea_res$NES[fgsea_res$pathway == "Genes_pos"]
+    nes_neg <- fgsea_res$NES[fgsea_res$pathway == "Genes_neg"]
+
+    if (length(nes_pos) > 0 && length(nes_neg) > 0) {
+        return(list(index = i, NES_dif = nes_pos - nes_neg))
+    }
+
+    cli::cli_warn(
+        "Skipping prob {.val {prob_i}} because no relevant NES found"
+    )
+
+    list(index = i, NES_dif = NA_real_)
 }

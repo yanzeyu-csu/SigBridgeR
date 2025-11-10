@@ -23,7 +23,6 @@
 #'    cell_evaluation.benchmark_data = "path_to_file.RData",
 #'    cell_evaluation.FDR = 0.05,
 #'    cell_evaluation.bootstrap_n = 100,
-#'    verbose = TRUE,
 #'    ...
 #' )
 #'
@@ -52,8 +51,9 @@
 #' @param cell_evaluation.benchmark_data Path to benchmark data (RData file).
 #' @param cell_evaluation.FDR FDR threshold for cell evaluation (default: 0.05).
 #' @param cell_evaluation.bootstrap_n Number of bootstrap iterations for cell evaluation (default: 100).
-#' @param verbose Logical to print progress messages (default: TRUE).
-#' @param ... Additional arguments passed to `Scissor.v5.optimized`.
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
 #'
 #' @return A list containing:
 #' \describe{
@@ -97,12 +97,6 @@
 #' )
 #' }
 #'
-#' @importFrom dplyr %>%
-#' @importFrom Seurat AddMetaData
-#' @importFrom Scissor reliability.test
-#' @importFrom stats cor
-#' @importFrom glue glue
-#' @importFrom cli cli_abort cli_alert_info cli_alert_success cli_alert_danger col_green
 #'
 #' @family screen_method
 #' @family scissor
@@ -124,7 +118,6 @@ DoScissor <- function(
     cell_evaluation.benchmark_data = "path_to_file.RData",
     cell_evaluation.FDR = 0.05,
     cell_evaluation.bootstrap_n = 100,
-    verbose = TRUE,
     ...
 ) {
     # Input validation
@@ -140,6 +133,11 @@ DoScissor <- function(
     chk::chk_character(path2save_scissor_inputs)
     chk::chk_flag(reliability_test)
     chk::chk_flag(cell_evaluation)
+
+    # get from dots
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    seed <- dots$seed %||% getFuncOption("seed")
 
     if (scissor_family %chin% c("binomial", "cox")) {
         label_type_scissor <- c(
@@ -169,7 +167,7 @@ DoScissor <- function(
         Save_file = path2save_scissor_inputs,
         Load_file = path2load_scissor_cache,
         verbose = verbose,
-        ...
+        seed = seed
     )
 
     # meta.data to add
@@ -188,9 +186,10 @@ DoScissor <- function(
 
     # *reliability test
     if (reliability_test) {
-        chk::chk_number(reliability_test.n)
-        chk::chk_number(reliability_test.nfold)
-        chk::chk_number(alpha)
+        purrr::walk(
+            c(reliability_test.n, reliability_test.nfold, alpha),
+            chk::chk_number
+        )
 
         # indicate that Y has only two levels, both Pos and Neg cells exist
         if (length(table(infos1$Y)) < 2) {
@@ -214,7 +213,8 @@ DoScissor <- function(
             cell_num = length(infos1$Scissor_pos) +
                 length(infos1$Scissor_neg),
             n = reliability_test.n,
-            nfold = reliability_test.nfold
+            nfold = reliability_test.nfold,
+            verbose = verbose
         )
         if (verbose) {
             ts_cli$cli_alert_info(
@@ -285,6 +285,7 @@ Scissor.v5.optimized <- function(
     Save_file = "Scissor_inputs.RData",
     Load_file = NULL,
     verbose = TRUE,
+    seed = 123L,
     ...
 ) {
     if (verbose) {
@@ -346,7 +347,10 @@ Scissor.v5.optimized <- function(
                 quality_control.pattern = c("^MT-"),
                 verbose = FALSE
             )
-            network <- as.matrix(Seurat_tmp@graphs$RNA_snn)
+            network <- as.matrix(SeuratObject::Graphs(
+                sc_dataset,
+                slot = "RNA_snn"
+            ))
         }
         diag(network) <- 0
         network <- (network != 0) * 1
@@ -382,7 +386,7 @@ Scissor.v5.optimized <- function(
             )
         }
 
-        X <- cor(Expression_bulk, Expression_cell)
+        X <- stats::cor(Expression_bulk, Expression_cell)
 
         quality_check <- colQuantiles(X, probs = seq(0, 1, 0.25))
         if (verbose) {
@@ -522,7 +526,7 @@ Scissor.v5.optimized <- function(
     for (i in seq_along(alpha)) {
         result <- rlang::try_fetch(
             {
-                set.seed(123)
+                set.seed(seed)
 
                 fit0 <- Scissor::APML1(
                     X,
@@ -617,3 +621,302 @@ Scissor.v5.optimized <- function(
         network = network
     )
 }
+
+# #' @title Reliability Significance Test
+# #' @description
+# #' Performs the reliability significance test to determine whether the inferred phenotype-to-cell
+# #' associations are reliable (statistical p-value less than 0.05) or are false positives.
+# #'
+# #' This statistical test can determine whether the inferred phenotype-to-cell associations are
+# #' reliable (statistical p-value less than 0.05) or are false positives.
+# #'
+# #' The motivation for the reliability significance test is: if the chosen single-cell and bulk data are not suitable for
+# #' the phenotype-to-cell associations, the correlations would be less informative and not well associated with the phenotype
+# #' labels. Thus, the corresponding prediction performance would be poor and not be significantly distinguishable from the
+# #' randomly permutated labels.
+# #'
+# #' The evaluation measurements used in the reliability significance test are the mean squared error (MSE) for linear regression,
+# #' the area under the ROC curve (AUC) for classification, and the concordance index (c-index) for Cox regression.
+# #'
+# #' @param X Scissor calculated correlation matrix for each pair of cells and bulk samples.
+# #' @param Y Scissor calculated response variable in the regression model.
+# #' @param network Scissor calculated cell-cell similarity network.
+# #' @param alpha Same parameter alpha used in Scissor.
+# #' @param family Same parameter family used in Scissor.
+# #' @param cell_num The number of the Scissor selected cells.
+# #' @param n Permutation times.
+# #' @param nfold The fold number in cross-validation.
+# #'
+# #' @return A list containing the following components:
+# #'   \item{statistic}{The test statistic.}
+# #'   \item{p}{The test p-value.}
+# #'   \item{Measurement_test_real}{The evaluation measurement on each fold calculated using the real label.}
+# #'   \item{Measurement_test_back}{A list with each component contains the evaluation measurements calculated using the permutated labels.}
+# #'
+# #' @keywords internal
+# #
+# reliability.test <- function(
+#     X,
+#     Y,
+#     network,
+#     alpha,
+#     family = c("gaussian", "binomial", "cox"),
+#     cell_num,
+#     n = 100,
+#     nfold = 10,
+#     verbose = TRUE
+# ) {
+#     library(progress)
+#     # library(Matrix)
+#     switch(
+#         family,
+#         'gaussian' = {
+#             test_lm.optimized(X, Y, network, alpha, cell_num, n, nfold,verbose=verbose)
+#         },
+#         'binomial' = {
+#             library(pROC)
+#             Scissor::test_logit(X, Y, network, alpha, cell_num, n, nfold)
+#         },
+#         'cox' = {
+#             library(survival)
+#             Scissor::test_cox(X, Y, network, alpha, cell_num, n, nfold)
+#         }
+#     )
+# }
+
+# test_lm_optimized <- function(
+#     X,
+#     Y,
+#     network,
+#     alpha,
+#     cell_num,
+#     n = 100,
+#     nfold = 10,
+#     verbose = TRUE,
+#     workers = 4L
+# ) {
+#     # 设置并行计算
+#     if (n > 10) {
+#         furrr::plan(multisession, workers = workers)
+#         on.exit(plan(sequential), add = TRUE)
+#     }
+
+#     # 预处理
+#     set.seed(1)
+#     m <- nrow(X)
+#     index0 <- sample(cut(seq_len(m), breaks = nfold, labels = FALSE))
+
+#     # 转换为稀疏矩阵（如果有益）
+#     if (Matrix::mean(X == 0) > 0.5) {
+#         X <- methods::as(X, "sparseMatrix")
+#     }
+
+#     # ============ 阶段1: 真实标签的交叉验证 ============
+#     if (verbose) {
+#         ts_cli$cli_alert_info("Performing {nfold}-fold CV with true labels")
+#     }
+
+#     # 预分配向量
+#     MSE_test_real <- numeric(nfold)
+
+#     # 单个fold的计算函数
+#     compute_fold <- function(j, X, Y, index0, network, alpha, cell_num) {
+#         c_index <- Matrix::which(index0 == j)
+#         X_train <- X[-c_index, , drop = FALSE]
+#         Y_train <- Y[-c_index]
+#         X_test <- X[c_index, , drop = FALSE]
+#         Y_test <- Y[c_index]
+
+#         # 拟合模型
+#         fit <- NULL
+#         attempt <- 0
+#         while (is.null(fit$fit) && attempt < 5) {
+#             set.seed(123 + attempt)
+#             fit <- rlang::try_fetch(
+#                 Scissor::APML1(
+#                     X_train,
+#                     Y_train,
+#                     family = "gaussian",
+#                     penalty = "Net",
+#                     alpha = alpha,
+#                     Omega = network,
+#                     nlambda = 100
+#                 ),
+#                 error = function(e) list(fit = NULL)
+#             )
+#             attempt <- attempt + 1
+#         }
+
+#         if (is.null(fit$fit)) {
+#             cli::cli_warn("Fold {j} failed to converge")
+#             return(NA_real_)
+#         }
+
+#         # 选择模型
+#         index <- which.min(abs(fit$fit$nzero - cell_num))
+#         Coefs <- as.numeric(fit$Beta[, index])
+
+#         # 计算MSE (使用矩阵乘法)
+#         pred <- as.numeric(X_test %*% Coefs)
+#         mse <- Matrix::mean((Y_test - pred)^2)
+
+#         return(mse)
+#     }
+
+#     # 执行真实标签CV
+#     if (verbose) {
+#         cli::cli_progress_bar("CV with true labels", total = nfold)
+#     }
+#     for (j in seq_len(nfold)) {
+#         MSE_test_real[j] <- compute_fold(
+#             j,
+#             X,
+#             Y,
+#             index0,
+#             network,
+#             alpha,
+#             cell_num
+#         )
+#         if (verbose) {
+#             cli::cli_progress_update()
+#         }
+#     }
+#     if (verbose) {
+#         cli::cli_progress_done()
+#     }
+
+#     # ============ 阶段2: 置换标签的交叉验证 ============
+#     if (verbose) {
+#         ts_cli$cli_alert_info(
+#             "Performing {n} permutations with {nfold}-fold CV each"
+#         )
+#     }
+
+#     # 单次置换的完整CV函数
+#     permutation_cv <- function(
+#         i,
+#         X,
+#         Y,
+#         index0,
+#         network,
+#         alpha,
+#         cell_num,
+#         nfold,
+#         m
+#     ) {
+#         set.seed(i + 100)
+#         Y_perm <- Y[sample(m)]
+
+#         mse_vec <- numeric(nfold)
+#         for (j in seq_len(nfold)) {
+#             c_index <- Matrix::which(index0 == j)
+#             X_train <- X[-c_index, , drop = FALSE]
+#             Y_train <- Y_perm[-c_index]
+#             X_test <- X[c_index, , drop = FALSE]
+#             Y_test <- Y_perm[c_index]
+
+#             fit <- NULL
+#             attempt <- 0
+#             while (is.null(fit$fit) && attempt < 5) {
+#                 set.seed(123 + attempt)
+#                 fit <- rlang::try_fetch(
+#                     Scissor::APML1(
+#                         X_train,
+#                         Y_train,
+#                         family = "gaussian",
+#                         penalty = "Net",
+#                         alpha = alpha,
+#                         Omega = network,
+#                         nlambda = 100
+#                     ),
+#                     error = function(e) list(fit = NULL)
+#                 )
+#                 attempt <- attempt + 1
+#             }
+
+#             if (!is.null(fit$fit)) {
+#                 index <- which.min(abs(fit$fit$nzero - cell_num))
+#                 Coefs <- as.numeric(fit$Beta[, index])
+#                 pred <- as.numeric(X_test %*% Coefs)
+#                 mse_vec[j] <- Matrix::mean((Y_test - pred)^2)
+#             } else {
+#                 mse_vec[j] <- NA_real_
+#             }
+#         }
+
+#         Matrix::mean(mse_vec, na.rm = TRUE)
+#     }
+
+#     # 并行或串行执行置换
+#     if (verbose) {
+#         cli::cli_progress_bar("Permutation test", total = n)
+#     }
+
+#     if (n > 10) {
+#         background <- furrr::future_map_dbl(
+#             seq_len(n),
+#             ~ {
+#                 result <- permutation_cv(
+#                     .x,
+#                     X,
+#                     Y,
+#                     index0,
+#                     network,
+#                     alpha,
+#                     cell_num,
+#                     nfold,
+#                     m
+#                 )
+#                 if (verbose) {
+#                     cli::cli_progress_update()
+#                 }
+#                 result
+#             },
+#             .options = furrr_options(seed = TRUE)
+#         )
+#     } else {
+#         background <- numeric(n)
+#         for (i in seq_len(n)) {
+#             background[i] <- permutation_cv(
+#                 i,
+#                 X,
+#                 Y,
+#                 index0,
+#                 network,
+#                 alpha,
+#                 cell_num,
+#                 nfold,
+#                 m
+#             )
+#             if (verbose) {
+#                 cli::cli_progress_update()
+#             }
+#         }
+#     }
+#     if (verbose) {
+#         cli::cli_progress_done()
+#     }
+#     # ============ 计算统计量和p值 ============
+#     statistic <- Matrix::mean(MSE_test_real, na.rm = TRUE)
+#     p <- sum(background < statistic, na.rm = TRUE) / sum(!is.na(background))
+
+#     # 输出结果
+#     cli::cli_rule("Results")
+#     cli::cli_alert_success("Test statistic (mean MSE) = {round(statistic, 3)}")
+#     cli::cli_alert_success("Reliability test p-value = {round(p, 3)}")
+
+#     if (p >= 0.05 && verbose) {
+#         cli::cli_warn(
+#             "Model is NOT significantly better than random (p >= 0.05)"
+#         )
+#     }
+
+#     # 返回结果
+#     list(
+#         statistic = statistic,
+#         p = p,
+#         MSE_test_real = MSE_test_real,
+#         background = background,
+#         n_valid_permutations = sum(!is.na(background))
+#     )
+# }

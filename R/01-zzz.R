@@ -10,5 +10,23 @@
 }
 
 .onLoad <- function(libname, pkgname) {
+    # Add timestamp to cli functions
     assign("ts_cli", CreateTimeStampCliEnv(), envir = asNamespace(pkgname))
+
+    # default options
+    op <- options()
+    op_pkg <- list(
+        SigBridgeR.verbose = TRUE,
+        SigBridgeR.parallel = FALSE,
+        SigBridgeR.workers = 4L,
+        SigBridgeR.seed = 123L,
+        SigBridgeR.timeout = 180L
+    )
+
+    toset <- !(names(op_pkg) %chin% names(op))
+    if (any(toset)) {
+        options(op_pkg[toset])
+    }
+
+    invisible()
 }

@@ -33,12 +33,17 @@ a scAB_data
 preprocess the single-cell data, bulk data, and phenotype data.
 }
 \seealso{
+\code{\link[=guanrank2]{guanrank2()}}
+
 Other scAB: 
+\code{\link{CVgroup2}()},
 \code{\link{DoscAB}()},
 \code{\link{NMF.optimized}()},
 \code{\link{findSubset.optimized}()},
+\code{\link{guanrank2}()},
 \code{\link{scAB.optimized}()},
-\code{\link{select_K.optimized}()}
+\code{\link{select_K.optimized}()},
+\code{\link{select_alpha.optimized}()}
 }
 \concept{scAB}
 \keyword{internal}

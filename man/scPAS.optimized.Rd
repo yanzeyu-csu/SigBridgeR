@@ -21,6 +21,7 @@ scPAS.optimized(
   permutation_times = 2000,
   FDR.threshold = 0.05,
   verbose = TRUE,
+  seed = 123L,
   ...
 )
 }
@@ -199,7 +200,8 @@ Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associat
 }
 \seealso{
 Other scPAS: 
-\code{\link{DoscPAS}()}
+\code{\link{DoscPAS}()},
+\code{\link{imputation2}()}
 }
 \concept{scPAS}
 \keyword{internal}

@@ -9,8 +9,6 @@
 #' from raw data to clustered embeddings.
 #'
 #' @name SCPreProcess
-#' @usage
-#' SCPreProcess(sc, ...)
 #'
 #' @param sc Input data, one of:
 #'    - `data.frame/matrix/dgCMatrix`: Raw count matrix (features x cells)
@@ -43,8 +41,6 @@
 #'            unless ribosomal protein genes filter pattern (like `^RP[LS]`) is added to
 #'            `quality_control.pattern`
 #'    }
-#' @param data_filter.percent.mt Maximum mitochondrial percentage allowed.
-#'    Defaults to `20L`.
 #' @param normalization_method Method for normalization: "LogNormalize", "CLR",
 #'    or "RC". Defaults to `"LogNormalize"`.
 #' @param scale_factor Scaling factor for normalization. Defaults to `10000L`.
@@ -56,9 +52,8 @@
 #'    more clusters. Defaults to `0.6`.
 #' @param dims Dimensions to use for clustering and dimensionality reduction.
 #'    If NULL, automatically determined by elbow method. Defaults to `NULL`.
-#' @param verbose Logical indicating whether to print progress messages.
-#'    Defaults to `TRUE`.
-#' @param ... Additional arguments passed to specific methods. Currently unused.
+#' @param ... Additional arguments passed to specific methods. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'
 #' @return A Seurat object containing:
 #' \itemize{
@@ -173,7 +168,6 @@ SCPreProcess.default <- function(
     selection_method = "vst",
     resolution = 0.6,
     dims = NULL,
-    verbose = TRUE,
     ...
 ) {
     if (!is.null(meta_data)) {
@@ -182,6 +176,10 @@ SCPreProcess.default <- function(
     if (!is.null(column2only_tumor)) {
         chk::chk_character(column2only_tumor)
     }
+
+    # dots arguments
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
@@ -247,7 +245,7 @@ SCPreProcess.default <- function(
                     function(col) {
                         x <- sc_seurat[[col]]
                         any(!is.na(x) & x > 0, na.rm = TRUE) &&
-                            var(x, na.rm = TRUE) > 0
+                            stats::var(x, na.rm = TRUE) > 0
                     },
                     logical(1)
                 )
@@ -322,15 +320,17 @@ SCPreProcess.matrix <- function(
     quality_control = TRUE,
     quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
-    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-    data_filter.percent.mt = 20L,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+    ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = NULL,
-    verbose = TRUE,
     ...
 ) {
     # sc is a count matrix
@@ -348,15 +348,13 @@ SCPreProcess.matrix <- function(
         quality_control = quality_control,
         quality_control.pattern = quality_control.pattern,
         data_filter = data_filter,
-        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
-        data_filter.percent.mt = data_filter.percent.mt,
+        data_filter.thresh = data_filter.thresh,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
         scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
-        verbose = verbose,
         ...
     )
 }
@@ -374,15 +372,17 @@ SCPreProcess.data.frame <- function(
     quality_control = TRUE,
     quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
-    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-    data_filter.percent.mt = 20L,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+    ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = NULL,
-    verbose = TRUE,
     ...
 ) {
     # sc is a count matrix
@@ -400,15 +400,13 @@ SCPreProcess.data.frame <- function(
         quality_control = quality_control,
         quality_control.pattern = quality_control.pattern,
         data_filter = data_filter,
-        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
-        data_filter.percent.mt = data_filter.percent.mt,
+        data_filter.thresh = data_filter.thresh,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
         scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
-        verbose = verbose,
         ...
     )
 }
@@ -426,15 +424,17 @@ SCPreProcess.dgCMatrix <- function(
     quality_control = TRUE,
     quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
-    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-    data_filter.percent.mt = 20L,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+    ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = NULL,
-    verbose = TRUE,
     ...
 ) {
     # sc is a count matrix
@@ -452,15 +452,13 @@ SCPreProcess.dgCMatrix <- function(
         quality_control = quality_control,
         quality_control.pattern = quality_control.pattern,
         data_filter = data_filter,
-        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
-        data_filter.percent.mt = data_filter.percent.mt,
+        data_filter.thresh = data_filter.thresh,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
         scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
-        verbose = verbose,
         ...
     )
 }
@@ -479,15 +477,17 @@ SCPreProcess.R6 <- function(
     quality_control = TRUE,
     quality_control.pattern = c("^MT-"),
     data_filter = TRUE,
-    data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-    data_filter.percent.mt = 20L,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+    ),
     normalization_method = "LogNormalize",
     scale_factor = 10000L,
     scale_features = NULL,
     selection_method = "vst",
     resolution = 0.6,
     dims = NULL,
-    verbose = TRUE,
     ...
 ) {
     # Both `anndata` and `anndataR` are based on R6
@@ -516,15 +516,13 @@ SCPreProcess.R6 <- function(
         quality_control = quality_control,
         quality_control.pattern = quality_control.pattern,
         data_filter = data_filter,
-        data_filter.nFeature_RNA_thresh = data_filter.nFeature_RNA_thresh,
-        data_filter.percent.mt = data_filter.percent.mt,
+        data_filter.thresh = data_filter.thresh,
         normalization_method = normalization_method,
         scale_factor = scale_factor,
         scale_features = scale_features,
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
-        verbose = verbose,
         ...
     )
 }
@@ -535,9 +533,11 @@ SCPreProcess.R6 <- function(
 SCPreProcess.Seurat <- function(
     sc,
     column2only_tumor = NULL,
-    verbose = TRUE,
     ...
 ) {
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     if (verbose) {
         ts_cli$cli_alert_info("Start from Seurat object")
     }

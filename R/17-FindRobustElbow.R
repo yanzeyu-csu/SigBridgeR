@@ -24,7 +24,11 @@
 #' @family single_cell_preprocess
 #' @export
 #'
-FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
+FindRobustElbow <- function(
+    obj,
+    verbose = getFuncOption("verbose"),
+    ndims = 50
+) {
     # Input validation
     if (!"pca" %chin% names(obj)) {
         cli::cli_abort(c(

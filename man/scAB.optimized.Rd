@@ -33,11 +33,14 @@ for identifing phenotype-associated cell states at different resolutions.
 }
 \seealso{
 Other scAB: 
+\code{\link{CVgroup2}()},
 \code{\link{DoscAB}()},
 \code{\link{NMF.optimized}()},
 \code{\link{create_scAB.v5}()},
 \code{\link{findSubset.optimized}()},
-\code{\link{select_K.optimized}()}
+\code{\link{guanrank2}()},
+\code{\link{select_K.optimized}()},
+\code{\link{select_alpha.optimized}()}
 }
 \concept{scAB}
 \keyword{internal}

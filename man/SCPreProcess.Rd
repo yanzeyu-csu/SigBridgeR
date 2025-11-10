@@ -12,8 +12,6 @@
 \usage{
 SCPreProcess(sc, ...)
 
-SCPreProcess(sc, ...)
-
 \method{SCPreProcess}{default}(
   sc,
   meta_data = NULL,
@@ -32,7 +30,6 @@ SCPreProcess(sc, ...)
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
@@ -46,15 +43,14 @@ SCPreProcess(sc, ...)
   quality_control = TRUE,
   quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
@@ -68,15 +64,14 @@ SCPreProcess(sc, ...)
   quality_control = TRUE,
   quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
@@ -90,15 +85,14 @@ SCPreProcess(sc, ...)
   quality_control = TRUE,
   quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
@@ -112,19 +106,18 @@ SCPreProcess(sc, ...)
   quality_control = TRUE,
   quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
-\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, verbose = TRUE, ...)
+\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
@@ -134,7 +127,10 @@ SCPreProcess(sc, ...)
 \item \code{Seurat}: Preprocessed Seurat object
 }}
 
-\item{...}{Additional arguments passed to specific methods. Currently unused.}
+\item{...}{Additional arguments passed to specific methods. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+}}
 
 \item{meta_data}{A data.frame containing metadata for each cell. It will be
 added to the Seurat object as \verb{@meta.data}. If sc is an anndata object,
@@ -188,12 +184,6 @@ more clusters. Defaults to \code{0.6}.}
 
 \item{dims}{Dimensions to use for clustering and dimensionality reduction.
 If NULL, automatically determined by elbow method. Defaults to \code{NULL}.}
-
-\item{verbose}{Logical indicating whether to print progress messages.
-Defaults to \code{TRUE}.}
-
-\item{data_filter.percent.mt}{Maximum mitochondrial percentage allowed.
-Defaults to \code{20L}.}
 }
 \value{
 A Seurat object containing:

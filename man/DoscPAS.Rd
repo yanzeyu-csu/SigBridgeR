@@ -20,7 +20,6 @@ DoscPAS(
   permutation_times = 2000L,
   FDR_threshold = 0.05,
   independent = TRUE,
-  verbose = TRUE,
   ...
 )
 }
@@ -55,9 +54,11 @@ DoscPAS(
 
 \item{independent}{Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)}
 
-\item{verbose}{Logical. Whether to print progress messages (default: TRUE)}
-
-\item{...}{Additional arguments passed to \code{DoscPAS} functions}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 A Seurat object from scPAS analysis
@@ -83,6 +84,7 @@ Other screen_method:
 \code{\link{DoscPP}()}
 
 Other scPAS: 
+\code{\link{imputation2}()},
 \code{\link{scPAS.optimized}()}
 }
 \concept{scPAS}

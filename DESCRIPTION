@@ -13,7 +13,7 @@ RoxygenNote: 7.3.3
 Imports: 
     AUCell,
     chk,
-    cli, 
+    cli,
     data.table,
     DEGAS (>= 1.0.0),
     dplyr,
@@ -37,6 +37,7 @@ Imports:
     ScPP (>= 0.0.0.9000),
     Seurat (>= 5.0.0),
     SeuratObject (>= 5.0.0),
+    survival,
     tibble
 Depends: 
     R (>= 4.1.0)
@@ -49,6 +50,7 @@ Remotes:
     WangX-Lab/ScPP
 Suggests: 
     anndata,
+    furrr,
     ggVennDiagram,
     here,
     knitr,

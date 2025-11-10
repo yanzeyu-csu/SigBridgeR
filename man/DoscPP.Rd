@@ -14,7 +14,6 @@ DoscPP(
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
   probs = c(0.2, NULL),
-  verbose = TRUE,
   ...
 )
 }
@@ -44,9 +43,13 @@ DoscPP(
 
 \item{probs}{A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)}
 
-\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
-
-\item{...}{For future update.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+\item \code{parallel}: Logical. When \code{probs} is a numeric vector or NULL, whether to enable parallel mode to search for the optimal \code{probs} value. Default: \code{FALSE}.
+\item \code{workers}: Number of workers to use in parallel mode. Default: \code{NULL} (use all 4 cores).
+}}
 }
 \value{
 A list containing:

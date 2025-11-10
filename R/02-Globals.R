@@ -16,6 +16,11 @@ utils::globalVariables(c(
     "..duplicate_cols",
     # data.table internals
     "sym",
+    # pkg options
+    "verbose",
+    "seed",
+    "parallel",
+    "workers",
     # column names and suffixes
     "scPP_AUCdown",
     "scPP_AUCup",

@@ -11,7 +11,6 @@
   packages = c(tensorflow = "2.4.1", protobuf = "3.20.3"),
   python_path = NULL,
   recreate = FALSE,
-  verbose = TRUE,
   ...
 )
 }
@@ -36,10 +35,10 @@ version. Default: NULL.}
 \item{recreate}{Logical indicating whether to force recreation of the
 virtual environment if it already exists. Default: FALSE.}
 
-\item{verbose}{Logical indicating whether to display detailed progress
-messages and command output. Default: TRUE.}
-
-\item{...}{For future compatibility.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+}}
 }
 \value{
 Invisibly returns NULL.

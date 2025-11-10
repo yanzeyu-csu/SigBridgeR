@@ -19,10 +19,14 @@
 #'        - `"survival"`: Time-to-event analysis data.frame
 #' @param alpha Coefficient of phenotype regularization (default=0.005).
 #' @param alpha_2 Coefficent of cell-cell similarity regularization (default=5e-05).
-#' @param maxiter NMF optimization iterations (default=2000).
-#' @param tred Z-score threshold (default=2).
-#' @param verbose Logical indicating whether to print progress messages. Default: `TRUE`.
-#' @param ... For future update.
+#' @param maxiter Maximum number of iterations for NMF (default=2000).
+#' @param tred Z-score threshold in finding subsets (default=2).
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
+#'    - `parallel`: Logical. When `alpha` or `alpha_2` is a numeric vector or NULL, whether to enable parallel mode to search for the optimal `alpha` and `alpha_2`. Default: `FALSE`.
+#'    - `workers`: Number of workers to use in parallel mode. Default: `NULL` (use all 4 cores).
+#
 #'
 #' @return A list containing:
 #' \describe{
@@ -53,8 +57,6 @@
 #' )
 #' }
 #'
-#' @importFrom scAB create_scAB select_K scAB findSubset
-#' @importFrom cli cli_alert_info col_green
 #'
 #' @family screen_method
 #' @family scAB
@@ -65,14 +67,12 @@ DoscAB <- function(
     phenotype,
     label_type = "scAB",
     phenotype_class = c("binary", "survival"),
-    alpha = 0.005,
-    alpha_2 = 5e-05,
-    maxiter = 2000,
-    tred = 2,
-    verbose = TRUE,
+    alpha = c(0.005, NULL),
+    alpha_2 = c(5e-05, NULL),
+    maxiter = 2000L,
+    tred = 2L,
     ...
 ) {
-    chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     phenotype_class <- MatchArg(phenotype_class, c("binary", "survival"), NULL)
@@ -99,6 +99,12 @@ DoscAB <- function(
         }
     }
 
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    seed <- dots$seed %||% getFuncOption("seed")
+    parallel <- dots$parallel %||% getFuncOption("parallel")
+    workers <- dots$workers %||% getFuncOption("workers")
+
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
     }
@@ -116,11 +122,11 @@ DoscAB <- function(
     }
 
     k <- select_K.optimized(
-        scAB_obj,
+        Object = scAB_obj,
         K_max = 20L,
         repeat_times = 10L,
         maxiter = 2000L, # default in scAB
-        seed = 0L,
+        seed = seed,
         verbose = verbose
     )
 
@@ -130,12 +136,37 @@ DoscAB <- function(
         )
     }
 
+    # Find optimal alpha and alpha_2
+    if (
+        is.null(alpha) ||
+            is.null(alpha_2) ||
+            length(alpha) > 1 ||
+            length(alpha_2) > 1
+    ) {
+        para_list <- select_alpha.optimized(
+            Object = scAB_obj,
+            method = phenotype_class,
+            K = k,
+            cross_k = 5,
+            para_1_list = alpha %||% c(0.01, 0.005, 0.001),
+            para_2_list = alpha_2 %||% c(0.01, 0.005, 0.001),
+            seed = seed,
+            parallel = parallel,
+            workers = workers,
+            verbose = verbose
+        )
+
+        alpha <- para_list$para$alpha_1
+        alpha_2 <- para_list$para$alpha_2
+    }
+
     scAB_result <- scAB.optimized(
         Object = scAB_obj,
         K = k,
         alpha = alpha,
         alpha_2 = alpha_2,
-        maxiter = maxiter
+        maxiter = maxiter,
+        convergence_threshold = 1e-05
     )
 
     if (verbose) {
@@ -143,7 +174,7 @@ DoscAB <- function(
     }
 
     sc_data <- findSubset.optimized(
-        sc_data,
+        Object = sc_data,
         scAB_Object = scAB_result,
         tred = tred
     ) %>%
@@ -184,6 +215,7 @@ DoscAB <- function(
 #' @family scAB
 #'
 #' @keywords internal
+#' @seealso [guanrank2()]
 #'
 create_scAB.v5 <- function(
     Object,
@@ -245,15 +277,14 @@ create_scAB.v5 <- function(
     Expression_cell <- as.matrix(dataset1[, (ncol_bulk + 1):ncol(dataset1)])
 
     X <- stats::cor(Expression_bulk, Expression_cell)
-    # X <- X / norm(X, "F")
-    X <- X / sqrt(sum(X^2))
+    X <- X / Matrix::norm(X, "F")
 
     # phenotype ranking
     if (method == "survival") {
-        ss <- scAB::guanrank(phenotype[, c("time", "status")])
-        S <- diag(1 - ss[rownames(phenotype), 3])
+        ss <- guanrank2(phenotype[, c("time", "status")])
+        S <- Matrix::diag(1 - ss[rownames(phenotype), 3]) # 3 is the rank column
     } else {
-        S <- diag(1 - phenotype)
+        S <- Matrix::diag(1 - phenotype)
     }
     # return
     obj <- list(
@@ -268,6 +299,131 @@ create_scAB.v5 <- function(
     class(obj) <- "scAB_data"
 
     obj
+}
+
+#' @title Guanrank for Survival Data
+#'
+#' @param mat A matrix, data frame, or data table containing survival data.
+#'            Must contain at least two columns representing time and status.
+#'            The function will use the first two columns as time and status
+#'            respectively.
+#' @param complete Logical indicating whether to include the survival rate
+#'                 column in the output. If \code{FALSE} (default), returns
+#'                 only time, status, and rank columns.
+#'
+#' @return A matrix with the following columns:
+#'   \itemize{
+#'     \item \code{time}: Original survival times (sorted)
+#'     \item \code{status}: Original event indicators (0 = censored, 1 = event)
+#'     \item \code{rank}: Computed Guan's rank values (normalized to \[0,1\])
+#'     \item \code{survival_rate}: (if \code{complete = TRUE}) Kaplan-Meier survival probabilities from \code{km_curve}
+#'   }
+#'
+#'
+#' @examples
+#' \dontrun{
+#' # Create sample survival data (matrix format)
+#' survival_data <- matrix(c(
+#'   10, 1,   # Event at time 10
+#'   15, 0,   # Censored at time 15
+#'   20, 1,   # Event at time 20
+#'   25, 0,   # Censored at time 25
+#'   30, 1    # Event at time 30
+#' ), ncol = 2, byrow = TRUE)
+#'
+#' # Compute Guan's rank
+#' result <- guanrank(survival_data)
+#' print(result)
+#'
+#' # Get complete output with survival rates
+#' complete_result <- guanrank(survival_data, complete = TRUE)
+#' print(complete_result)
+#'
+#' # Using data frame input
+#' df_data <- data.frame(
+#'   time = c(10, 15, 20, 25, 30),
+#'   status = c(1, 0, 1, 0, 1),
+#'   other_col = c("A", "B", "C", "D", "E")  # This column will be ignored
+#' )
+#' df_result <- guanrank(df_data)
+#' print(df_result)
+#' }
+#'
+#' @family scAB
+#' @keywords internal
+#'
+guanrank2 <- function(mat, complete = FALSE) {
+    mat <- as.matrix(mat)
+    mat <- mat[, 1:2]
+    colnames(mat) = c("time", "status")
+    storage.mode(mat) = "numeric"
+    mat <- mat[order(mat[, "time"]), ]
+
+    mat_curve <- scAB::km_curve(mat)
+    n <- nrow(mat_curve)
+
+    mat_guanrank <- cbind(mat_curve, rank = rep(0, n))
+    vect <- mat_guanrank[, "time"]
+    vecs <- mat_guanrank[, "status"]
+    # vectorized pipeline is not faster than the loop as I expected.
+    for (i in seq_len(n)) {
+        tA <- mat_guanrank[i, "time"]
+        rA <- mat_guanrank[i, "survival_rate"]
+        sA <- mat_guanrank[i, "status"]
+        if (sA == 1) {
+            tBgttA <- mat_guanrank[vect > tA, "survival_rate"]
+            tBletA_sBeq0 <- mat_guanrank[
+                vect <= tA & vecs == 0,
+                "survival_rate"
+            ]
+            tBeqtA_sBeq1 <- mat_guanrank[
+                vect == tA & vecs == 1,
+                "survival_rate"
+            ]
+            mat_guanrank[i, "rank"] = ifelse(
+                length(tBgttA) == 0,
+                0,
+                1 * length(tBgttA)
+            ) +
+                ifelse(length(tBletA_sBeq0) == 0, 0, sum(rA / tBletA_sBeq0)) +
+                ifelse(length(tBeqtA_sBeq1) == 0, 0, 0.5 * length(tBeqtA_sBeq1))
+        }
+        if (sA == 0) {
+            tBgetA_sBeq0 <- mat_guanrank[
+                vect >= tA & vecs == 0,
+                "survival_rate"
+            ]
+            tBgetA_sBeq1 <- mat_guanrank[
+                vect >= tA & vecs == 1,
+                "survival_rate"
+            ]
+            tBlttA_sBeq0 <- mat_guanrank[vect < tA & vecs == 0, "survival_rate"]
+            mat_guanrank[i, "rank"] = ifelse(
+                length(tBgetA_sBeq0) == 0,
+                0,
+                sum(1 - 0.5 * tBgetA_sBeq0 / rA)
+            ) +
+                ifelse(
+                    length(tBgetA_sBeq1) == 0,
+                    0,
+                    sum(1 - tBgetA_sBeq1 / rA)
+                ) +
+                ifelse(
+                    length(tBlttA_sBeq0) == 0,
+                    0,
+                    sum(0.5 * rA / tBlttA_sBeq0)
+                )
+        }
+    }
+    rank <- mat_guanrank[, "rank"]
+    # 0.5 is the correction for self-comparison
+    # normalization to [0,1]
+    mat_guanrank[, "rank"] <- (rank - 0.5) / max(rank)
+    if (!complete) {
+        mat_guanrank <- mat_guanrank[, c("time", "status", "rank")]
+    }
+
+    mat_guanrank
 }
 
 #' @title Selection of Parameter K for Non-negative Matrix Factorization
@@ -298,6 +454,7 @@ create_scAB.v5 <- function(
 #' @family scAB
 #'
 #' @keywords internal
+#' @seealso [NMF.optimized()]
 #'
 select_K.optimized <- function(
     Object,
@@ -314,8 +471,7 @@ select_K.optimized <- function(
     n_K <- length(K_all)
     dist_K <- matrix(NA_real_, nrow = n_K, ncol = repeat_times)
 
-    # dist_all <- norm(X, "F")
-    dist_all <- sqrt(sum(X^2))
+    dist_all <- Matrix::norm(X, "F")
     # initialize
     eii <- numeric(n_K)
     row_means <- numeric(n_K)
@@ -326,7 +482,7 @@ select_K.optimized <- function(
         for (Kj in seq_len(repeat_times)) {
             res_ij <- NMF.optimized(X = X, K = Ki, maxiter = maxiter)
             diff_matrix <- X - res_ij$W %*% res_ij$H
-            dist_K[Ki_idx, Kj] <- sum(diff_matrix^2) # equivalent to `norm(., "F")^2`
+            dist_K[Ki_idx, Kj] <- Matrix::norm(diff_matrix, "F")^2
         }
         if (verbose) {
             cli::cli_li(sprintf(
@@ -416,8 +572,7 @@ NMF.optimized <- function(X, K, maxiter = 2000L, tol = 1e-5) {
         W <- W * XHt / (W %*% HHt + eps)
 
         if (iter != 1) {
-            WH <- W %*% H
-            eucl_dist <- sum((X - WH)^2)
+            eucl_dist <- Matrix::norm(X - W %*% H, "F")^2
 
             if (iter > 1) {
                 d_eucl <- abs(eucl_dist - old_eucl)
@@ -431,13 +586,11 @@ NMF.optimized <- function(X, K, maxiter = 2000L, tol = 1e-5) {
         }
     }
 
-    final_loss <- sum((X - W %*% H)^2)
-
     list(
         W = W,
         H = H,
         iter = iter,
-        loss = final_loss
+        loss = eucl_dist
     )
 }
 
@@ -486,8 +639,8 @@ scAB.optimized <- function(
         # loss <- norm(X - W %*% H, "F")^2 +
         #     alpha * (norm(S %*% W, "F")^2) +
         #     alpha_2 * sum(diag(H %*% L %*% t(H)))
-        loss1 <- sum((X - W %*% H)^2)
-        loss2 <- alpha * sum((S %*% W)^2)
+        loss1 <- Matrix::norm(X - W %*% H, "F")^2
+        loss2 <- alpha * (Matrix::norm(S %*% W, "F")^2)
         loss3 <- alpha_2 * sum(H * (H %*% L)) # diag(H %*% L %*% t(H)) is equivalent to rowSums(H * (H %*% L))
 
         return(loss1 + loss2 + loss3)
@@ -565,4 +718,359 @@ findSubset.optimized <- function(Object, scAB_Object, tred = 2L) {
     }
 
     Object
+}
+
+
+#' @title Selection of parameter alpha and alpha_2
+#'
+#' @description
+#' Performs cross-validation to select optimal regularization parameters
+#' (alpha_1 and alpha_2) for matrix factorization models. This function
+#' evaluates a grid of parameter combinations and selects the ones that
+#' maximize the cross-validation performance metric.
+#'
+#' @param Object A structured object containing data and fixed matrices for
+#'               the model. Expected to have components:
+#'               \itemize{
+#'                 \item \code{X}: The main data matrix
+#'                 \item \code{A}: Fixed matrix A
+#'                 \item \code{L}: Fixed matrix L
+#'                 \item \code{D}: Fixed matrix D
+#'               }
+#' @param K The rank for matrix factorization.
+#' @param cross_k Number of folds for k-fold cross-validation. Defaults to 5.
+#' @param para_1_list Numeric vector of candidate values for the first
+#'                    regularization parameter (alpha_1). Defaults to
+#'                    \code{c(0.01, 0.005, 0.001)}.
+#' @param para_2_list Numeric vector of candidate values for the second
+#'                    regularization parameter (alpha_2). Defaults to
+#'                    \code{c(0.01, 0.005, 0.001)}.
+#' @param seed Random seed for reproducible cross-validation splitting.
+#'             Defaults to 0.
+#' @param parallel Logical indicating whether to use parallel processing for
+#'                 parameter evaluation. Defaults to \code{FALSE}.
+#' @param workers Number of parallel workers to use if \code{parallel = TRUE}.
+#'                If \code{NULL}, uses available cores minus one. Defaults to
+#'                \code{NULL}.
+#' @param verbose Logical indicating whether to print progress messages.
+#'                Defaults to \code{TRUE}.
+#'
+#' @return A list containing:
+#'   \itemize{
+#'     \item \code{para}: A list with selected parameters:
+#'       \itemize{
+#'         \item \code{alpha_1}: The optimal first regularization parameter
+#'         \item \code{alpha_2}: The optimal second regularization parameter
+#'         \item \code{result_cv}: Matrix of cross-validation results for all parameter combinations
+#'       }
+#'   }
+#'
+#' @note
+#' This function supports both parallel and sequential evaluation to balance
+#' computational efficiency and resource usage.
+#'
+#'
+#' @keywords internal
+#' @family scAB
+#' @family scAB_optimal_param
+#'
+#'
+select_alpha.optimized <- function(
+    Object,
+    method = c("binary", "survival"),
+    K,
+    cross_k = 5,
+    para_1_list = c(0.01, 0.005, 0.001),
+    para_2_list = c(0.01, 0.005, 0.001),
+    seed = 0,
+    parallel = FALSE,
+    workers = NULL,
+    verbose = TRUE
+) {
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            "Selecting optimal {.arg alpha} and {.arg alpha_2}, this would take a while"
+        )
+    }
+
+    train_phenotype <- PreparePheno(Object)
+    train_data <- Object$X
+
+    cvlist <- CVgroup2(k = cross_k, datasize = nrow(train_data), seed = seed)
+
+    train_data_norm <- train_data / Matrix::norm(train_data, "F")
+    fixed_matrices <- list(A = Object$A, L = Object$L, D = Object$D)
+
+    param_grid <- expand.grid(
+        para_1 = para_1_list,
+        para_2 = para_2_list,
+        stringsAsFactors = FALSE
+    )
+
+    cv_results <- if (parallel) {
+        ParallelEvaluate(
+            method = method,
+            param_grid = param_grid,
+            train_data = train_data_norm,
+            train_phenotype = train_phenotype,
+            cvlist = cvlist,
+            fixed_matrices = fixed_matrices,
+            K = K,
+            cross_k = cross_k,
+            workers = workers,
+            verbose = verbose
+        )
+    } else {
+        SequentialEvaluate(
+            method = method,
+            param_grid = param_grid,
+            train_data = train_data_norm,
+            train_phenotype = train_phenotype,
+            cvlist = cvlist,
+            fixed_matrices = fixed_matrices,
+            K = K,
+            cross_k = cross_k,
+            verbose = verbose
+        )
+    }
+
+    result_cv <- matrix(
+        cv_results,
+        nrow = length(para_1_list),
+        ncol = length(para_2_list)
+    )
+
+    best_idx <- which(result_cv == max(result_cv), arr.ind = TRUE)[1, ]
+
+    alpha_1 <- para_1_list[best_idx[1]]
+    alpha_2 <- para_2_list[best_idx[2]]
+
+    if (verbose) {
+        ts_cli$cli_alert_success(
+            "Best {.arg alpha} and {.arg alpha_2} are {.val {alpha_1}} and {.val {alpha_2}}"
+        )
+    }
+
+    list(
+        para = list(
+            alpha_1 = alpha_1,
+            alpha_2 = alpha_2,
+            result_cv = result_cv
+        )
+    )
+}
+
+#' @keywords internal
+#' @family scAB_optimal_param
+PreparePheno <- function(Object) {
+    if (Object$method == "survival") {
+        return(Object$phenotype)
+    }
+
+    data.frame(
+        status = as.integer(Object$phenotype),
+        time = ifelse(Object$phenotype, 1, 100),
+        row.names = rownames(Object$X)
+    )
+}
+
+#' @keywords internal
+#' @family scAB_optimal_param
+SequentialEvaluate <- function(
+    method = c("binary", "survival"),
+    param_grid,
+    train_data,
+    train_phenotype,
+    cvlist,
+    fixed_matrices,
+    K,
+    cross_k,
+    verbose = TRUE
+) {
+    purrr::map_dbl(
+        seq_len(nrow(param_grid)),
+        function(i) {
+            cv_scores <- vapply(
+                seq_len(cross_k),
+                function(cv_idx) {
+                    EvaluateSingleCV(
+                        cv_idx = cv_idx,
+                        method = method,
+                        train_data = train_data,
+                        train_phenotype = train_phenotype,
+                        cvlist = cvlist,
+                        fixed_matrices = fixed_matrices,
+                        K = K,
+                        para_1 = param_grid$para_1[i],
+                        para_2 = param_grid$para_2[i]
+                    )
+                },
+                numeric(1)
+            )
+            mean(cv_scores)
+        },
+        .progress = verbose
+    )
+}
+
+#' @keywords internal
+#' @family scAB_optimal_param
+ParallelEvaluate <- function(
+    method = c("binary", "survival"),
+    param_grid,
+    train_data,
+    train_phenotype,
+    cvlist,
+    fixed_matrices,
+    K,
+    cross_k,
+    workers = 4L,
+    verbose = TRUE
+) {
+    plan("multisession", workers = workers)
+
+    if (verbose) {
+        ts_cli$cli_alert_info(sprintf(
+            "Using parallel processing with %d workers",
+            workers
+        ))
+    }
+    EvaluateSingleCV <- SigBridgeR:::EvaluateSingleCV
+    ginv2 <- SigBridgeR:::ginv2
+    ginv2.default <- SigBridgeR:::ginv2.default
+    guanrank2 <- SigBridgeR:::guanrank2
+    scAB.optimized <- SigBridgeR:::scAB.optimized
+    # Pkg carrier is used to pass arguments and avoid used large objects in the closure
+    ScoringAll <- function(i) {
+        cv_scores <- vapply(
+            seq_len(cross_k),
+            function(cv_idx) {
+                EvaluateSingleCV(
+                    cv_idx = cv_idx,
+                    method = method,
+                    train_data = train_data,
+                    train_phenotype = train_phenotype,
+                    cvlist = cvlist,
+                    fixed_matrices = fixed_matrices,
+                    K = K,
+                    para_1 = param_grid$para_1[i],
+                    para_2 = param_grid$para_2[i]
+                )
+            },
+            numeric(1)
+        )
+
+        mean(cv_scores)
+    }
+
+    res <- future_map_dbl(
+        seq_len(nrow(param_grid)),
+        ScoringAll,
+        .progress = verbose,
+        .options = furrr_options(
+            seed = getFuncOption("seed"),
+            packages = c("survival", "SigBridgeR"),
+            globals = c(
+                "train_data",
+                "train_phenotype",
+                "cvlist",
+                "fixed_matrices",
+                "K",
+                "cross_k",
+                "param_grid",
+                "EvaluateSingleCV",
+                "guanrank2",
+                "ginv2",
+                "ginv2.default",
+                "scAB.optimized"
+            )
+        )
+    )
+
+    plan("sequential")
+
+    res
+}
+
+#' @keywords internal
+#' @family scAB_optimal_param
+EvaluateSingleCV <- function(
+    cv_idx,
+    method,
+    train_data,
+    train_phenotype,
+    cvlist,
+    fixed_matrices,
+    K,
+    para_1,
+    para_2
+) {
+    test_idx <- cvlist[[cv_idx]]
+    train_subset <- train_data[-test_idx, , drop = FALSE]
+    test_subset <- train_data[test_idx, , drop = FALSE]
+    train_pheno <- train_phenotype[-test_idx, ]
+    test_pheno <- train_phenotype[test_idx, ]
+
+    ss <- guanrank2(train_pheno[, c("time", "status")])
+    S <- diag(1 - ss[rownames(train_pheno), 3])
+
+    Object_cv <- structure(
+        list(
+            X = train_subset,
+            S = S,
+            phenotype = train_pheno,
+            A = fixed_matrices$A,
+            L = fixed_matrices$L,
+            D = fixed_matrices$D,
+            method = method
+        ),
+        class = "scAB_data"
+    )
+
+    s_res <- scAB.optimized(
+        Object = Object_cv,
+        K = K,
+        alpha = para_1,
+        alpha_2 = para_2,
+        maxiter = 2000
+    )
+
+    ginvH <- ginv2(s_res$H)
+    new_W <- test_subset %*% ginvH
+
+    clin_km <- data.frame(
+        time = train_pheno$time,
+        status = train_pheno$status,
+        s_res$W
+    )
+
+    res.cox <- survival::coxph(survival::Surv(time, status) ~ ., data = clin_km)
+    pre_test <- stats::predict(res.cox, data.frame(new_W))
+
+    survival::concordance(
+        survival::coxph(
+            survival::Surv(test_pheno$time, test_pheno$status) ~ pre_test
+        )
+    )$concordance
+}
+
+#' @title Create subsets of cross-validation
+#'
+#' @param k  k-fold cross validation
+#' @param datasize  the size of samples
+#' @param seed random seed
+#'
+#' @return a list with subsets of cross-validation
+#' @keywords internal
+#' @family scAB
+#' @examples
+#' \dontrun{
+#' CVgroup(10,10)
+#' }
+#'
+#'
+CVgroup2 <- function(k, datasize, seed = 0) {
+    set.seed(seed)
+    folds <- sample(rep_len(seq_len(k), datasize))
+    split(seq_len(datasize), folds)
 }

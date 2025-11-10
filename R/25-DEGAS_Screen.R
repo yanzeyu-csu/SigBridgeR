@@ -45,8 +45,8 @@
 #'   - DEGAS.lambda3: regularization parameter 3 (default: 3.0)
 #'   - DEGAS.seed: random seed (default: 2)
 #' @param normality_test_method Method for normality testing: "jarque-bera", "d'agostino", or "kolmogorov-smirnov"
-#' @param verbose Logical, whether to print messages.
-#' @param ... for future compatibility
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'
 #' @return A list containing:
 #'   - scRNA_data: Seurat object with DEGAS labels added to metadata
@@ -129,7 +129,6 @@ DoDEGAS <- function(
         "d'agostino",
         "kolmogorov-smirnov"
     ),
-    verbose = TRUE,
     ...
 ) {
     # Robustness checks
@@ -148,6 +147,10 @@ DoDEGAS <- function(
         c("binary", "continuous", "survival"),
         NULL
     )
+
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Starting DEGAS Screen"))
     }
@@ -183,7 +186,7 @@ DoDEGAS <- function(
         ),
         env.recreate = FALSE,
         env.use_conda_forge = TRUE,
-        env.verbose = FALSE
+        env.verbose = getFuncOption("verbose")
     )
     default_degas_params <- list(
         DEGAS.model_type = c(
@@ -201,7 +204,7 @@ DoDEGAS <- function(
         DEGAS.bag_depth = 5L,
         path.data = '',
         path.result = '',
-        DEGAS.pyloc = NULL,
+        DEGAS.pyloc = NULL, # location of python executable
         DEGAS.toolsPath = file.path(.libPaths()[1], "SigBridgeR/DEGAS_tools/"),
         DEGAS.train_steps = 2000L,
         DEGAS.scbatch_sz = 200L,
@@ -211,7 +214,7 @@ DoDEGAS <- function(
         DEGAS.lambda1 = 3.0,
         DEGAS.lambda2 = 3.0,
         DEGAS.lambda3 = 3.0,
-        DEGAS.seed = 2L
+        DEGAS.seed = getFuncOption("seed")
     )
     env_params <- utils::modifyList(
         default_env_params,

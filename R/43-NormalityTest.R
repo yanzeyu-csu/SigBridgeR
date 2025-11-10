@@ -800,7 +800,7 @@ sf.test <- function(x) {
         stop("sample size must be between 5 and 5000")
     }
     y <- stats::qnorm(stats::ppoints(n, a = 3 / 8))
-    W <- cor(x, y)^2
+    W <- stats::cor(x, y)^2
     u <- log(n)
     v <- log(u)
     mu <- -1.2725 + 1.0521 * (v - u)

@@ -19,6 +19,7 @@
 #' @param title Plot title. Default: "Cell Counts Across Screen Set Intersections".
 #' @param bar_color Color for the bars in the plot. Default: "#4E79A7".
 #' @param combmatrix_point_color Color for points in the combination matrix. Default: "black".
+#' @param verbose Logical, whether to print a message
 #' @param ... Additional arguments passed to `ggplot2::theme()` for customizing the plot appearance.
 #'
 #' @return A list containing two elements:
@@ -51,15 +52,6 @@
 #' )
 #' }
 #'
-#' @importFrom chk chk_is chk_whole_number
-#' @importFrom cli cli_abort
-#' @importFrom purrr map_vec
-#' @importFrom utils combn
-#' @importFrom stats setNames
-#' @importFrom Matrix rowSums
-#' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot aes geom_col geom_text labs theme_minimal theme
-#' @importFrom ggupset scale_x_upset theme_combmatrix
 #'
 #' @export
 #' @family visualization_function
@@ -74,6 +66,7 @@ ScreenUpset <- function(
     title = "Cell Counts Across Screen Set Intersections",
     bar_color = "#4E79A7",
     combmatrix_point_color = "black",
+    verbose = getFuncOption("verbose"),
     ...
 ) {
     # Robust
@@ -160,9 +153,10 @@ ScreenUpset <- function(
     )
 
     # Arguments allocated to ggplot2::theme() and ggupset::theme_combmatrix()
-    dots <- list(...)
+    dots <- rlang::list2(...)
     dots$combmatrix.panel.point.color.fill <- combmatrix_point_color
     dots$combmatrix.label.make_space <- FALSE
+    verbose <- dots$verbose %||% getFuncOption("verbose")
 
     theme_args <- FilterArgs4Func(dots, ggplot2::theme)
     combmatrix_args <- FilterArgs4Func(dots, ggupset::theme_combmatrix)
@@ -192,7 +186,9 @@ ScreenUpset <- function(
         methods::show(upset)
     }
 
-    cli::cli_alert_success("ScreenUpset completed.")
+    if (verbose) {
+        cli::cli_alert_success("ScreenUpset completed.")
+    }
 
     list(plot = upset, stats = intersection_data)
 }

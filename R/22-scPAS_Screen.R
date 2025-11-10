@@ -20,8 +20,9 @@
 #' @param permutation_times Number of permutations to perform (default: 2000)
 #' @param FDR_threshold Numeric. FDR value threshold for identifying phenotype-associated cells (default: 0.05)
 #' @param independent Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)
-#' @param verbose Logical. Whether to print progress messages (default: TRUE)
-#' @param ... Additional arguments passed to `DoscPAS` functions
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
 #'
 #' @return A Seurat object from scPAS analysis
 #'
@@ -55,7 +56,6 @@ DoscPAS <- function(
     permutation_times = 2000L,
     FDR_threshold = 0.05,
     independent = TRUE,
-    verbose = TRUE,
     ...
 ) {
     # robust
@@ -99,6 +99,10 @@ DoscPAS <- function(
         }
     }
 
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    seed <- dots$seed %||% getFuncOption("seed")
+
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Start scPAS screening."))
     }
@@ -119,6 +123,8 @@ DoscPAS <- function(
         independent = independent,
         permutation_times = permutation_times,
         FDR.threshold = FDR_threshold,
+        seed = seed,
+        verbose = verbose,
         ...
     ) %>%
         AddMisc(scPAS_type = label_type, cover = FALSE)
@@ -314,6 +320,7 @@ scPAS.optimized <- function(
     permutation_times = 2000,
     FDR.threshold = 0.05,
     verbose = TRUE,
+    seed = 123L,
     ...
 ) {
     # Set default assay
@@ -399,7 +406,7 @@ scPAS.optimized <- function(
 
     # Step 2: Single-cell expression processing with data.table efficiency
     if (imputation) {
-        sc_dataset <- scPAS::imputation(
+        sc_dataset <- imputation2(
             sc_dataset,
             assay = assay,
             method = imputation_method
@@ -437,7 +444,7 @@ scPAS.optimized <- function(
                 "Constructing a gene-gene similarity by bulk data..."
             )
         }
-        cor(x)
+        stats::cor(x)
     } else {
         if (verbose) {
             ts_cli$cli_alert_info(
@@ -516,7 +523,7 @@ scPAS.optimized <- function(
 
     lambda <- c()
     for (i in seq_along(alpha)) {
-        set.seed(123)
+        set.seed(seed)
 
         fit0 <- scPAS::APML0(
             x = x,
@@ -593,12 +600,12 @@ scPAS.optimized <- function(
         )
     }
 
-    set.seed(12345)
+    set.seed(seed)
 
     randomPermutation <- vapply(
         seq_len(permutation_times),
         function(i) {
-            set.seed(1234 + i)
+            set.seed(seed + i)
             sample(Coefs, length(Coefs), replace = FALSE)
         },
         numeric(length(Coefs))
@@ -672,4 +679,39 @@ scPAS.optimized <- function(
     sc_dataset$scPAS <- risk_score_df$cell_label
 
     return(sc_dataset)
+}
+
+
+#' @title The function of imputaion.
+#'
+#' @param obj A seurat object.
+#' @param assay The assay for imputation. The default is 'RNA'.
+#' @param method The method for imputation. The default is 'RNA'.
+#'
+#' @return  A seurat object after imputaion.
+#' @keywords internal
+#' @family scPAS
+#'
+imputation2 <- function(obj, assay = 'RNA', method = c('KNN', 'ALRA')) {
+    switch(
+        method,
+        'KNN' = {
+            ts_cli$cli_alert_info(
+                "Imputation of missing values in single cell RNA-sequencing data with {.val KNN}"
+            )
+            scPAS::imputation_KNN(obj = obj, assay = assay)
+        },
+        'ALRA' = {
+            ts_cli$cli_alert_info(
+                "Imputation of missing values in single cell RNA-sequencing data with {.val ALRA}"
+            )
+            scPAS::imputation_ALRA(obj = obj, assay = assay)
+        },
+        {
+            cli::cli_warn(
+                'The {.val {method}} method does not exist, so imputaion is invalid!'
+            )
+            obj
+        }
+    )
 }

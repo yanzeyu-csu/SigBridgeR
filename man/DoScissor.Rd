@@ -21,7 +21,6 @@ DoScissor(
    cell_evaluation.benchmark_data = "path_to_file.RData",
    cell_evaluation.FDR = 0.05,
    cell_evaluation.bootstrap_n = 100,
-   verbose = TRUE,
    ...
 )
 }
@@ -66,9 +65,11 @@ Higher values increase specificity.}
 
 \item{cell_evaluation.bootstrap_n}{Number of bootstrap iterations for cell evaluation (default: 100).}
 
-\item{verbose}{Logical to print progress messages (default: TRUE).}
-
-\item{...}{Additional arguments passed to \code{Scissor.v5.optimized}.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 A list containing:
@@ -115,6 +116,7 @@ res <- DoScissor(
   scissor_family = "binomial"
 )
 }
+
 
 }
 \references{

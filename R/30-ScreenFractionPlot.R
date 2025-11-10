@@ -27,7 +27,8 @@
 #'   y_lab = "Fraction of Status",
 #'   ncol = 2, # number of columns for facet wrap
 #'   nrow = NULL, # number of rows for facet wrap
-#'   ... # unused
+#'   verbose = getFuncOption("verbose"),
+#'   ... # ggplot2 theme arguments
 #' )
 #'
 #' @param screened_seurat A Seurat object containing screening results in metadata.
@@ -50,6 +51,7 @@
 #' @param y_lab Y-axis label (default: "Fraction of Status").
 #' @param ncol Number of columns for facet wrap when multiple screen types (default: 2).
 #' @param nrow Number of rows for facet wrap when multiple screen types (default: NULL).
+#' @param verbose Logical, whether to print a message
 #' @param ... Other arguments passed to ggplot2::theme()
 #'
 #' @return A list containing:
@@ -109,6 +111,7 @@ ScreenFractionPlot <- function(
     y_lab = "Fraction of Status",
     ncol = 2L,
     nrow = NULL,
+    verbose = getFuncOption("verbose"),
     ...
 ) {
     chk::chk_is(screened_seurat, "Seurat")
@@ -118,6 +121,9 @@ ScreenFractionPlot <- function(
     if (!is.null(plot_color)) {
         chk::chk_vector(plot_color)
     }
+
+    dots <- rlang::list2(...)
+    theme_args <- FilterArgs4Func(dots, ggplot2::theme)
 
     meta_data <- screened_seurat[[]]
     all_screen_types <- colnames(meta_data)
@@ -235,7 +241,7 @@ ScreenFractionPlot <- function(
                 axis.text = ggplot2::element_text(color = "black"),
                 legend.position = legend_position,
                 axis.line = ggplot2::element_line(linewidth = axis_linewidth),
-                ...
+                !!!theme_args
             )
 
         list(stats = stats_df, plot = plot)
@@ -253,9 +259,11 @@ ScreenFractionPlot <- function(
         return(result)
     }
     # Multiple screen types
-    cli::cli_inform(
-        "Creating plots for {.val {length(screen_type)}} screen types..."
-    )
+    if (verbose) {
+        cli::cli_inform(
+            "Creating plots for {.val {length(screen_type)}} screen types..."
+        )
+    }
 
     # Create plots for all screen types in parallel if possible
     plot_results <- lapply(screen_type, function(st) {

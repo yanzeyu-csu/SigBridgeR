@@ -42,11 +42,14 @@ For more advanced NMF implementations, see:
 \code{\link[NMF]{nmf}} from the NMF package, which is written in C++ and is much faster than this function.
 
 Other scAB: 
+\code{\link{CVgroup2}()},
 \code{\link{DoscAB}()},
 \code{\link{create_scAB.v5}()},
 \code{\link{findSubset.optimized}()},
+\code{\link{guanrank2}()},
 \code{\link{scAB.optimized}()},
-\code{\link{select_K.optimized}()}
+\code{\link{select_K.optimized}()},
+\code{\link{select_alpha.optimized}()}
 }
 \concept{scAB}
 \keyword{internal}

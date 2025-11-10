@@ -10,11 +10,10 @@ DoscAB(
   phenotype,
   label_type = "scAB",
   phenotype_class = c("binary", "survival"),
-  alpha = 0.005,
-  alpha_2 = 5e-05,
-  maxiter = 2000,
-  tred = 2,
-  verbose = TRUE,
+  alpha = c(0.005, NULL),
+  alpha_2 = c(5e-05, NULL),
+  maxiter = 2000L,
+  tred = 2L,
   ...
 )
 }
@@ -39,13 +38,17 @@ DoscAB(
 
 \item{alpha_2}{Coefficent of cell-cell similarity regularization (default=5e-05).}
 
-\item{maxiter}{NMF optimization iterations (default=2000).}
+\item{maxiter}{Maximum number of iterations for NMF (default=2000).}
 
-\item{tred}{Z-score threshold (default=2).}
+\item{tred}{Z-score threshold in finding subsets (default=2).}
 
-\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
-
-\item{...}{For future update.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+\item \code{parallel}: Logical. When \code{alpha} or \code{alpha_2} is a numeric vector or NULL, whether to enable parallel mode to search for the optimal \code{alpha} and \code{alpha_2}. Default: \code{FALSE}.
+\item \code{workers}: Number of workers to use in parallel mode. Default: \code{NULL} (use all 4 cores).
+}}
 }
 \value{
 A list containing:
@@ -82,6 +85,7 @@ result <- DoscAB(
 )
 }
 
+
 }
 \references{
 Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical significance by integrating single-cell genomics and bulk sequencing data. Nucleic Acids Research. 2022 Nov 28;50(21):12112–30.
@@ -94,11 +98,14 @@ Other screen_method:
 \code{\link{DoscPP}()}
 
 Other scAB: 
+\code{\link{CVgroup2}()},
 \code{\link{NMF.optimized}()},
 \code{\link{create_scAB.v5}()},
 \code{\link{findSubset.optimized}()},
+\code{\link{guanrank2}()},
 \code{\link{scAB.optimized}()},
-\code{\link{select_K.optimized}()}
+\code{\link{select_K.optimized}()},
+\code{\link{select_alpha.optimized}()}
 }
 \concept{scAB}
 \concept{screen_method}

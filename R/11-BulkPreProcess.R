@@ -72,8 +72,9 @@ SymbolConvert <- function(data) {
 #' @param min_correlation Minimum correlation threshold between samples, default: 0.8
 #' @param n_top_genes Number of top variable genes for PCA analysis, default: 500
 #' @param show_plot_results Whether to generate visualization plots, default: TRUE
-#' @param verbose Whether to output detailed information, default: TRUE
-#'
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
 #'
 #' @section Quality Metrics:
 #' The function calculates and reports several quality metrics:
@@ -124,14 +125,14 @@ BulkPreProcess <- function(
     sample_info = NULL,
     gene_symbol_conversion = FALSE,
     check = TRUE,
-    min_count_threshold = 10,
-    min_gene_expressed = 3,
-    min_total_reads = 1e6,
-    min_genes_detected = 10000,
+    min_count_threshold = 10L,
+    min_gene_expressed = 3L,
+    min_total_reads = 1e6L,
+    min_genes_detected = 10000L,
     min_correlation = 0.8,
-    n_top_genes = 500,
+    n_top_genes = 500L,
     show_plot_results = TRUE,
-    verbose = TRUE
+    ...
 ) {
     purrr::walk(
         list(
@@ -145,6 +146,13 @@ BulkPreProcess <- function(
         ~ chk::chk_numeric
     )
     purrr::walk(list(check, show_plot_results, verbose), ~ chk::chk_flag)
+
+    # dots arguments
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+    seed <- dots$seed %||% getFuncOption("seed")
+
+    set.seed(seed)
 
     if (verbose) {
         ts_cli$cli_alert_info(
