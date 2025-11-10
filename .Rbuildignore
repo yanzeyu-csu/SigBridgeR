@@ -24,3 +24,5 @@ benchmark_data
 prework
 ^release/.*
 ^tests/.*
+^[.]?air[.]toml$
+^\.vscode$
