@@ -569,7 +569,7 @@ runCCMTL.optimized <- function(
     FFdepth,
     DEGAS.seed,
     force_rewrite = FALSE,
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     # Only write files if explicitly requested
     if (force_rewrite) {
@@ -785,7 +785,7 @@ runCCMTLBag.optimized <- function(
     FFdepth,
     Bagdepth,
     DEGAS.seed,
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     if (verbose) {
         ts_cli$cli_alert_info(glue::glue(
@@ -1274,7 +1274,7 @@ LabelBinaryCells <- function(
     select_fraction,
     test_method,
     min_threshold = 0.7, # Added minimum threshold parameter
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     chk::chk_length(pheno_colnames, 2)
     # Try to find the reference group in the column names
@@ -1461,7 +1461,7 @@ LabelBinaryCells <- function(
 #' @keywords internal
 #' @family DEGAS
 #'
-LabelContinuousCells <- function(pred_dt, verbose = TRUE) {
+LabelContinuousCells <- function(pred_dt, verbose = getFuncOption("verbose")) {
     if (verbose) {
         ts_cli$cli_alert_info(
             "Searching for various phenotype-associated cells..."
@@ -1584,7 +1584,7 @@ LabelSurvivalCells <- function(
     select_fraction,
     test_method,
     min_threshold = 0.7, # Added minimum threshold parameter
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     if (verbose) {
         ts_cli$cli_alert_info("Searching for survival-associated cells...")

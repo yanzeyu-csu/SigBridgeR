@@ -222,7 +222,7 @@ create_scAB.v5 <- function(
     bulk_dataset,
     phenotype,
     method = c("survival", "binary"),
-    verbose = TRUE,
+    verbose = getFuncOption("verbose"),
     ...
 ) {
     # cell neighbors
@@ -462,7 +462,7 @@ select_K.optimized <- function(
     repeat_times = 10L,
     maxiter = 2000L,
     seed = 0L,
-    verbose = FALSE
+    verbose = getFuncOption("verbose")
 ) {
     X <- Object$X
     set.seed(seed)
@@ -785,7 +785,7 @@ select_alpha.optimized <- function(
     seed = 0,
     parallel = FALSE,
     workers = NULL,
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     if (verbose) {
         ts_cli$cli_alert_info(
@@ -885,7 +885,7 @@ SequentialEvaluate <- function(
     fixed_matrices,
     K,
     cross_k,
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     purrr::map_dbl(
         seq_len(nrow(param_grid)),
@@ -925,7 +925,7 @@ ParallelEvaluate <- function(
     K,
     cross_k,
     workers = 4L,
-    verbose = TRUE
+    verbose = getFuncOption("verbose")
 ) {
     plan("multisession", workers = workers)
 

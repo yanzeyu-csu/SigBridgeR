@@ -284,7 +284,7 @@ Scissor.v5.optimized <- function(
     family = c("gaussian", "binomial", "cox"),
     Save_file = "Scissor_inputs.RData",
     Load_file = NULL,
-    verbose = TRUE,
+    verbose = getFuncOption("verbose"),
     seed = 123L,
     ...
 ) {

@@ -319,7 +319,7 @@ scPAS.optimized <- function(
     family = c("gaussian", "binomial", "cox"),
     permutation_times = 2000,
     FDR.threshold = 0.05,
-    verbose = TRUE,
+    verbose = getFuncOption("verbose"),
     seed = 123L,
     ...
 ) {
@@ -407,9 +407,10 @@ scPAS.optimized <- function(
     # Step 2: Single-cell expression processing with data.table efficiency
     if (imputation) {
         sc_dataset <- imputation2(
-            sc_dataset,
+            obj = sc_dataset,
             assay = assay,
-            method = imputation_method
+            method = imputation_method,
+            verbose = verbose
         )
         assay <- Seurat::DefaultAssay(sc_dataset)
     }
@@ -687,24 +688,34 @@ scPAS.optimized <- function(
 #' @param obj A seurat object.
 #' @param assay The assay for imputation. The default is 'RNA'.
 #' @param method The method for imputation. The default is 'RNA'.
+#' @param verbose Logical, whether to print messages
 #'
 #' @return  A seurat object after imputaion.
 #' @keywords internal
 #' @family scPAS
 #'
-imputation2 <- function(obj, assay = 'RNA', method = c('KNN', 'ALRA')) {
+imputation2 <- function(
+    obj,
+    assay = 'RNA',
+    method = c('KNN', 'ALRA'),
+    verbose = getFuncOption('verbose')
+) {
     switch(
         method,
         'KNN' = {
-            ts_cli$cli_alert_info(
-                "Imputation of missing values in single cell RNA-sequencing data with {.val KNN}"
-            )
+            if (verbose) {
+                ts_cli$cli_alert_info(
+                    "Imputation of missing values in single cell RNA-sequencing data with {.val KNN}"
+                )
+            }
             scPAS::imputation_KNN(obj = obj, assay = assay)
         },
         'ALRA' = {
-            ts_cli$cli_alert_info(
-                "Imputation of missing values in single cell RNA-sequencing data with {.val ALRA}"
-            )
+            if (verbose) {
+                ts_cli$cli_alert_info(
+                    "Imputation of missing values in single cell RNA-sequencing data with {.val ALRA}"
+                )
+            }
             scPAS::imputation_ALRA(obj = obj, assay = assay)
         },
         {
