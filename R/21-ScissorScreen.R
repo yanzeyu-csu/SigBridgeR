@@ -654,8 +654,9 @@ Scissor.v5.optimized <- function(
 # #'   \item{Measurement_test_back}{A list with each component contains the evaluation measurements calculated using the permutated labels.}
 # #'
 # #' @keywords internal
+# #' @family scissor
 # #
-# reliability.test <- function(
+# reliability.test2 <- function(
 #     X,
 #     Y,
 #     network,
@@ -671,7 +672,16 @@ Scissor.v5.optimized <- function(
 #     switch(
 #         family,
 #         'gaussian' = {
-#             test_lm.optimized(X, Y, network, alpha, cell_num, n, nfold,verbose=verbose)
+#             Scissor::test_lm(
+#                 X,
+#                 Y,
+#                 network,
+#                 alpha,
+#                 cell_num,
+#                 n,
+#                 nfold,
+#                 verbose = verbose
+#             )
 #         },
 #         'binomial' = {
 #             library(pROC)
@@ -684,7 +694,8 @@ Scissor.v5.optimized <- function(
 #     )
 # }
 
-# test_lm_optimized <- function(
+# #' @keywords internal
+# test_lm2 <- function(
 #     X,
 #     Y,
 #     network,
@@ -692,83 +703,32 @@ Scissor.v5.optimized <- function(
 #     cell_num,
 #     n = 100,
 #     nfold = 10,
-#     verbose = TRUE,
-#     workers = 4L
+#     ...
 # ) {
-#     # 设置并行计算
-#     if (n > 10) {
-#         furrr::plan(multisession, workers = workers)
-#         on.exit(plan(sequential), add = TRUE)
-#     }
+#     dots <- rlang::list2(...)
+#     seed <- dots$seed %||% getFuncOption("seed")
+#     verbose <- dots$verbose %||% getFuncOption("verbose")
+#     parallel <- dots$parallel %||% getFuncOption("parallel")
+#     workers <- dots$workers %||% getFuncOption("workers")
+#     parallel_type <- dots$parallel.type %||% getFuncOption("parallel.type")
 
-#     # 预处理
-#     set.seed(1)
+#     set.seed(seed)
 #     m <- nrow(X)
 #     index0 <- sample(cut(seq_len(m), breaks = nfold, labels = FALSE))
 
-#     # 转换为稀疏矩阵（如果有益）
-#     if (Matrix::mean(X == 0) > 0.5) {
-#         X <- methods::as(X, "sparseMatrix")
-#     }
-
-#     # ============ 阶段1: 真实标签的交叉验证 ============
 #     if (verbose) {
-#         ts_cli$cli_alert_info("Performing {nfold}-fold CV with true labels")
+#         ts_cli$cli_alert_info(
+#             "Performing {nfold}-fold cross-validation on X with true labels"
+#         )
 #     }
-
-#     # 预分配向量
+#     X <- Matrix::Matrix(X)
 #     MSE_test_real <- numeric(nfold)
 
-#     # 单个fold的计算函数
-#     compute_fold <- function(j, X, Y, index0, network, alpha, cell_num) {
-#         c_index <- Matrix::which(index0 == j)
-#         X_train <- X[-c_index, , drop = FALSE]
-#         Y_train <- Y[-c_index]
-#         X_test <- X[c_index, , drop = FALSE]
-#         Y_test <- Y[c_index]
-
-#         # 拟合模型
-#         fit <- NULL
-#         attempt <- 0
-#         while (is.null(fit$fit) && attempt < 5) {
-#             set.seed(123 + attempt)
-#             fit <- rlang::try_fetch(
-#                 Scissor::APML1(
-#                     X_train,
-#                     Y_train,
-#                     family = "gaussian",
-#                     penalty = "Net",
-#                     alpha = alpha,
-#                     Omega = network,
-#                     nlambda = 100
-#                 ),
-#                 error = function(e) list(fit = NULL)
-#             )
-#             attempt <- attempt + 1
-#         }
-
-#         if (is.null(fit$fit)) {
-#             cli::cli_warn("Fold {j} failed to converge")
-#             return(NA_real_)
-#         }
-
-#         # 选择模型
-#         index <- which.min(abs(fit$fit$nzero - cell_num))
-#         Coefs <- as.numeric(fit$Beta[, index])
-
-#         # 计算MSE (使用矩阵乘法)
-#         pred <- as.numeric(X_test %*% Coefs)
-#         mse <- Matrix::mean((Y_test - pred)^2)
-
-#         return(mse)
-#     }
-
-#     # 执行真实标签CV
 #     if (verbose) {
 #         cli::cli_progress_bar("CV with true labels", total = nfold)
 #     }
 #     for (j in seq_len(nfold)) {
-#         MSE_test_real[j] <- compute_fold(
+#         MSE_test_real[j] <- ComputeFold(
 #             j,
 #             X,
 #             Y,
@@ -780,20 +740,19 @@ Scissor.v5.optimized <- function(
 #         if (verbose) {
 #             cli::cli_progress_update()
 #         }
+#         Sys.sleep(1 / 100)
 #     }
 #     if (verbose) {
 #         cli::cli_progress_done()
 #     }
 
-#     # ============ 阶段2: 置换标签的交叉验证 ============
 #     if (verbose) {
 #         ts_cli$cli_alert_info(
-#             "Performing {n} permutations with {nfold}-fold CV each"
+#             "Perform cross-validation on X with permutated label"
 #         )
 #     }
 
-#     # 单次置换的完整CV函数
-#     permutation_cv <- function(
+#     PermutationValidate <- function(
 #         i,
 #         X,
 #         Y,
@@ -802,83 +761,42 @@ Scissor.v5.optimized <- function(
 #         alpha,
 #         cell_num,
 #         nfold,
-#         m
+#         m,
+#         seed
 #     ) {
-#         set.seed(i + 100)
-#         Y_perm <- Y[sample(m)]
+#         set.seed(i + seed)
+#         Y2 <- Y[sample(m)]
 
 #         mse_vec <- numeric(nfold)
+#         names(mse_vec) <- paste0("nfold_", seq_len(nfold))
 #         for (j in seq_len(nfold)) {
-#             c_index <- Matrix::which(index0 == j)
-#             X_train <- X[-c_index, , drop = FALSE]
-#             Y_train <- Y_perm[-c_index]
-#             X_test <- X[c_index, , drop = FALSE]
-#             Y_test <- Y_perm[c_index]
-
-#             fit <- NULL
-#             attempt <- 0
-#             while (is.null(fit$fit) && attempt < 5) {
-#                 set.seed(123 + attempt)
-#                 fit <- rlang::try_fetch(
-#                     Scissor::APML1(
-#                         X_train,
-#                         Y_train,
-#                         family = "gaussian",
-#                         penalty = "Net",
-#                         alpha = alpha,
-#                         Omega = network,
-#                         nlambda = 100
-#                     ),
-#                     error = function(e) list(fit = NULL)
-#                 )
-#                 attempt <- attempt + 1
-#             }
-
-#             if (!is.null(fit$fit)) {
-#                 index <- which.min(abs(fit$fit$nzero - cell_num))
-#                 Coefs <- as.numeric(fit$Beta[, index])
-#                 pred <- as.numeric(X_test %*% Coefs)
-#                 mse_vec[j] <- Matrix::mean((Y_test - pred)^2)
-#             } else {
-#                 mse_vec[j] <- NA_real_
-#             }
+#             mse_vec[j] <- ComputeFold(
+#                 j,
+#                 X,
+#                 Y2,
+#                 index0,
+#                 network,
+#                 alpha,
+#                 cell_num,
+#                 seed
+#             )
 #         }
 
-#         Matrix::mean(mse_vec, na.rm = TRUE)
+#         mse_vec
 #     }
 
-#     # 并行或串行执行置换
 #     if (verbose) {
-#         cli::cli_progress_bar("Permutation test", total = n)
+#         ts_cli$cli_alert_info("Permutation test")
 #     }
 
-#     if (n > 10) {
-#         background <- furrr::future_map_dbl(
+#     MSE_test_back <- if (parallel) {
+#         plan(parallel_type, workers = workers)
+#         on.exit(plan("sequential"), add = TRUE)
+
+#         future_map(
 #             seq_len(n),
-#             ~ {
-#                 result <- permutation_cv(
-#                     .x,
-#                     X,
-#                     Y,
-#                     index0,
-#                     network,
-#                     alpha,
-#                     cell_num,
-#                     nfold,
-#                     m
-#                 )
-#                 if (verbose) {
-#                     cli::cli_progress_update()
-#                 }
-#                 result
-#             },
-#             .options = furrr_options(seed = TRUE)
-#         )
-#     } else {
-#         background <- numeric(n)
-#         for (i in seq_len(n)) {
-#             background[i] <- permutation_cv(
-#                 i,
+#             ~ PermutationValidate(
+#                 .x, # i
 #                 X,
 #                 Y,
 #                 index0,
@@ -886,37 +804,85 @@ Scissor.v5.optimized <- function(
 #                 alpha,
 #                 cell_num,
 #                 nfold,
-#                 m
-#             )
-#             if (verbose) {
-#                 cli::cli_progress_update()
-#             }
-#         }
+#                 m,
+#                 seed
+#             ),
+#             .options = furrr_options(seed = TRUE),
+#             .progress = verbose
+#         )
+#     } else {
+#         purrr::map(
+#             seq_len(n),
+#             ~ PermutationValidate(
+#                 .x, # i
+#                 X,
+#                 Y,
+#                 index0,
+#                 network,
+#                 alpha,
+#                 cell_num,
+#                 nfold,
+#                 m,
+#                 seed
+#             ),
+#             .progress = verbose
+#         )
 #     }
-#     if (verbose) {
-#         cli::cli_progress_done()
-#     }
-#     # ============ 计算统计量和p值 ============
-#     statistic <- Matrix::mean(MSE_test_real, na.rm = TRUE)
+#     names(MSE_test_back) <- paste0("n_", seq_len(n))
+#     background <- purrr::map_dbl(MSE_test_back, mean)
+
+#     statistic <- mean(background, na.rm = TRUE)
 #     p <- sum(background < statistic, na.rm = TRUE) / sum(!is.na(background))
 
-#     # 输出结果
-#     cli::cli_rule("Results")
-#     cli::cli_alert_success("Test statistic (mean MSE) = {round(statistic, 3)}")
-#     cli::cli_alert_success("Reliability test p-value = {round(p, 3)}")
+#     if (verbose) {
+#         cli::cli_h3("Results")
+#         cli::cli_alert_success(
+#             "Test statistic (mean MSE) = {.val {round(statistic, 3)}}"
+#         )
+#         cli::cli_alert_success(
+#             "Reliability test p-value = {.val {round(p, 3)}}"
+#         )
+#     }
 
-#     if (p >= 0.05 && verbose) {
+#     if (p >= 0.05) {
 #         cli::cli_warn(
 #             "Model is NOT significantly better than random (p >= 0.05)"
 #         )
 #     }
 
-#     # 返回结果
 #     list(
 #         statistic = statistic,
 #         p = p,
 #         MSE_test_real = MSE_test_real,
-#         background = background,
-#         n_valid_permutations = sum(!is.na(background))
+#         MSE_test_back = MSE_test_back
 #     )
+# }
+
+# #' @keywords internal
+# ComputeFold <- function(j, X, Y, index0, network, alpha, cell_num, seed) {
+#     c_index <- which(index0 == j)
+#     X_train <- X[-c_index, , drop = FALSE]
+#     Y_train <- Y[-c_index]
+#     X_test <- X[c_index, , drop = FALSE]
+#     Y_test <- Y[c_index]
+
+#     # 拟合模型
+#     fit <- NULL
+#     while (is.null(fit$fit)) {
+#         set.seed(seed)
+#         fit <- Scissor::APML1(
+#             X_train,
+#             Y_train,
+#             family = "gaussian",
+#             penalty = "Net",
+#             alpha = alpha,
+#             Omega = network,
+#             nlambda = 100
+#         )
+#     }
+
+#     index <- which.min(abs(fit$fit$nzero - cell_num))
+#     Coefs <- as.numeric(fit$Beta[, index])
+
+#     mean((Y_test - X_test %*% Coefs)^2)
 # }

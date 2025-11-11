@@ -4,7 +4,7 @@
 \alias{LabelContinuousCells}
 \title{Label Continuous Phenotype Cells Using MAD Testing}
 \usage{
-LabelContinuousCells(pred_dt, verbose = TRUE)
+LabelContinuousCells(pred_dt, verbose = getFuncOption("verbose"))
 }
 \arguments{
 \item{pred_dt}{A data.table containing prediction scores for multiple

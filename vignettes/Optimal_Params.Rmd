@@ -118,6 +118,9 @@ length(seq1) * length(seq2)
 As you can see, with so many (alpha, alpha_2) pairs -- each requiring evaluation -— the runtime can become prohibitively long. In such cases, parallel computing can be employed to accelerate the process.
 
 ```{r,scAB_params3,eval=FALSE}
+# * install `furrr` first, as it is required for parallel computing
+rlang::check_installed("furrr")
+
 setFuncOption(parallel = TRUE)
 # * This equals to
 # options(SigBridgeR.parallel = TRUE)

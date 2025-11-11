@@ -7,6 +7,7 @@
 #' @section Available Opions:
 #' - `verbose`: A logical value indicating whether to print verbose messages, defaults to `TRUE`
 #' - `parallel`: A logical value indicating whether to use parallel processing, defaults to `FALSE``
+#' - `parallel.type`: A character string specifying the type of parallel processing to use, defaults to `"multisession"`
 #' - `workers`: An integer specifying the number of workers to use for parallel processing, defaults to `4L`
 #' - `timeout`: An integer specifying the timeout in seconds for parallel processing, defaults to `180L``
 #' - `seed`: An integer specifying the random seed for reproducible results, defaults to `123L``

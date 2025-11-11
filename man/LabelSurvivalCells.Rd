@@ -9,7 +9,7 @@ LabelSurvivalCells(
   select_fraction,
   test_method,
   min_threshold = 0.7,
-  verbose = TRUE
+  verbose = getFuncOption("verbose")
 )
 }
 \arguments{

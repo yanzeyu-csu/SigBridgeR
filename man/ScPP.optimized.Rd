@@ -8,7 +8,7 @@ ScPP.optimized(
   sc_dataset,
   geneList,
   probs = c(0.2, NULL),
-  verbose = TRUE,
+  verbose = getFuncOption("verbose"),
   parallel = FALSE,
   workers = NULL,
   seed = 123L

@@ -46,6 +46,7 @@ to reference options with or without the explicit prefix.
 \itemize{
 \item \code{verbose}: A logical value indicating whether to print verbose messages, defaults to \code{TRUE}
 \item \code{parallel}: A logical value indicating whether to use parallel processing, defaults to `FALSE``
+\item \code{parallel.type}: A character string specifying the type of parallel processing to use, defaults to \code{"multisession"}
 \item \code{workers}: An integer specifying the number of workers to use for parallel processing, defaults to \code{4L}
 \item \code{timeout}: An integer specifying the timeout in seconds for parallel processing, defaults to `180L``
 \item \code{seed}: An integer specifying the random seed for reproducible results, defaults to `123L``

@@ -20,7 +20,7 @@ scPAS.optimized(
   family = c("gaussian", "binomial", "cox"),
   permutation_times = 2000,
   FDR.threshold = 0.05,
-  verbose = TRUE,
+  verbose = getFuncOption("verbose"),
   seed = 123L,
   ...
 )
@@ -201,7 +201,9 @@ Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associat
 \seealso{
 Other scPAS: 
 \code{\link{DoscPAS}()},
-\code{\link{imputation2}()}
+\code{\link{imputation2}()},
+\code{\link{imputation_ALRA2}()},
+\code{\link{imputation_KNN2}()}
 }
 \concept{scPAS}
 \keyword{internal}

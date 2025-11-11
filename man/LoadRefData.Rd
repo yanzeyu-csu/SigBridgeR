@@ -7,7 +7,6 @@
 LoadRefData(
   data_type = c("survival", "binary", "continuous"),
   path = NULL,
-  cache = TRUE,
   timeout = getFuncOption("timeout"),
   ...
 )
@@ -16,8 +15,6 @@ LoadRefData(
 \item{data_type}{The type of data to download. Must be one of "survival", "binary", or "continuous".}
 
 \item{path}{Optional path to save the downloaded file, default: NULL, saving in package.}
-
-\item{cache}{Logical. If TRUE (default), saves the data for future sessions.}
 
 \item{timeout}{Integer. Connection timeout in seconds (default: 60)}
 

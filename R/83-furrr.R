@@ -10,11 +10,7 @@ plan <- function(
     .cleanup = NA,
     .init = TRUE
 ) {
-    if (!rlang::is_installed("future")) {
-        cli::cli_abort(c(
-            "x" = "Package {.pkg future} is required. Please install it to use this function."
-        ))
-    }
+    rlang::check_installed("future")
     getExportedValue("future", "plan")(
         strategy = strategy,
         ...,
@@ -26,15 +22,19 @@ plan <- function(
     )
 }
 
-#' @title Available cores for furrr
+
 #' @keywords internal
+#' @inheritParams future::availableCores
 availableCores <- function() {
-    if (!rlang::is_installed("future")) {
-        cli::cli_abort(c(
-            "x" = "Package {.pkg future} is required. Please install it to use this function."
-        ))
-    }
+    rlang::check_installed("future")
     getExportedValue("future", "availableCores")()
+}
+
+#' @keywords internal
+#' @inheritParams future::availableWorkers
+availableWorkers <- function() {
+    rlang::check_installed("future")
+    getExportedValue("future", "availableWorkers")()
 }
 
 
@@ -49,11 +49,7 @@ future_map_dbl <- function(
     .env_globals = parent.frame(),
     .progress = FALSE
 ) {
-    if (!rlang::is_installed("furrr")) {
-        cli::cli_abort(c(
-            "x" = "Package {.pkg furrr} is required. Please install it to use this function."
-        ))
-    }
+    rlang::check_installed("furrr")
     getExportedValue("furrr", "future_map_dbl")(
         .x = .x,
         .f = .f,
@@ -75,11 +71,7 @@ future_map <- function(
     .env_globals = parent.frame(),
     .progress = FALSE
 ) {
-    if (!rlang::is_installed("furrr")) {
-        cli::cli_abort(c(
-            "x" = "Package {.pkg furrr} is required. Please install it to use this function."
-        ))
-    }
+    rlang::check_installed("furrr")
     getExportedValue("furrr", "future_map")(
         .x = .x,
         .f = .f,
@@ -105,11 +97,7 @@ furrr_options <- function(
     chunk_size = NULL,
     prefix = NULL
 ) {
-    if (!rlang::is_installed("furrr")) {
-        cli::cli_abort(c(
-            "x" = "Package {.pkg furrr} is required. Please install it to use this function."
-        ))
-    }
+    rlang::check_installed("furrr")
     getExportedValue("furrr", "furrr_options")(
         ...,
         stdout = stdout,

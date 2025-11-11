@@ -508,9 +508,9 @@ OptimizationMode <- function(
     geneList,
     probs,
     verbose = getFuncOption("verbose"),
-    parallel = FALSE,
-    workers = NULL,
-    seed = 123L
+    parallel = getFuncOption("parallel"),
+    workers = getFuncOption("workers"),
+    seed = getFuncOption("seed")
 ) {
     set.seed(seed)
 
@@ -579,7 +579,7 @@ OptimizationMode <- function(
     # Iterate through probability thresholds
     if (parallel) {
         workers <- workers %||% 4L
-        plan("multisession", workers = workers)
+        plan(getFuncOption("parallel.type"), workers = workers)
 
         if (verbose) {
             ts_cli$cli_alert_info(sprintf(

@@ -6,10 +6,13 @@
 #' Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes. NA values are replaced with `unknown_k` format (k stands for the position of the NA value in the row).
 #'
 #' @param data bulk expression data (matrix or data.frame)
+#' @param unknown_format A glue pattern containing `{k}` for replace the NA value during conversion.
+#'     k must be wrapped in curly braces, stands for the position of the NA value in the row.
+#'     Default: `"unknown_{k}"`.
 #'
 #' @export
 #'
-SymbolConvert <- function(data) {
+SymbolConvert <- function(data, unknown_format = "unknown_{k}") {
     row_names <- gsub("\\..*$", "", rownames(data))
     if (is.null(row_names)) {
         cli::cli_abort(c("x" = "Row names are missing in the data"))
@@ -25,10 +28,10 @@ SymbolConvert <- function(data) {
             "Found {.val {na_count}} NA values in gene symbols during conversion."
         ))
 
-        na_indices <- which(is.na(gene_symbols))
-        gene_symbols[na_indices] <- glue::glue("unknown_{na_indices}")
+        k <- which(is.na(gene_symbols))
+        gene_symbols[k] <- glue::glue(unknown_format)
         cli::cli_warn(
-            "Replaced {.val {na_count}} NA values with `unknown_k` format."
+            "Replaced {.val {na_count}} NA values with {.code {unknown_format}} format."
         )
     }
 

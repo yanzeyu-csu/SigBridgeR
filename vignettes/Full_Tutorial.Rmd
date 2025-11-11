@@ -90,7 +90,7 @@ First load the packages, you will see a version number message indicating succes
 
 ```{r,load_package,eval=FALSE}
 library(SigBridgeR)
-# ✔ SigBridgeR v2.5.2 loaded
+# ✔ SigBridgeR v2.x.x loaded
 ```
 
 ### 2.1 Single-cell RNA-seq Data

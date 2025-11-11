@@ -9,7 +9,7 @@ create_scAB.v5(
   bulk_dataset,
   phenotype,
   method = c("survival", "binary"),
-  verbose = TRUE,
+  verbose = getFuncOption("verbose"),
   ...
 )
 }

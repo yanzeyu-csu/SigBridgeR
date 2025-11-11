@@ -784,7 +784,7 @@ select_alpha.optimized <- function(
     para_2_list = c(0.01, 0.005, 0.001),
     seed = 0,
     parallel = FALSE,
-    workers = NULL,
+    workers = getFuncOption("workers"),
     verbose = getFuncOption("verbose")
 ) {
     if (verbose) {
@@ -924,10 +924,11 @@ ParallelEvaluate <- function(
     fixed_matrices,
     K,
     cross_k,
-    workers = 4L,
+    workers = getFuncOption("workers"),
     verbose = getFuncOption("verbose")
 ) {
-    plan("multisession", workers = workers)
+    plan(getFuncOption("parallel.type"), workers = workers)
+    on.exit(plan("sequential"))
 
     if (verbose) {
         ts_cli$cli_alert_info(sprintf(
@@ -986,8 +987,6 @@ ParallelEvaluate <- function(
             )
         )
     )
-
-    plan("sequential")
 
     res
 }

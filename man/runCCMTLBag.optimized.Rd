@@ -15,7 +15,7 @@ runCCMTLBag.optimized(
   FFdepth,
   Bagdepth,
   DEGAS.seed,
-  verbose = TRUE
+  verbose = getFuncOption("verbose")
 )
 }
 \arguments{

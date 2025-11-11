@@ -85,6 +85,8 @@ Other screen_method:
 
 Other scPAS: 
 \code{\link{imputation2}()},
+\code{\link{imputation_ALRA2}()},
+\code{\link{imputation_KNN2}()},
 \code{\link{scPAS.optimized}()}
 }
 \concept{scPAS}

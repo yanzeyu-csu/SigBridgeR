@@ -15,7 +15,7 @@ runCCMTL.optimized(
   FFdepth,
   DEGAS.seed,
   force_rewrite = FALSE,
-  verbose = TRUE
+  verbose = getFuncOption("verbose")
 )
 }
 \arguments{

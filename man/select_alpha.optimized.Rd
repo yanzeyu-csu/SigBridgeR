@@ -13,8 +13,8 @@ select_alpha.optimized(
   para_2_list = c(0.01, 0.005, 0.001),
   seed = 0,
   parallel = FALSE,
-  workers = NULL,
-  verbose = TRUE
+  workers = getFuncOption("workers"),
+  verbose = getFuncOption("verbose")
 )
 }
 \arguments{

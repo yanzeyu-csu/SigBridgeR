@@ -6,7 +6,6 @@
 #'
 #' @param data_type The type of data to download. Must be one of "survival", "binary", or "continuous".
 #' @param path Optional path to save the downloaded file, default: NULL, saving in package.
-#' @param cache Logical. If TRUE (default), saves the data for future sessions.
 #' @param timeout Integer. Connection timeout in seconds (default: 60)
 #' @param ... Additional arguments. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
@@ -22,7 +21,6 @@
 LoadRefData <- function(
     data_type = c("survival", "binary", "continuous"),
     path = NULL,
-    cache = TRUE,
     timeout = getFuncOption("timeout"),
     ...
 ) {
@@ -41,7 +39,6 @@ LoadRefData <- function(
         }
         dir.create(path, recursive = TRUE, showWarnings = FALSE)
     }
-    chk::chk_flag(cache)
     chk::chk_whole_number(timeout)
 
     dots <- rlang::list2(...)
@@ -92,7 +89,7 @@ LoadRefData <- function(
 
             success <- rlang::try_fetch(
                 {
-                    utils::download.file(
+                    fileDownload(
                         url = data_url,
                         destfile = local_file,
                         mode = "wb",
@@ -143,8 +140,7 @@ LoadRefData <- function(
                 unlink(local_file) # Clean up corrupted file
             }
             cli::cli_abort(c(
-                "x" = cli::col_red("Downloaded file appears to be corrupted."),
-                "i" = "Please try again. Error: {e$message}"
+                "x" = e$message
             ))
         }
     )
@@ -152,7 +148,7 @@ LoadRefData <- function(
         cli::cli_alert_success(cli::col_green("Data loaded successfully."))
     }
 
-    if (!cache && file.exists(local_file)) {
+    if (file.exists(local_file)) {
         unlink(local_file)
     }
 

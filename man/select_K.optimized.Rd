@@ -10,7 +10,7 @@ select_K.optimized(
   repeat_times = 10L,
   maxiter = 2000L,
   seed = 0L,
-  verbose = FALSE
+  verbose = getFuncOption("verbose")
 )
 }
 \arguments{
