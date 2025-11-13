@@ -4,10 +4,14 @@
 \alias{SymbolConvert}
 \title{Convert Ensembles Version IDs & TCGA Version IDs to Genes in Bulk Expression Data}
 \usage{
-SymbolConvert(data)
+SymbolConvert(data, unknown_format = "unknown_{k}")
 }
 \arguments{
 \item{data}{bulk expression data (matrix or data.frame)}
+
+\item{unknown_format}{A glue pattern containing \code{{k}} for replace the NA value during conversion.
+k must be wrapped in curly braces, stands for the position of the NA value in the row.
+Default: \code{"unknown_{k}"}.}
 }
 \description{
 Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes. NA values are replaced with \code{unknown_k} format (k stands for the position of the NA value in the row).

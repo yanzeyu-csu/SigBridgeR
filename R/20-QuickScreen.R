@@ -56,7 +56,7 @@
 #'   }}
 #'   \item{scAB}{\describe{
 #'     \item{alpha}{(numeric) Coefficient of phenotype regularization ,default 0.005}
-#'     \item{alpha_2}{(numeric) Coefficent of cell-cell similarity regularization, default 5e-05}
+#'     \item{alpha_2}{(numeric) Coefficent of cell-cell similarity regularization, default 0.005}
 #'     \item{maxiter}{(integer) NMF optimization iterations, default 2000}
 #'     \item{tred}{(integer) Z-score threshold, default 2}
 #'   }}

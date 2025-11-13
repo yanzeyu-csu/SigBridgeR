@@ -15,7 +15,7 @@ Scissor.v5.optimized(
   Save_file = "Scissor_inputs.RData",
   Load_file = NULL,
   verbose = getFuncOption("verbose"),
-  seed = 123L,
+  seed = getFuncOption("seed"),
   ...
 )
 }

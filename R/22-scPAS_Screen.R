@@ -398,11 +398,14 @@ scPAS.optimized <- function(
         ts_cli$cli_alert_info("Quantile normalizing bulk data")
     }
 
-    Expression_bulk <- normalize.quantiles(as.matrix(bulk_dataset[
-        common_genes,
-    ]))
-    rownames(Expression_bulk) <- common_genes
-    colnames(Expression_bulk) <- colnames(bulk_dataset)
+    Expression_bulk <- normalize.quantiles(
+        as.matrix(bulk_dataset[
+            common_genes,
+        ]),
+        keep.names = TRUE
+    )
+    # rownames(Expression_bulk) <- common_genes
+    # colnames(Expression_bulk) <- colnames(bulk_dataset)
 
     # Step 2: Single-cell expression processing with data.table efficiency
     if (imputation) {
@@ -423,17 +426,7 @@ scPAS.optimized <- function(
     sc_exprs <- SeuratObject::LayerData(sc_dataset) # Get expression data from Seurat
     Expression_cell <- sc_exprs[common_genes, ]
 
-    # Clean up memory using data.table approach
-    rm_vars <- c("sc_exprs", "bulk_dataset")
-    rm_vars <- rm_vars[vapply(
-        rm_vars,
-        exists,
-        inherits = TRUE,
-        FUN.VALUE = logical(1)
-    )]
-    if (length(rm_vars) > 0) {
-        rm(list = rm_vars)
-    }
+    rm(sc_exprs, bulk_dataset)
 
     # Prepare X matrix
     x <- Matrix::t(Expression_bulk)
@@ -458,7 +451,11 @@ scPAS.optimized <- function(
 
     # Network construction
     cor.m[cor.m < 0] <- 0
-    SNN <- Seurat::FindNeighbors(1 - cor.m, distance.matrix = TRUE)
+    SNN <- Seurat::FindNeighbors(
+        1 - cor.m,
+        distance.matrix = TRUE,
+        verbose = verbose
+    )
     Network <- as.matrix(SNN$snn)
     diag(Network) <- 0
     Network <- (Network > 0.2) * 1 # binarization
@@ -744,7 +741,7 @@ imputation_ALRA2 <- function(obj, assay = 'RNA') {
     # library(Seurat)
     rlang::check_installed("ALRA")
     # data <- GetAssayData(object = obj, assay = assay, slot = 'data')
-    data <- SeuratObject::LayerData(seurat, assay = assay)
+    data <- SeuratObject::LayerData(obj, assay = assay)
     alra <- getExportedValue("ALRA", "alra")
 
     data_alra <- Matrix::t(alra(Matrix::t(as.matrix(data)))[[3]])

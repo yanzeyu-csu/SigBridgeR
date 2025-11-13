@@ -11,7 +11,7 @@ DoscAB(
   label_type = "scAB",
   phenotype_class = c("binary", "survival"),
   alpha = c(0.005, NULL),
-  alpha_2 = c(5e-05, NULL),
+  alpha_2 = c(0.005, NULL),
   maxiter = 2000L,
   tred = 2L,
   ...

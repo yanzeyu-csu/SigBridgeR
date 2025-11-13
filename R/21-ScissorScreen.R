@@ -285,7 +285,7 @@ Scissor.v5.optimized <- function(
     Save_file = "Scissor_inputs.RData",
     Load_file = NULL,
     verbose = getFuncOption("verbose"),
-    seed = 123L,
+    seed = getFuncOption("seed"),
     ...
 ) {
     if (verbose) {
@@ -309,14 +309,15 @@ Scissor.v5.optimized <- function(
         }
 
         if (inherits(sc_dataset, "Seurat")) {
-            sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
+            # sc_exprs <- as.matrix(sc_dataset@assays$RNA$data)
+            sc_exprs <- SeuratObject::LayerData(sc_dataset, layer = "data")
 
             if ("RNA_snn" %chin% names(sc_dataset@graphs)) {
                 # network <- as.matrix(sc_dataset@graphs$RNA_snn)
-                network <- as.matrix(SeuratObject::Graphs(
+                network <- SeuratObject::Graphs(
                     sc_dataset,
                     slot = "RNA_snn"
-                ))
+                )
 
                 if (verbose) {
                     cli::cli_alert_info(
@@ -325,10 +326,10 @@ Scissor.v5.optimized <- function(
                 }
             } else if ("integrated_snn" %chin% names(sc_dataset@graphs)) {
                 # network <- as.matrix(sc_dataset@graphs$integrated_snn)
-                network <- as.matrix(SeuratObject::Graphs(
+                network <- SeuratObject::Graphs(
                     sc_dataset,
                     slot = "integrated_snn"
-                ))
+                )
 
                 if (verbose) {
                     cli::cli_alert_info(
@@ -341,35 +342,40 @@ Scissor.v5.optimized <- function(
                 ))
             }
         } else {
-            sc_exprs <- as.matrix(sc_dataset)
+            sc_exprs <- Matrix::Matrix(as.matrix(sc_dataset))
             Seurat_tmp <- SCPreProcess(
                 sc_dataset,
                 quality_control.pattern = c("^MT-"),
                 verbose = FALSE
             )
-            network <- as.matrix(SeuratObject::Graphs(
-                sc_dataset,
+            network <- SeuratObject::Graphs(
+                Seurat_tmp,
                 slot = "RNA_snn"
-            ))
+            )
+            rm(Seurat_tmp)
         }
-        diag(network) <- 0
-        network <- (network != 0) * 1
+        Matrix::diag(network) <- 0
+        network <- as.matrix((network != 0) * 1)
 
-        bulk_mat <- as.matrix(bulk_dataset[common, ])
-        sc_mat <- as.matrix(sc_exprs[common, ])
-        dataset0 <- cbind(bulk_mat, sc_mat)
+        # bulk_mat <- as.matrix(bulk_dataset[common, ])
+        bulk_mat <- Matrix::Matrix(as.matrix(bulk_dataset[common, ]))
+
+        # sc_mat <- as.matrix(sc_exprs[common, ])
+        sc_mat <- sc_exprs[common, ] # A dgCMatrix object
+
+        dataset0 <- Matrix::cbind2(bulk_mat, sc_mat) # much smaller
         if (verbose) {
             ts_cli$cli_alert_info(
-                "Normalizing quantiles of data..."
+                "Normalizing quantiles of data"
             )
         }
 
-        dataset1 <- normalize.quantiles(as.matrix(dataset0))
-        rownames(dataset1) <- common
-        colnames(dataset1) <- c(colnames(bulk_mat), colnames(sc_mat))
+        dataset1 <- normalize.quantiles(as.matrix(dataset0), keep.names = TRUE)
+        # rownames(dataset1) <- common
+        # colnames(dataset1) <- c(colnames(bulk_mat), colnames(sc_mat))
         if (verbose) {
             ts_cli$cli_alert_info(
-                "Subsetting data..."
+                "Subsetting data"
             )
         }
 
@@ -382,7 +388,7 @@ Scissor.v5.optimized <- function(
         gc(verbose = FALSE)
         if (verbose) {
             ts_cli$cli_alert_info(
-                "Calculating correlation..."
+                "Calculating correlation"
             )
         }
 
@@ -400,7 +406,7 @@ Scissor.v5.optimized <- function(
                 asplit(2) %>%
                 purrr::map_dbl(mean) %>%
                 round(digits = 6) %>%
-                paste(sep = "   ", collapse = "   ") %>% # 3 space
+                paste(sep = " ", collapse = " ") %>%
                 cli::cli_text()
             cli::cli_text(
                 strrep("-", floor(getOption("width") / 2)),
@@ -524,98 +530,71 @@ Scissor.v5.optimized <- function(
     results <- list()
 
     for (i in seq_along(alpha)) {
-        result <- rlang::try_fetch(
-            {
-                set.seed(seed)
+        set.seed(seed)
 
-                fit0 <- Scissor::APML1(
-                    X,
-                    Y,
-                    family = family,
-                    penalty = "Net",
-                    alpha = alpha[i],
-                    Omega = network,
-                    nlambda = 100,
-                    nfolds = min(10, nrow(X))
-                )
-
-                fit1 <- Scissor::APML1(
-                    X,
-                    Y,
-                    family = family,
-                    penalty = "Net",
-                    alpha = alpha[i],
-                    Omega = network,
-                    lambda = fit0$lambda.min
-                )
-
-                if (family == "binomial") {
-                    Coefs <- as.numeric(fit1$Beta[2:(ncol(X) + 1)])
-                } else {
-                    Coefs <- as.numeric(fit1$Beta)
-                }
-
-                pos_mask <- Coefs > 0
-                neg_mask <- Coefs < 0
-                cells <- colnames(X)
-                Cell1 <- cells[pos_mask]
-                Cell2 <- cells[neg_mask]
-                percentage <- (length(Cell1) + length(Cell2)) / length(cells)
-
-                list(
-                    alpha = alpha[i],
-                    success = TRUE,
-                    Cell1 = Cell1,
-                    Cell2 = Cell2,
-                    percentage = percentage,
-                    Coefs = Coefs,
-                    fit0 = fit0,
-                    fit1 = fit1
-                )
-            },
-            error = function(e) {
-                cli::cli_alert_danger(e$message)
-
-                cli::cli_abort(
-                    cli::col_yellow("Scissor screening exit 1.")
-                )
-            }
+        fit0 <- Scissor::APML1(
+            X,
+            Y,
+            family = family,
+            penalty = "Net",
+            alpha = alpha[i],
+            Omega = network,
+            nlambda = 100,
+            nfolds = min(10, nrow(X))
         )
 
-        results[[i]] <- result
+        fit1 <- Scissor::APML1(
+            X,
+            Y,
+            family = family,
+            penalty = "Net",
+            alpha = alpha[i],
+            Omega = network,
+            lambda = fit0$lambda.min
+        )
 
-        if (result$success) {
-            if (verbose) {
-                cli::cli_h2("At alpha = {.val {alpha[i]}}")
-                cli::cli_text(sprintf(
-                    "Scissor identified {.val {%d}} Scissor+ cells and {.val {%d}} Scissor- cells.",
-                    length(result$Cell1),
-                    length(result$Cell2)
-                ))
-                cli::cli_text(sprintf(
-                    "The percentage of selected cell is: {.val {%s}}%%",
-                    round(result$percentage * 100, digits = 3)
-                ))
-            }
+        if (family == "binomial") {
+            Coefs <- as.numeric(fit1$Beta[2:(ncol(X) + 1)])
+        } else {
+            Coefs <- as.numeric(fit1$Beta)
+        }
 
-            if (result$percentage < cutoff) {
-                ts_cli$cli_alert_info(cli::col_green("Scissor Ended."))
-                break
-            }
+        pos_mask <- Coefs > 0
+        neg_mask <- Coefs < 0
+        cells <- colnames(X)
+        Cell1 <- cells[pos_mask]
+        Cell2 <- cells[neg_mask]
+        percentage <- (length(Cell1) + length(Cell2)) / length(cells)
+
+        if (verbose) {
+            cli::cli_h2("At alpha = {.val {alpha[i]}}")
+            cli::cli_text(sprintf(
+                "Scissor identified {.val {%d}} Scissor+ cells and {.val {%d}} Scissor- cells.",
+                length(Cell1),
+                length(Cell2)
+            ))
+            cli::cli_text(sprintf(
+                "The percentage of selected cell is: {.val {%s}}%%",
+                round(percentage * 100, digits = 3)
+            ))
+        }
+
+        if (percentage < cutoff) {
+            ts_cli$cli_alert_info(cli::col_green("Scissor Ended."))
+            break
         }
     }
 
-    last_success <- results[[length(results)]]
     list(
         para = list(
-            alpha = last_success$alpha,
-            lambda = last_success$fit0$lambda.min,
+            alpha = alpha,
+            lambda = fit0$lambda.min,
             family = family,
-            Coefs = last_success$Coefs # for miscellaneous informationss
+            Coefs = Coefs # for miscellaneous informationss
         ),
-        Coefs = last_success$Coefs, # for cell evaluation
-        Scissor_pos = last_success$Cell1,
-        Scissor_neg = last_success$Cell2,
+        Coefs = Coefs, # for cell evaluation
+        Scissor_pos = Cell1,
+        Scissor_neg = Cell2,
         X = X,
         Y = Y,
         network = network

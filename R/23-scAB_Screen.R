@@ -17,8 +17,8 @@
 #' @param phenotype_class Analysis mode:
 #'        - `"binary"`: Case-control design (e.g., responder/non-responder)
 #'        - `"survival"`: Time-to-event analysis data.frame
-#' @param alpha Coefficient of phenotype regularization (default=0.005).
-#' @param alpha_2 Coefficent of cell-cell similarity regularization (default=5e-05).
+#' @param alpha Coefficient of phenotype regularization (default=`0.005`).
+#' @param alpha_2 Coefficent of cell-cell similarity regularization (default=`0.005`).
 #' @param maxiter Maximum number of iterations for NMF (default=2000).
 #' @param tred Z-score threshold in finding subsets (default=2).
 #' @param ... Additional arguments. Currently supports:
@@ -51,7 +51,7 @@
 #'   label_type = "disease_status",
 #'   phenotype_class = "binary",
 #'   alpha = 0.005,
-#'   alpha_2 = 5e-05,
+#'   alpha_2 = 0.005,
 #'   maxiter = 2000,
 #'   tred = 2
 #' )
@@ -68,7 +68,7 @@ DoscAB <- function(
     label_type = "scAB",
     phenotype_class = c("binary", "survival"),
     alpha = c(0.005, NULL),
-    alpha_2 = c(5e-05, NULL),
+    alpha_2 = c(0.005, NULL),
     maxiter = 2000L,
     tred = 2L,
     ...
@@ -471,7 +471,7 @@ select_K.optimized <- function(
     n_K <- length(K_all)
     dist_K <- matrix(NA_real_, nrow = n_K, ncol = repeat_times)
 
-    dist_all <- Matrix::norm(X, "F")
+    # dist_all <- Matrix::norm(X, "F") # no use
     # initialize
     eii <- numeric(n_K)
     row_means <- numeric(n_K)
