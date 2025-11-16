@@ -46,7 +46,13 @@ It is recommended to install the following packages:
 
 ```{r,install_extra_packages,eval=FALSE}
 # For better performance.
-pak::pkg_install(c("matrixStats", "preprocessCore", "tidyr", "furrr"))
+pak::pkg_install(c(
+  "matrixStats",
+  "preprocessCore",
+  "tidyr",
+  "furrr",
+  "matrixTests"
+))
 
 # For seamless integration with other file types such as `h5ad`
 pak::pkg_install("anndata")

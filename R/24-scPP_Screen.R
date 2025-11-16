@@ -148,27 +148,29 @@ DoscPP <- function(
     matched_bulk <- as.data.frame(matched_bulk)
     # decide which type of phenotype data is used
     if (is.vector(phenotype)) {
+        # The reason why using data.frame instead of vector is to
+        # keep the same input and output format with scPP
         phenotype <- as.data.frame(phenotype) %>%
             Rownames2Col("Sample") %>%
             dplyr::rename("Feature" = 2) %>%
             dplyr::mutate(Feature = as.numeric(`Feature`))
     }
     gene_list <- if (tolower(phenotype_class) == "binary") {
-        Check0VarRows(matched_bulk)
-        ScPP::marker_Binary(
+        marker_Binary.optimized(
             bulk_data = matched_bulk,
             features = phenotype,
             ref_group = ref_group,
             Log2FC_cutoff = Log2FC_cutoff
         )
     } else if (tolower(phenotype_class) == "continuous") {
-        ScPP::marker_Continuous(
+        marker_Continuous.optimized(
             bulk_data = matched_bulk,
             features = phenotype$Feature,
-            estimate_cutoff = estimate_cutoff
+            method = "spearman",
+            estimate_cutoff = estimate_cutoff,
         )
     } else {
-        ScPP::marker_Survival(
+        marker_Survival2(
             bulk_data = matched_bulk,
             survival_data = phenotype
         )
@@ -233,6 +235,297 @@ DoscPP <- function(
     )
 }
 
+#' @title Find Binary Feature Markers
+#'
+#' @param bulk_data Log2-normalized bulk expression data with genes in row and samples in column.
+#' @param features Feature data of bulk samples, column1 are sample names (colname is "Sample") and column2 are feature (colname is "Feature") labels of each sample.
+#' @param ref_group A character to indicate which feature is the control group.
+#' @param Log2FC_cutoff Absolute cutoff value of fold change, default is 0.585.
+#'
+#' @return A gene list of feature markers with two binary groups and ranked genes based on t-test's statistic.
+#' @keywords internal
+#' @family scPP
+#'
+marker_Binary.optimized <- function(
+    bulk_data,
+    features,
+    ref_group,
+    Log2FC_cutoff = 0.585
+) {
+    # # 输入验证
+    # if (missing(ref_group)) {
+    #     cli::cli_abort("{.arg ref_group }is missing or incorrect.")
+    # }
+    # if (missing(bulk_data) || !inherits(bulk_data, c("matrix", "data.frame"))) {
+    #     cli::cli_abort("{.arg bulk_data} is missing or incorrect.")
+    # }
+    # if (missing(features) || !inherits(features, c("matrix", "data.frame"))) {
+    #     cli::cli_abort("{.arg features} is missing or incorrect.")
+    # }
+
+    # 确保bulk_data是矩阵格式
+    if (!is.matrix(bulk_data)) {
+        bulk_data <- as.matrix(bulk_data)
+    }
+
+    # 使用data.table进行高效的样本筛选
+    features_dt <- data.table::as.data.table(features)
+    ref <- features_dt[Feature == ref_group, Sample]
+    tes <- features_dt[Feature != ref_group, Sample]
+
+    # 向量化查找位置
+    ref_pos <- which(colnames(bulk_data) %chin% ref)
+    tes_pos <- which(colnames(bulk_data) %chin% tes)
+
+    log2FCs <- rowMeans(bulk_data[, tes_pos, drop = FALSE]) -
+        rowMeans(bulk_data[, ref_pos, drop = FALSE])
+
+    # 使用matrixTests包进行批量t检验(比apply快很多)
+    # 如果没有安装,回退到向量化的apply
+    if (requireNamespace("matrixTests", quietly = TRUE)) {
+        row_t_welch <- getExportedValue("matrixTests", "row_t_welch")
+        t_results <- row_t_welch(
+            bulk_data[, tes_pos, drop = FALSE],
+            bulk_data[, ref_pos, drop = FALSE]
+        )
+        pvalues <- t_results$pvalue
+        statistics <- t_results$statistic
+        names(pvalues) <- rownames(bulk_data)
+        names(statistics) <- rownames(bulk_data)
+    } else {
+        # 优化的apply方法:预分配结果,使用vapply
+        n_genes <- nrow(bulk_data)
+        pvalues <- numeric(n_genes)
+        statistics <- numeric(n_genes)
+        names(pvalues) <- rownames(bulk_data)
+        names(statistics) <- rownames(bulk_data)
+
+        for (i in seq_len(n_genes)) {
+            test_result <- rlang::try_fetch(
+                t.test(bulk_data[i, tes_pos], bulk_data[i, ref_pos]),
+                error = function(e) list(p.value = NA, statistic = NA)
+            )
+            pvalues[i] <- test_result$p.value
+            statistics[i] <- test_result$statistic
+        }
+    }
+
+    # 排序统计量
+    genes_sort <- sort(statistics[!is.na(statistics)], decreasing = TRUE)
+
+    # 使用data.table构建结果
+    res <- data.table::data.table(
+        gene = names(pvalues),
+        pvalue = pvalues,
+        log2FC = log2FCs
+    )
+
+    # 计算FDR
+    res[, fdr := stats::p.adjust(pvalue, method = "fdr")]
+
+    # 高效筛选基因
+    gene_pos <- res[pvalue < 0.05 & log2FC > Log2FC_cutoff, gene]
+    gene_neg <- res[pvalue < 0.05 & log2FC < -Log2FC_cutoff, gene]
+
+    # 构建返回列表
+    geneList <- list(
+        gene_pos = gene_pos,
+        gene_neg = gene_neg,
+        genes_sort = genes_sort
+    )
+
+    # 优化的条件判断
+    has_pos <- length(gene_pos) > 0
+    has_neg <- length(gene_neg) > 0
+
+    if (has_pos && has_neg) {
+        return(geneList)
+    } else if (!has_pos) {
+        cli::cli_warn(
+            "There are no genes positively correlated with the given feature in this bulk dataset."
+        )
+        return(list(gene_neg = gene_neg))
+    } else {
+        cli::cli_warn(
+            "There are no genes negatively correlated with the given feature in this bulk dataset."
+        )
+        return(list(gene_pos = gene_pos))
+    }
+}
+
+#' @title Find Continuous Feature Markers
+#'
+#' @param bulk_data Log2-normalized bulk expression data with genes in row and samples in column.
+#' @param features Feature data of bulk samples, such as TMB or CNA values of each sample.
+#' @param estimate_cutoff Absolute cutoff value of correlation coefficient, default is 0.2.
+#' @param method Method uses for cor.test, default is "spearman", another choice is "pearson".
+#'
+#' @return A gene list of feature markers and ranked genes based on correlation coefficients.
+#' @keywords internal
+#' @family scPP
+#'
+marker_Continuous.optimized <- function(
+    bulk_data,
+    features,
+    method = "spearman",
+    estimate_cutoff = 0.2
+) {
+    # # 输入验证 (上游已检查)
+    # if (missing(bulk_data) || !inherits(bulk_data, c("matrix", "data.frame"))) {
+    #     cli::cli_abort("{.arg bulk_data} is missing or incorrect.")
+    # }
+    # if (missing(features) || !is.numeric(features)) {
+    #     cli::cli_abort("{.arg features} is missing or incorrect.")
+    # }
+
+    # 确保bulk_data是矩阵格式(性能更好)
+    if (!is.matrix(bulk_data)) {
+        bulk_data <- as.matrix(bulk_data)
+    }
+
+    # 预处理features: log2转换
+    features_log <- log2(as.numeric(features) + 1)
+    n_genes <- nrow(bulk_data)
+
+    # 预分配结果向量
+    pvalues <- numeric(n_genes)
+    estimates <- numeric(n_genes)
+    names(pvalues) <- rownames(bulk_data)
+    names(estimates) <- rownames(bulk_data)
+
+    # 向量化相关性检验
+    for (i in seq_len(n_genes)) {
+        cor_result <- rlang::try_fetch(
+            stats::cor.test(
+                bulk_data[i, ],
+                features_log,
+                method = method
+            ),
+            error = function(e) list(p.value = NA, estimate = NA)
+        )
+        pvalues[i] <- cor_result$p.value
+        estimates[i] <- cor_result$estimate
+    }
+
+    # 排序估计值(去除NA)
+    genes_sort <- sort(estimates[!is.na(estimates)], decreasing = TRUE)
+
+    # 使用data.table构建结果
+    res <- data.table::data.table(
+        gene = names(pvalues),
+        pvalue = pvalues,
+        estimate = estimates
+    )
+
+    # 按pvalue排序并计算FDR
+    data.table::setorder(res, pvalue)
+    res[, fdr := stats::p.adjust(pvalue, method = "fdr")]
+
+    # 高效筛选基因
+    gene_pos <- res[fdr < 0.05 & estimate > estimate_cutoff, gene]
+    gene_neg <- res[fdr < 0.05 & estimate < -estimate_cutoff, gene]
+
+    # 构建返回列表
+    geneList <- list(
+        gene_pos = gene_pos,
+        gene_neg = gene_neg,
+        genes_sort = genes_sort
+    )
+
+    # 优化的条件判断
+    has_pos <- length(gene_pos) > 0
+    has_neg <- length(gene_neg) > 0
+
+    if (has_pos && has_neg) {
+        return(geneList)
+    } else if (!has_pos) {
+        cli::cli_warn(
+            "There are no genes positively correlated with the given feature in this bulk dataset."
+        )
+        return(list(gene_neg = gene_neg))
+    } else {
+        cli::cli_warn(
+            "There are no genes negatively correlated with the given feature in this bulk dataset."
+        )
+        return(list(gene_pos = gene_pos))
+    }
+}
+
+#' @title Find Survival-Associated Markers
+#'
+#' @param bulk_data Log2-normalized bulk expression data with genes in row and samples in column.
+#' @param survival_data Survival data with time in column1 and status in column2. Rownames are sample name.
+#'
+#' @return A gene list of survival-associated markers and ranked genes based on Cox hazard ratios.
+#' @keywords internal
+#' @family scPP
+#'
+marker_Survival2 <- function(bulk_data, survival_data) {
+    # # 输入验证 (上游已检查)
+    # if (missing(bulk_data) || !inherits(bulk_data, c("matrix", "data.frame"))) {
+    #     cli::cli_abort("{.arg bulk_data} is missing or incorrect.")
+    # }
+    # if (missing(survival_data) || !inherits(survival_data, c("matrix", "data.frame"))) {
+    #     cli::cli_abort("{.arg survival_data} is missing or incorrect.")
+    # }
+
+    SurvivalData <- data.frame(cbind(survival_data, Matrix::t(bulk_data)))
+    colnames(SurvivalData) = make.names(colnames(SurvivalData))
+    var <- make.names(rownames(bulk_data))
+
+    Model_Formula <- sapply(var, function(x) {
+        stats::as.formula(paste("survival::Surv(time, status) ~", x))
+    })
+
+    Model_all <- lapply(Model_Formula, function(x) {
+        survival::coxph(x, data = SurvivalData)
+    })
+
+    res <- lapply(seq_along(Model_all), function(i) {
+        coef_summary <- Matrix::summary(Model_all[[i]])$coefficients
+        data.frame(
+            variable = var[i],
+            pvalue = coef_summary[, 5],
+            coef = coef_summary[, 2]
+        )
+    }) %>%
+        dplyr::bind_rows()
+
+    genes_sort <- res %>%
+        dplyr::arrange(dplyr::desc(coef)) %>%
+        dplyr::pull(coef, name = variable)
+
+    res <- res[order(res$pvalue), ]
+    res$fdr <- stats::p.adjust(res$pvalue, method = "fdr")
+
+    gene_pos <- res %>%
+        dplyr::filter(fdr < 0.05, coef > 1) %>%
+        dplyr::pull(variable) # correalted with worse survival
+    gene_neg <- res %>%
+        dplyr::filter(fdr < 0.05, coef < 1) %>%
+        dplyr::pull(variable) # correlated with better survival
+
+    geneList <- list(
+        gene_pos = gene_pos,
+        gene_neg = gene_neg,
+        genes_sort = genes_sort
+    )
+
+    # ? It's confusing but it is
+    if (length(gene_pos) > 0 & length(gene_neg) > 0) {
+        return(geneList)
+    } else if (length(gene_pos) == 0) {
+        cli::cli_warn(
+            "There are no genes negatively correlated with patients' prognosis in this bulk dataset."
+        )
+        return(list(gene_pos = gene_neg))
+    } else if (length(gene_neg) == 0) {
+        cli::cli_warn(
+            "There are no genes positively correlated with patients' prognosis in this bulk dataset."
+        )
+        return(list(gene_neg = gene_pos))
+    }
+}
 
 #' @title scPP Screening with Optimal Threshold Detection
 #'

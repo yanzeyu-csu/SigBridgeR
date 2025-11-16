@@ -34,7 +34,6 @@ Imports:
     scAB (>= 1.0.0),
     Scissor (>= 2.0.0),
     scPAS (>= 0.2.0),
-    ScPP (>= 0.0.0.9000),
     Seurat (>= 5.0.0),
     SeuratObject (>= 5.0.0),
     survival,
@@ -46,8 +45,7 @@ Remotes:
     ShixiangWang/IDConverter,
     Qinran-Zhang/scAB,
     sunduanchen/Scissor,
-    aiminXie/scPAS,
-    WangX-Lab/ScPP
+    aiminXie/scPAS
 Suggests: 
     anndata,
     furrr,
@@ -55,10 +53,12 @@ Suggests:
     here,
     knitr,
     matrixStats,
+    matrixTests,
     org.Hs.eg.db,
     preprocessCore,
     randomcoloR,
     rmarkdown,
     tidyr,
-    zeallot
+    zeallot,
+    WangX-Lab/ScPP
 VignetteBuilder: knitr

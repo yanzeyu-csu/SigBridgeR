@@ -104,7 +104,10 @@ result <- ScPP.optimized(
 
 Other scPP: 
 \code{\link{Check0VarRows}()},
-\code{\link{DoscPP}()}
+\code{\link{DoscPP}()},
+\code{\link{marker_Binary.optimized}()},
+\code{\link{marker_Continuous.optimized}()},
+\code{\link{marker_Survival2}()}
 }
 \concept{scPP}
 \keyword{internal}

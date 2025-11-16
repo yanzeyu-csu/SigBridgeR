@@ -34,9 +34,9 @@ DoscAB(
 - \code{"binary"}: Case-control design (e.g., responder/non-responder)
 - \code{"survival"}: Time-to-event analysis data.frame}
 
-\item{alpha}{Coefficient of phenotype regularization (default=0.005).}
+\item{alpha}{Coefficient of phenotype regularization (default=\code{0.005}).}
 
-\item{alpha_2}{Coefficent of cell-cell similarity regularization (default=5e-05).}
+\item{alpha_2}{Coefficent of cell-cell similarity regularization (default=\code{0.005}).}
 
 \item{maxiter}{Maximum number of iterations for NMF (default=2000).}
 
@@ -79,7 +79,7 @@ result <- DoscAB(
   label_type = "disease_status",
   phenotype_class = "binary",
   alpha = 0.005,
-  alpha_2 = 5e-05,
+  alpha_2 = 0.005,
   maxiter = 2000,
   tred = 2
 )

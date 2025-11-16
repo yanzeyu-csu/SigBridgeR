@@ -54,7 +54,10 @@ Check0VarRows(mat_sparse)
 \seealso{
 Other scPP: 
 \code{\link{DoscPP}()},
-\code{\link{ScPP.optimized}()}
+\code{\link{ScPP.optimized}()},
+\code{\link{marker_Binary.optimized}()},
+\code{\link{marker_Continuous.optimized}()},
+\code{\link{marker_Survival2}()}
 }
 \concept{scPP}
 \keyword{internal}

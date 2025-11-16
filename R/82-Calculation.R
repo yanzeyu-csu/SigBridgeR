@@ -45,7 +45,11 @@
 #' @family scPP
 #'
 Check0VarRows <- function(mat, call = rlang::caller_env()) {
-    if (inherits(mat, "dgCMatrix")) {
+    if (!inherits(mat, c("matrix", "Matrix"))) {
+        cli::cli_warn("Input data was coerced to a matrix.")
+        mat <- Matrix::Matrix(as.matrix(mat))
+    }
+    if (inherits(mat, "Matrix")) {
         n <- ncol(mat)
         row_sums <- Matrix::rowSums(mat)
         row_sums_sq <- Matrix::rowSums(mat^2)
