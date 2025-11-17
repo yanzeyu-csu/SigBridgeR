@@ -167,7 +167,7 @@ DoscPP <- function(
             bulk_data = matched_bulk,
             features = phenotype$Feature,
             method = "spearman",
-            estimate_cutoff = estimate_cutoff,
+            estimate_cutoff = estimate_cutoff
         )
     } else {
         marker_Survival2(
@@ -252,7 +252,6 @@ marker_Binary.optimized <- function(
     ref_group,
     Log2FC_cutoff = 0.585
 ) {
-    # # 输入验证
     # if (missing(ref_group)) {
     #     cli::cli_abort("{.arg ref_group }is missing or incorrect.")
     # }
@@ -263,25 +262,20 @@ marker_Binary.optimized <- function(
     #     cli::cli_abort("{.arg features} is missing or incorrect.")
     # }
 
-    # 确保bulk_data是矩阵格式
     if (!is.matrix(bulk_data)) {
         bulk_data <- as.matrix(bulk_data)
     }
 
-    # 使用data.table进行高效的样本筛选
     features_dt <- data.table::as.data.table(features)
-    ref <- features_dt[Feature == ref_group, Sample]
-    tes <- features_dt[Feature != ref_group, Sample]
+    ref <- features_dt[Feature == ref_group, "Sample"]
+    tes <- features_dt[Feature != ref_group, "Sample"]
 
-    # 向量化查找位置
     ref_pos <- which(colnames(bulk_data) %chin% ref)
     tes_pos <- which(colnames(bulk_data) %chin% tes)
 
     log2FCs <- rowMeans(bulk_data[, tes_pos, drop = FALSE]) -
         rowMeans(bulk_data[, ref_pos, drop = FALSE])
 
-    # 使用matrixTests包进行批量t检验(比apply快很多)
-    # 如果没有安装,回退到向量化的apply
     if (requireNamespace("matrixTests", quietly = TRUE)) {
         row_t_welch <- getExportedValue("matrixTests", "row_t_welch")
         t_results <- row_t_welch(
@@ -293,7 +287,6 @@ marker_Binary.optimized <- function(
         names(pvalues) <- rownames(bulk_data)
         names(statistics) <- rownames(bulk_data)
     } else {
-        # 优化的apply方法:预分配结果,使用vapply
         n_genes <- nrow(bulk_data)
         pvalues <- numeric(n_genes)
         statistics <- numeric(n_genes)
@@ -302,7 +295,7 @@ marker_Binary.optimized <- function(
 
         for (i in seq_len(n_genes)) {
             test_result <- rlang::try_fetch(
-                t.test(bulk_data[i, tes_pos], bulk_data[i, ref_pos]),
+                stats::t.test(bulk_data[i, tes_pos], bulk_data[i, ref_pos]),
                 error = function(e) list(p.value = NA, statistic = NA)
             )
             pvalues[i] <- test_result$p.value
@@ -310,31 +303,25 @@ marker_Binary.optimized <- function(
         }
     }
 
-    # 排序统计量
     genes_sort <- sort(statistics[!is.na(statistics)], decreasing = TRUE)
 
-    # 使用data.table构建结果
     res <- data.table::data.table(
         gene = names(pvalues),
         pvalue = pvalues,
         log2FC = log2FCs
     )
 
-    # 计算FDR
     res[, fdr := stats::p.adjust(pvalue, method = "fdr")]
 
-    # 高效筛选基因
     gene_pos <- res[pvalue < 0.05 & log2FC > Log2FC_cutoff, gene]
     gene_neg <- res[pvalue < 0.05 & log2FC < -Log2FC_cutoff, gene]
 
-    # 构建返回列表
     geneList <- list(
         gene_pos = gene_pos,
         gene_neg = gene_neg,
         genes_sort = genes_sort
     )
 
-    # 优化的条件判断
     has_pos <- length(gene_pos) > 0
     has_neg <- length(gene_neg) > 0
 

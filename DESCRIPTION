@@ -45,7 +45,8 @@ Remotes:
     ShixiangWang/IDConverter,
     Qinran-Zhang/scAB,
     sunduanchen/Scissor,
-    aiminXie/scPAS
+    aiminXie/scPAS,
+    WangX-Lab/ScPP 
 Suggests: 
     anndata,
     furrr,
@@ -59,6 +60,5 @@ Suggests:
     randomcoloR,
     rmarkdown,
     tidyr,
-    zeallot,
-    WangX-Lab/ScPP
+    zeallot
 VignetteBuilder: knitr
