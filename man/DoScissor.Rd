@@ -128,9 +128,6 @@ Other screen_method:
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}
-
-Other scissor: 
-\code{\link{Scissor.v5.optimized}()}
 }
 \concept{scissor}
 \concept{screen_method}

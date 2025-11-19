@@ -128,12 +128,12 @@ Screen <- function(
     }
     available_phenotype_class <- c("binary", "survival", "continuous")
     available_screen_method <- c("Scissor", "scPP", "scPAS", "scAB", "DEGAS")
-    phenotype_class <- MatchArg(
+    phenotype_class <- SigBridgeRUtils::MatchArg(
         phenotype_class,
         available_phenotype_class,
         NULL
     )
-    screen_method <- MatchArg(
+    screen_method <- SigBridgeRUtils::MatchArg(
         screen_method,
         available_screen_method,
         NULL

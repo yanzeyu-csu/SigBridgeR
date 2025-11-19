@@ -36,7 +36,7 @@ SymbolConvert <- function(data, unknown_format = "unknown_{k}") {
     }
 
     rownames(data) <- gene_symbols
-    return(data)
+    data
 }
 
 
@@ -65,7 +65,7 @@ SymbolConvert <- function(data, unknown_format = "unknown_{k}") {
 #' }
 #'
 #' @param data Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info
-#' @param sample_info Sample information data frame (optional), ignored if data is a list. A qualified `sample_info` should contain both `sample` and `condition` columns (case-sensitive), and there are no specific requirements for the data type stored in the `condition` column.
+#' @param sample_info Sample information data frame (optional), ignored if data is a list. A qualified `sample_info` should contain both `sample` and `condition` columns (case-sensitive), and there are no specific requirements for the data type stored in the `condition` column. `batch` column is optional, which is used for batch effect detection.
 #' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE
 #' @param check Whether to perform detailed quality checks, default: TRUE
 #' @param min_count_threshold Minimum count threshold for gene filtering, default: 10
@@ -152,8 +152,8 @@ BulkPreProcess <- function(
 
     # dots arguments
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-    seed <- dots$seed %||% getFuncOption("seed")
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+    seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
 
     set.seed(seed)
 
@@ -375,15 +375,11 @@ BulkPreProcess <- function(
                     if (all(is.na(gene_expression))) {
                         return(1)
                     }
-                    rlang::try_fetch(
-                        {
-                            aov_result <- stats::aov(
-                                gene_expression ~ batch_info
-                            )
-                            summary(aov_result)[[1]]["Pr(>F)"][1, 1]
-                        },
-                        error = function(e) 1
+
+                    aov_result <- stats::aov(
+                        gene_expression ~ batch_info
                     )
+                    summary(aov_result)[[1]]["Pr(>F)"][1, 1]
                 }
 
                 batch_pvalues <- cpm_values[batch_test_idx, , drop = FALSE] %>%

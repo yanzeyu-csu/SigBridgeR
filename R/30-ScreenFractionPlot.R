@@ -111,7 +111,7 @@ ScreenFractionPlot <- function(
     y_lab = "Fraction of Status",
     ncol = 2L,
     nrow = NULL,
-    verbose = getFuncOption("verbose"),
+    verbose = SigBridgeRUtils::getFuncOption("verbose"),
     ...
 ) {
     chk::chk_is(screened_seurat, "Seurat")
@@ -123,7 +123,7 @@ ScreenFractionPlot <- function(
     }
 
     dots <- rlang::list2(...)
-    theme_args <- FilterArgs4Func(dots, ggplot2::theme)
+    theme_args <- SigBridgeRUtils::FilterArgs4Func(dots, ggplot2::theme)
 
     meta_data <- screened_seurat[[]]
     all_screen_types <- colnames(meta_data)

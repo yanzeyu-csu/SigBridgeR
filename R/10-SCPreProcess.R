@@ -179,7 +179,7 @@ SCPreProcess.default <- function(
 
     # dots arguments
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,

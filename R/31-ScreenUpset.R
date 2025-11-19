@@ -66,7 +66,7 @@ ScreenUpset <- function(
     title = "Cell Counts Across Screen Set Intersections",
     bar_color = "#4E79A7",
     combmatrix_point_color = "black",
-    verbose = getFuncOption("verbose"),
+    verbose = SigBridgeRUtils::getFuncOption("verbose"),
     ...
 ) {
     # Robust
@@ -156,10 +156,13 @@ ScreenUpset <- function(
     dots <- rlang::list2(...)
     dots$combmatrix.panel.point.color.fill <- combmatrix_point_color
     dots$combmatrix.label.make_space <- FALSE
-    verbose <- dots$verbose %||% getFuncOption("verbose")
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
 
-    theme_args <- FilterArgs4Func(dots, ggplot2::theme)
-    combmatrix_args <- FilterArgs4Func(dots, ggupset::theme_combmatrix)
+    theme_args <- SigBridgeRUtils::FilterArgs4Func(dots, ggplot2::theme)
+    combmatrix_args <- SigBridgeRUtils::FilterArgs4Func(
+        dots,
+        ggupset::theme_combmatrix
+    )
 
     # Create UpSet plot
     upset <- ggplot2::ggplot(

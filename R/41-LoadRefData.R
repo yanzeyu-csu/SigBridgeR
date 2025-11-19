@@ -21,10 +21,10 @@
 LoadRefData <- function(
     data_type = c("survival", "binary", "continuous"),
     path = NULL,
-    timeout = getFuncOption("timeout"),
+    timeout = SigBridgeRUtils::getFuncOption("timeout"),
     ...
 ) {
-    data_type <- MatchArg(
+    data_type <- SigBridgeRUtils::MatchArg(
         data_type,
         c("survival", "binary", "continuous"),
         NULL
@@ -42,7 +42,7 @@ LoadRefData <- function(
     chk::chk_whole_number(timeout)
 
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
+    verbose <- dots$verbose %||% SigBridgeRUtils::ggetFuncOption("verbose")
 
     local_file <- file.path(path, glue::glue("{data_type}_ref_data.rds"))
 

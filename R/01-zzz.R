@@ -11,7 +11,11 @@
 
 .onLoad <- function(libname, pkgname) {
     # Add timestamp to cli functions
-    assign("ts_cli", CreateTimeStampCliEnv(), envir = asNamespace(pkgname))
+    assign(
+        "ts_cli",
+        SigBridgeRUtils::CreateTimeStampCliEnv(),
+        envir = asNamespace(pkgname)
+    )
 
     # default options
     op <- options()

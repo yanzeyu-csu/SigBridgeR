@@ -116,13 +116,6 @@ Other screen_method:
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()}
-
-Other scPP: 
-\code{\link{Check0VarRows}()},
-\code{\link{ScPP.optimized}()},
-\code{\link{marker_Binary.optimized}()},
-\code{\link{marker_Continuous.optimized}()},
-\code{\link{marker_Survival2}()}
 }
 \concept{scPP}
 \concept{screen_method}

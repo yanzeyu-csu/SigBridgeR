@@ -41,7 +41,10 @@
 #'
 #' @export
 #'
-MergeResult <- function(..., verbose = getFuncOption("verbose")) {
+MergeResult <- function(
+    ...,
+    verbose = SigBridgeRUtils::getFuncOption("verbose")
+) {
     args <- rlang::list2(...)
 
     if (length(args) == 0) {
@@ -102,7 +105,7 @@ MergeResult <- function(..., verbose = getFuncOption("verbose")) {
     }
 
     merged_obj <- subset(seurat_objects[[1]], cells = common_cells)
-    merged_obj[[]] <- Col2Rownames(merged_meta, "cell_id")
+    merged_obj[[]] <- SigBridgeRUtils::Col2Rownames(merged_meta, "cell_id")
 
     # merge slots
     merged_obj <- Reduce(
@@ -139,7 +142,7 @@ MergeResult <- function(..., verbose = getFuncOption("verbose")) {
         misc_list[[key]] <- if (length(values) == 1) values[[1]] else values
     }
 
-    merged_obj <- AddMisc(merged_obj, misc_list, cover = TRUE)
+    merged_obj <- SigBridgeRUtils::AddMisc(merged_obj, misc_list, cover = TRUE)
 
     if (verbose) {
         cli::cli_alert_success(
