@@ -79,6 +79,7 @@ Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associat
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoLP_SGL}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPP}()}

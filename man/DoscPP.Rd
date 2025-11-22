@@ -108,11 +108,11 @@ surv_res <- DoscPP(
 )
 }
 
-
 }
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoLP_SGL}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()}

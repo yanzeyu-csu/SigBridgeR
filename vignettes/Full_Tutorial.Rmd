@@ -40,6 +40,7 @@ vignette: >
         -   [3.3 (Option C) scAB Screening](#33-option-c-scab-screening)
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
         -   [3.5 (Option E) DEGAS Screening](#35-option-e-degas-screening)
+        -   [3.6 (Option F) LP_SGL Screening](#36-option-f-lp_sgl-screening)
         -   [3.8 Merge screening results](#38-merge-screening-results)
     -   [4. Visualization](#4-visualization)
         -   [4.1 UMAP for screening results](#41-umap-for-screening-results)
@@ -813,6 +814,38 @@ Please note that the environmental dependencies required for DEGAS to run are qu
 -   `model`: A model trained using single-cell RNA expression matrix, tissue bulk RNA sequencing expression matrix, and phenotypic data.
 -   `DEGAS_prediction`: Using the model to conduct prediction for each cell, resulting in a data.frame where each phenotype has a predicted probability score.
 
+### 3.6 (Option F) LP_SGL Screening
+
+Parameters pass to `...` when using `LP_SGL` method 
+
+- `resolution`: Resolution parameter for Leiden clustering (default: `0.6`)
+-  `alpha`: Alpha parameter for SGL balancing L1 and L2 penalties (default: `0.5`)
+- `nfold`: Number of folds for cross-validation (default: `5`)
+- `dge_analysis`: List controlling differential expression analysis:
+  - `run`: Whether to run DEG analysis (default: `FALSE`)
+  - `logFC_threshold`: Log fold change threshold (default: `1`)
+  - `pval_threshold`: P-value threshold (default: `0.05`)
+
+```{r,LP_SGL_screening,eval=FALSE}
+lpsgl_result <- Screen(
+  matched_bulk = your_matched_bulk,
+  sc_data = A_Seurat_object,
+  phenotype = your_matched_phenotype,
+  label_type = "TP53",
+  resolution = 0.6,
+  alpha = 0.5,
+  nfold = 5,
+  dge_analysis = list(
+    run = FALSE, # whether to run DEG analysis
+    logFC_threshold = 1,
+    pval_threshold = 0.05
+  ),
+  ... # Additional parameters like verbose, seed
+)
+```
+
+Although this screening method has modest performance and memory consumption, it requires a long execution time; thus, it is recommended to run it in the background.
+
 
 ### 3.8 Merge screening results
 
@@ -824,7 +857,8 @@ merged_seurat = MergeResult(
     your_scPAS_result, 
     your_scAB_result, 
     your_scPP_result,
-    your_DEGAS_result
+    your_DEGAS_result,
+    your_LP_SGL_result
 )
 
 # * mixed input form is alse supported 
@@ -834,16 +868,17 @@ merged_seurat = MergeResult(
     your_scPAS_result$scRNA_data, 
     your_scAB_result, 
     your_scPP_result,
-    your_DEGAS_result
+    your_DEGAS_result,
+    your_LP_SGL_result$scRNA_data
 )
 
 ```
 
-This function simply merges the `meta.data` and `misc` slots of the input Seurat objects. Please note that the intermediate data (e.g., `scissor_result$reliability.test` or `scab_result$scAB_result`) will not be preserved in this process.
+This function merges all slots from the input Seurat objects. Note that intermediate data (e.g., `scissor_result$reliability.test` or `scab_result$scAB_result`) will not be retained during the merge. While the function can technically combine different single-cell datasets, it is specifically designed for merging replicates or batches of the *same* single-cell RNA-seq experiment; using it for heterogeneous data may lead to subtle (and potentially hard-to-detect)  errors.
 
 **returning structure**:
 
-A Seurat object with merged `meta.data` and `misc` slots.
+A Seurat object with all merged  slots.
 
 ------------------------------------------------------------------------
 

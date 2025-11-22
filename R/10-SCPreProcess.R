@@ -257,7 +257,7 @@ SCPreProcess.default <- function(
 
             purrr::map(
                 valid_cols,
-                ~ rlang::expr(!!sym(.x) < !!data_filter.thresh[[.x]])
+                ~ rlang::expr(!!dplyr::sym(.x) < !!data_filter.thresh[[.x]])
             )
         }
 
