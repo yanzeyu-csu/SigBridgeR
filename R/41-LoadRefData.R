@@ -42,7 +42,7 @@ LoadRefData <- function(
     chk::chk_whole_number(timeout)
 
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% SigBridgeRUtils::ggetFuncOption("verbose")
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
 
     local_file <- file.path(path, glue::glue("{data_type}_ref_data.rds"))
 

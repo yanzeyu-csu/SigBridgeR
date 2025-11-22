@@ -6,7 +6,7 @@
 #' on cell barcodes to ensure only cells present in all inputs are retained.
 #'
 #' @usage
-#' MergeResult(..., verbose = getFuncOption("verbose"))
+#' MergeResult(..., verbose = SigBridgeRUtils::getFuncOption("verbose"))
 #'
 #' @param ... Input objects to merge. Can be:
 #'        - Seurat objects

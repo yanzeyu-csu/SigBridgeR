@@ -86,7 +86,7 @@
 #' )
 #' }
 #'
-#'
+#' @export
 #' @family screen_method
 #' @family scPP
 #'

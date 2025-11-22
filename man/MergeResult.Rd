@@ -4,7 +4,7 @@
 \alias{MergeResult}
 \title{Merge Multiple Screening Analysis Results}
 \usage{
-MergeResult(..., verbose = getFuncOption("verbose"))
+MergeResult(..., verbose = SigBridgeRUtils::getFuncOption("verbose"))
 }
 \arguments{
 \item{...}{Input objects to merge. Can be:

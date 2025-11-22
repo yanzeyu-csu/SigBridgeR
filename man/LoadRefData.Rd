@@ -7,7 +7,7 @@
 LoadRefData(
   data_type = c("survival", "binary", "continuous"),
   path = NULL,
-  timeout = getFuncOption("timeout"),
+  timeout = SigBridgeRUtils::getFuncOption("timeout"),
   ...
 )
 }

@@ -97,7 +97,7 @@
 #' )
 #' }
 #'
-#'
+#' @export
 #' @family screen_method
 #' @family scissor
 #'
@@ -125,7 +125,7 @@ DoScissor <- function(
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
     chk::chk_range(cutoff)
-    scissor_family <- MatchArg(
+    scissor_family <- SigBridgeRUtils::MatchArg(
         scissor_family,
         c("gaussian", "binomial", "cox"),
         NULL

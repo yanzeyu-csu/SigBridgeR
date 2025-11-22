@@ -27,7 +27,7 @@
 #'   y_lab = "Fraction of Status",
 #'   ncol = 2, # number of columns for facet wrap
 #'   nrow = NULL, # number of rows for facet wrap
-#'   verbose = getFuncOption("verbose"),
+#'   verbose = SigBridgeRUtils::getFuncOption("verbose"),
 #'   ... # ggplot2 theme arguments
 #' )
 #'
@@ -165,9 +165,15 @@ ScreenFractionPlot <- function(
     # Function to create plot for single screen type
     SinglePlot <- function(single_screen_type, title_suffix = "") {
         stats_df <- meta_data %>%
-            dplyr::count(!!sym(group_by), !!sym(single_screen_type)) %>%
-            complete_counts(!!sym(group_by), !!sym(single_screen_type)) %>%
-            dplyr::group_by(!!sym(group_by)) %>%
+            dplyr::count(
+                !!dplyr::sym(group_by),
+                !!dplyr::sym(single_screen_type)
+            ) %>%
+            complete_counts(
+                !!dplyr::sym(group_by),
+                !!dplyr::sym(single_screen_type)
+            ) %>%
+            dplyr::group_by(!!dplyr::sym(group_by)) %>%
             dplyr::mutate(Total = sum(`n`)) %>%
             dplyr::ungroup() %>%
             dplyr::mutate(
@@ -175,9 +181,9 @@ ScreenFractionPlot <- function(
             )
 
         plot_order <- stats_df %>%
-            dplyr::filter(!!sym(single_screen_type) == "Positive") %>%
+            dplyr::filter(!!dplyr::sym(single_screen_type) == "Positive") %>%
             dplyr::arrange(dplyr::desc(Fraction)) %>%
-            dplyr::pull(!!sym(group_by))
+            dplyr::pull(!!dplyr::sym(group_by))
 
         # Get label type from misc
         label_type <- screened_seurat@misc[[grep(
@@ -211,11 +217,12 @@ ScreenFractionPlot <- function(
         plot <- ggplot2::ggplot(
             plot_df,
             ggplot2::aes(
-                x = factor(!!sym(group_by), levels = plot_order),
+                x = factor(!!dplyr::sym(group_by), levels = plot_order),
                 y = `Fraction`,
-                fill = !!sym(single_screen_type)
+                fill = !!dplyr::sym(single_screen_type)
             )
         ) +
+
             ggplot2::geom_col(position = "stack", width = stack_width) +
             ggplot2::scale_y_continuous(
                 labels = function(x) paste0(round(x * 100L, 0L), "%"),

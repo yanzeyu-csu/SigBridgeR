@@ -51,6 +51,7 @@ pak::pkg_install(c(
   "preprocessCore",
   "tidyr",
   "furrr",
+  "future",
   "matrixTests"
 ))
 

@@ -3,7 +3,7 @@
 fileDownload <- function(
     url,
     destfile,
-    quiet = !getFuncOption("verbose"),
+    quiet = !SigBridgeRUtils::getFuncOption("verbose"),
     mode = "wb"
 ) {
     download_res <- processx::run(
@@ -15,7 +15,7 @@ fileDownload <- function(
             destfile
         ),
         wd = getwd(),
-        timeout = getFuncOption("timeout"),
+        timeout = SigBridgeRUtils::getFuncOption("timeout"),
         echo_cmd = quiet,
         echo = quiet,
     )

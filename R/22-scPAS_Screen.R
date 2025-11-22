@@ -33,9 +33,7 @@
 #' Licensed under the GNU General Public License version 3 (GPL-3.0).
 #' A copy of the license is available at <https://www.gnu.org/licenses/gpl-3.0.en.html>.
 #'
-#'
-#' @importFrom cli cli_alert_info cli_alert_success
-#' @importFrom Matrix rowSums as.matrix
+#' @export
 #'
 #' @family screen_method
 #' @family scPAS

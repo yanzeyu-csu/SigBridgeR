@@ -20,7 +20,7 @@ ScreenFractionPlot(
   y_lab = "Fraction of Status",
   ncol = 2, # number of columns for facet wrap
   nrow = NULL, # number of rows for facet wrap
-  verbose = getFuncOption("verbose"),
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
   ... # ggplot2 theme arguments
 )
 }

@@ -148,7 +148,7 @@ BulkPreProcess <- function(
         ),
         ~ chk::chk_numeric
     )
-    purrr::walk(list(check, show_plot_results, verbose), ~ chk::chk_flag)
+    purrr::walk(list(check, show_plot_results), ~ chk::chk_flag)
 
     # dots arguments
     dots <- rlang::list2(...)
@@ -318,7 +318,7 @@ BulkPreProcess <- function(
 
         # Select highly variable genes
         n_genes_for_pca <- min(n_top_genes, nrow(cpm_values))
-        gene_vars <- rowVars(cpm_values, na.rm = TRUE)
+        gene_vars <- SigBridgeRUtils::rowVars(cpm_values, na.rm = TRUE)
         top_var_idx <- order(gene_vars, decreasing = TRUE)[seq_len(
             n_genes_for_pca
         )]
@@ -351,7 +351,7 @@ BulkPreProcess <- function(
             if (length(outliers) > 0) {
                 outlier_names <- sample_info$sample[outliers]
                 cli::cli_warn(sprintf(
-                    "Outlier samples detected: {.emph {%s}}",
+                    "Outlier samples detected: {.emph %s}",
                     glue::glue_collapse(outlier_names, sep = ', ')
                 ))
             }

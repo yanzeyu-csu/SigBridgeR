@@ -4,7 +4,11 @@
 \alias{FindRobustElbow}
 \title{Automatically determine optimal PCA dimensions using multiple robust methods}
 \usage{
-FindRobustElbow(obj, verbose = getFuncOption("verbose"), ndims = 50)
+FindRobustElbow(
+  obj,
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
+  ndims = 50
+)
 }
 \arguments{
 \item{obj}{A Seurat object that has PCA computed (after RunPCA)}

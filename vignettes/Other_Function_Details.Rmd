@@ -162,7 +162,7 @@ ListPyEnv(env_type = "conda")
 If the virtual environment isn't installed in the default location, you can specify the location of the virtual environment with the `venv_locations` parameter.
 
 ```{r,list_py_env_example_3,eval=FALSE}
-ListPyEnv(env_type = "venv",venv_locations ="~/here_is_a_dir/.virtualenvs")
+ListPyEnv(env_type = "venv", venv_locations ="~/here_is_a_dir/.virtualenvs")
 ```
 
 ## Finding the Optimal Number of Principle Components 

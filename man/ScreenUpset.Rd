@@ -14,7 +14,7 @@ ScreenUpset(
   title = "Cell Counts Across Screen Set Intersections",
   bar_color = "#4E79A7",
   combmatrix_point_color = "black",
-  verbose = getFuncOption("verbose"),
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
   ...
 )
 }

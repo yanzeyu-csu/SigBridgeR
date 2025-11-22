@@ -94,16 +94,7 @@
 #' )
 #' }
 #'
-#' @seealso
-#' \code{\link{Vec2sparse}} for the structure transformation of phenotype
-#' \code{\link{jb.test.modified}} for modified Jarque-Bera test
-#' \code{\link{mad.test}} for outlier detection using Median Absolute Deviation
-#' \code{\link{runCCMTLBag.optimized}} for DEGAS model training
-#' \code{\link{predClassBag.optimized}} for DEGAS model prediction
-#' \code{\link{LabelBinaryCells}} for binary classification
-#' \code{\link{LabelSurvivalCells}} for survival classification
-#' \code{\link{LabelContinuousCells}} for continuous classification
-#'
+#' @export
 #' @family screen_method
 #' @family DEGAS
 #'
@@ -305,13 +296,16 @@ DoDEGAS <- function(
     }
 
     # Check if environment exists
-    existing_envs <- DEGAS::ListPyEnv.conda(verbose = FALSE)
+    existing_envs <- DEGAS::ListPyEnv(
+        env_type = env_params$env.type,
+        verbose = FALSE
+    )
     if (
         !env_params$env.name %chin% existing_envs$name ||
             env_params$env.recreate
     ) {
         do.call(
-            SetupPyEnv,
+            DEGAS::SetupPyEnv,
             c(
                 list(
                     env_type = env_params$env.type,
@@ -360,7 +354,7 @@ DoDEGAS <- function(
 
     # Train DEGAS model
     ccModel1 <- do.call(
-        runCCMTLBag.optimized,
+        DEGAS::runCCMTLBag.optimized,
         list(
             scExp = t_sc_mat,
             scLab = sc_pheno,
@@ -436,7 +430,7 @@ DoDEGAS <- function(
         metadata = t_sc_preds[["label"]],
         col.name = "DEGAS"
     ) %>%
-        AddMisc(
+        SigBridgeRUtils::AddMisc(
             DEGAS_type = label_type,
             DEGAS_para = degas_params,
             cover = FALSE

@@ -2,7 +2,8 @@
 
 #' @importFrom data.table `:=` `%chin%`
 #' @importFrom dplyr %>%
-#' @importFrom SigBridgeRUtils %||%
+#' @import SigBridgeRUtils
+#' @importFrom DEGAS SetupPyEnv ListPyEnv
 NULL
 
 # Silence R CMD check NOTES
@@ -14,5 +15,27 @@ utils::globalVariables(c(
     "verbose",
     "seed",
     "parallel",
-    "workers"
+    "workers",
+    # dplyr/tidyeval and data.table variables
+    ".",
+    "..duplicate_cols",
+    "PC",
+    "PC1",
+    "PC2",
+    "Variance",
+    "condition",
+    "batch",
+    "Feature",
+    "n",
+    "nFeature_RNA",
+    "Total",
+    "Fraction",
+    "sets",
+    "count",
+    # DEGAS-related variables
+    "DEGAS.model_type",
+    "DEGAS.architecture",
+    "DEGAS.ff_depth",
+    "DEGAS.bag_depth",
+    "DEGAS.seed"
 ))

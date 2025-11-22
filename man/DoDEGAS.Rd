@@ -138,20 +138,12 @@ result <- DoDEGAS(
 )
 }
 
+
 }
 \references{
 Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAuge of Single cells (DEGAS): a flexible deep transfer learning framework for prioritizing cells in relation to disease. Genome Med. 2022 Feb 1;14(1):11.
 }
 \seealso{
-\code{\link{Vec2sparse}} for the structure transformation of phenotype
-\code{\link{jb.test.modified}} for modified Jarque-Bera test
-\code{\link{mad.test}} for outlier detection using Median Absolute Deviation
-\code{\link{runCCMTLBag.optimized}} for DEGAS model training
-\code{\link{predClassBag.optimized}} for DEGAS model prediction
-\code{\link{LabelBinaryCells}} for binary classification
-\code{\link{LabelSurvivalCells}} for survival classification
-\code{\link{LabelContinuousCells}} for continuous classification
-
 Other screen_method: 
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},

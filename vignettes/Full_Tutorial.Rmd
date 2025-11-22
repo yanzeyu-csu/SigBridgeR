@@ -1109,7 +1109,6 @@ if (requireNamespace("here", quietly = TRUE)) {
 ```{r,example_data,eval=FALSE}
 library(SigBridgeR)
 library(zeallot)
-library(Seurat)
 
 # * load the example data
 c(mat_exam, bulk, pheno) %<-% LoadRefData(data_type = "survival")
@@ -1157,11 +1156,12 @@ seurat = SCPreProcess(
 
 `BulkPreProcess()` is to pre-process the bulk expression data and the related clinical data.frame (containing bulk sample information) to perform PCA. Here, we want to retain the data so that the screening can reflect the most accurate situation. You can choose whether to filter or retain based on your own needs. See also [2.2 Bulk expression data](#22-bulk-expression-data) for more details.
 
-To facilitate the demonstration of the use of the sample_info parameter, we will divide the `pheno` based on its survival status into two groups, which will be stored in the `condition` column.
+To facilitate the demonstration of the use of the sample_info parameter, we will divide the `pheno` based on its survival status into two groups, which will be stored in the `condition` column. `batch` column is used to store the batch information of the samples. The example is from one single batch.
 
 ```{r,example_data_bulk,eval=FALSE}
 sample_info <- tibble::rownames_to_column(pheno, var = "sample") %>%
   dplyr::rename(condition = status)
+sample_info$batch <- 'batch1'
 
 head(sample_info)
 #         sample  time condition
@@ -1172,7 +1172,7 @@ head(sample_info)
 # 5 TCGA-44-6775 23.16         0
 # 6 TCGA-44-2655 43.50         0
 
-bulk = BulkPreProcess(
+bulk <- BulkPreProcess(
   data = bulk,
   sample_info = sample_info,
   min_count_threshold = 0,

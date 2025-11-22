@@ -26,7 +26,7 @@
 #'
 FindRobustElbow <- function(
     obj,
-    verbose = SigBridgeRUtils::ggetFuncOption("verbose"),
+    verbose = SigBridgeRUtils::getFuncOption("verbose"),
     ndims = 50
 ) {
     # Input validation

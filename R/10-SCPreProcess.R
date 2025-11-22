@@ -179,7 +179,7 @@ SCPreProcess.default <- function(
 
     # dots arguments
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+    verbose <- dots$verbose %||% getFuncOption("verbose")
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
@@ -333,6 +333,9 @@ SCPreProcess.matrix <- function(
     dims = NULL,
     ...
 ) {
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     # sc is a count matrix
     if (verbose) {
         cli::cli_text("Start from count matrix")
@@ -355,6 +358,7 @@ SCPreProcess.matrix <- function(
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
+        verbose = verbose,
         ...
     )
 }
@@ -385,6 +389,9 @@ SCPreProcess.data.frame <- function(
     dims = NULL,
     ...
 ) {
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     # sc is a count matrix
     if (verbose) {
         cli::cli_text("Start from data.frame, convert it to matrix")
@@ -407,6 +414,7 @@ SCPreProcess.data.frame <- function(
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
+        verbose = verbose,
         ...
     )
 }
@@ -437,12 +445,14 @@ SCPreProcess.dgCMatrix <- function(
     dims = NULL,
     ...
 ) {
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     # sc is a count matrix
     if (verbose) {
         cli::cli_text("Start from count dgCMatrix")
     }
-    NextMethod(
-        generic = "SCPreProcess",
+    SCPreProcess.default(
         sc = sc,
         meta_data = meta_data,
         column2only_tumor = column2only_tumor,
@@ -490,6 +500,9 @@ SCPreProcess.R6 <- function(
     dims = NULL,
     ...
 ) {
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% getFuncOption("verbose")
+
     # Both `anndata` and `anndataR` are based on R6
     if (is.null(sc$X)) {
         cli::cli_abort(c("x" = "Input must contain $X matrix"))
@@ -523,6 +536,7 @@ SCPreProcess.R6 <- function(
         selection_method = selection_method,
         resolution = resolution,
         dims = dims,
+        verbose = verbose,
         ...
     )
 }
@@ -705,7 +719,7 @@ FilterTumorCell <- function(
     verbose = TRUE
 ) {
     raw_dim <- dim(obj)
-    obj <- AddMisc(obj, self_dim = raw_dim, cover = TRUE)
+    obj <- SigBridgeRUtils::AddMisc(obj, self_dim = raw_dim, cover = TRUE)
 
     if (is.null(column2only_tumor)) {
         return(obj)
@@ -730,7 +744,7 @@ FilterTumorCell <- function(
 
     obj <- obj[, tumor_cells]
 
-    AddMisc(
+    SigBridgeRUtils::AddMisc(
         seurat_obj = obj,
         raw_dim = raw_dim,
         self_dim = dim(obj),

@@ -57,7 +57,7 @@
 #' )
 #' }
 #'
-#'
+#' @export
 #' @family screen_method
 #' @family scAB
 #'
@@ -75,7 +75,11 @@ DoscAB <- function(
 ) {
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
-    phenotype_class <- MatchArg(phenotype_class, c("binary", "survival"), NULL)
+    phenotype_class <- SigBridgeRUtils::MatchArg(
+        phenotype_class,
+        c("binary", "survival"),
+        NULL
+    )
     chk::chk_range(alpha)
     chk::chk_range(alpha_2)
     chk::chk_number(maxiter)
@@ -100,10 +104,10 @@ DoscAB <- function(
     }
 
     dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-    seed <- dots$seed %||% getFuncOption("seed")
-    parallel <- dots$parallel %||% getFuncOption("parallel")
-    workers <- dots$workers %||% getFuncOption("workers")
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+    seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
+    parallel <- dots$parallel %||% SigBridgeRUtils::getFuncOption("parallel")
+    workers <- dots$workers %||% SigBridgeRUtils::getFuncOption("workers")
 
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
@@ -178,7 +182,7 @@ DoscAB <- function(
         scAB_Object = scAB_result,
         tred = tred
     ) %>%
-        AddMisc(
+        SigBridgeRUtils::AddMisc(
             scAB_type = label_type,
             scAB_para = list(
                 iter = scAB_result$iter,
