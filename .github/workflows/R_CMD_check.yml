@@ -128,9 +128,9 @@ jobs:
 
                   Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
 
-                  Rscript -e 'BiocManager::install(c("AUCell", "edgeR", "fgsea"))'
+                  Rscript -e 'BiocManager::install("edgeR")'
 
-                  Rscript -e 'remotes::install_github("WangX-Lab/ScPP")'  
+                  Rscript -e 'remotes::install_github("Exceret/ScPP"); remotes::install_github("Exceret/SigBridgeRUtils"); remotes::install_github("Exceret/LP_SGL"); remotes::install_github("Exceret/Scissor"); remotes::install_github("Exceret/scAB"); remotes::install_github("Exceret/DEGAS");; remotes::install_github("Exceret/scPAS"); remotes::install_github("Exceret/PIPET")'  
                   # 额外安装检查所需的包
                   Rscript -e 'install.packages("rcmdcheck")'
 

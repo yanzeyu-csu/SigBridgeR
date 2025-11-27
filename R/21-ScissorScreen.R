@@ -130,7 +130,6 @@ DoScissor <- function(
         c("gaussian", "binomial", "cox"),
         NULL
     )
-    chk::chk_character(path2save_scissor_inputs)
     chk::chk_flag(reliability_test)
     chk::chk_flag(cell_evaluation)
 

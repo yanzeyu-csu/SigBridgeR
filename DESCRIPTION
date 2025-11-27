@@ -61,6 +61,8 @@ Suggests:
     randomcoloR,
     reticulate,
     rmarkdown,
+    testthat (>= 3.0.0),
     tidyr,
     zeallot
 VignetteBuilder: knitr
+Config/testthat/edition: 3

@@ -32,7 +32,7 @@ jobs:
             - uses: r-lib/actions/setup-r-dependencies@v2
               with:
                   # 在这里添加 github::WangX-Lab/ScPP，使其从 GitHub 安装到正确的库中
-                  extra-packages: any::pkgdown, local::., github::WangX-Lab/ScPP, github::ShixiangWang/IDConverter, github::Qinran-Zhang/scAB, github::sunduanchen/Scissor, github::aiminXie/scPAS
+                  extra-packages: any::pkgdown, local::., github::Exceret/ScPP, github::ShixiangWang/IDConverter, github::Exceret/scAB, github::Exceret/Scissor, github::Exceret/scPAS,github::Exceret/PIPET, github::Exceret/SigBridgeRUtils, github::Exceret/LP_SGL, github::Exceret/DEGAS
                   needs: website
 
             - name: Build site

@@ -93,7 +93,7 @@ DoLP_SGL <- function(
     # * Start
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green(
-            "Starting LP-SGL screening analysis"
+            "Starting LP-SGL screen"
         ))
     }
     # * Run Leiden clustering
@@ -154,7 +154,7 @@ DoLP_SGL <- function(
             res_table,
             ~ paste(.x, .y, "cells", sep = " ", collapse = ", ")
         )
-        ts_cli$cli_alert_info("Identified {  msg}")
+        ts_cli$cli_alert_info("Identified {msg}")
 
         ts_cli$cli_alert_success(cli::col_green("LP-SGL screening completed"))
     }
