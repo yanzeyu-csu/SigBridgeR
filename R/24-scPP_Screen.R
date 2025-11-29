@@ -33,7 +33,7 @@
 #' @param ref_group Reference group or baseline for **binary** comparisons, e.g. "Normal" for Tumor/Normal studies and 0 for 0/1 case-control studies. (default: 0)
 #' @param Log2FC_cutoff Minimum log2 fold-change for binary markers (default: 0.585)
 #' @param estimate_cutoff Effect size threshold for **continuous** traits (default: 0.2)
-#' @param probs A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)
+#' @param probs A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: `0.2`)
 #' @param ... Additional arguments. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'    - `seed`: For reproducibility, default is `123L`
@@ -113,7 +113,7 @@ DoscPP <- function(
     chk::chk_range(Log2FC_cutoff)
     chk::chk_range(estimate_cutoff)
     if (!is.null(probs)) {
-        chk::chk_range(probs)
+        chk::chk_range(probs, range = c(0, 0.5))
     }
     # scPP can't tolerate NA
     chk::chk_not_any_na(matched_bulk)

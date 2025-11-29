@@ -45,7 +45,9 @@ DoPIPET <- function(
     )
 
     # Run PIPET core algorithm
-    ts_cli$cli_alert_info("Running PIPET correlation analysis...")
+    if (verbose) {
+        ts_cli$cli_alert_info("Running PIPET correlation analysis...")
+    }
     pipet_result <- PIPET::PIPET.optimized(
         SC_data = sc_data,
         markers = markers,
@@ -56,7 +58,7 @@ DoPIPET <- function(
         scale = scale,
         nPerm = nPerm,
         distance = distance,
-        nCores = nCores
+        workers = workers
     )
 
     # Add results to Seurat object if applicable

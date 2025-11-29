@@ -6,10 +6,10 @@
 #' It integrates variance-based heuristics, elbow detection algorithms, and provides
 #' comprehensive visualization for result validation.
 #'
-#' @param obj A Seurat object that has PCA computed (after RunPCA)
+#' @param obj A Seurat object that has PCA computed (after `RunPCA`)
 #' @param verbose Logical, if TRUE outputs detailed method results and creates
 #'                visualization plot. If FALSE returns only the final dimension.
-#' @param ndims Integer, maximum number of dimensions to consider (default: 50)
+#' @param ndims Integer, maximum number of dimensions to consider (default: `50L`)
 #'
 #' @return Integer, the recommended number of PCA dimensions for downstream analysis
 #'
@@ -27,7 +27,7 @@
 FindRobustElbow <- function(
     obj,
     verbose = SigBridgeRUtils::getFuncOption("verbose"),
-    ndims = 50
+    ndims = 50L
 ) {
     # Input validation
     if (!"pca" %chin% names(obj)) {

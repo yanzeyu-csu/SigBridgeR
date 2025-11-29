@@ -40,13 +40,15 @@ Imports:
 Depends: 
     R (>= 4.1.0)
 Remotes: 
-    Exceret/DEGAS,
-    Exceret/LP_SGL,  
-    Exceret/scAB,
-    Exceret/Scissor,
-    Exceret/scPAS,
-    Exceret/ScPP,
-    ShixiangWang/IDConverter
+    bioc::edgeR,
+    github::Exceret/DEGAS,
+    github::Exceret/LP_SGL,
+    github::Exceret/scAB,
+    github::Exceret/Scissor,
+    github::Exceret/scPAS,
+    github::Exceret/ScPP,
+    github::WangLabCSU/SigBridgeRUtils,
+    github::ShixiangWang/IDConverter
 Suggests: 
     anndata,
     carrier,

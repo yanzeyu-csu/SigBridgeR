@@ -11,16 +11,20 @@ DoScissor(
    sc_data,
    phenotype,
    label_type = "scissor",
-   alpha = c(0.05,NULL),
+   alpha = c(0.05, NULL),
    cutoff = 0.2,
    scissor_family = c("gaussian", "binomial", "cox"),
-   reliability_test = FALSE,
-   reliability_test.n = 10,
-   reliability_test.nfold = 10,
-   cell_evaluation = FALSE,
-   cell_evaluation.benchmark_data = "path_to_file.RData",
-   cell_evaluation.FDR = 0.05,
-   cell_evaluation.bootstrap_n = 100,
+   reliability_test = list(
+     run = FALSE, # whether to run reliability test
+     n = 10L, # permutation times
+     nfold = 10L # cross validation folds
+   ),
+   cell_evaluation = list(
+     run = FALSE, # whether to run cell evaluation
+     benchmark_data = "path_to_file.RData", # path to benchmark data
+     FDR_cutoff = 0.05,
+     bootstrap_n = 100L
+   ),
    ...
 )
 }
@@ -43,7 +47,7 @@ Column names must match \code{phenotype} identifiers.}
 
 \item{alpha}{Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.}
 
-\item{cutoff}{(default: 0.2). When \code{alpha=NULL}, the cutoff is used to determine the optimal alpha.
+\item{cutoff}{(default: \code{0.2}). When \code{alpha=NULL}, the cutoff is used to determine the optimal alpha.
 Higher values increase specificity.}
 
 \item{scissor_family}{Model family for outcome type:
@@ -51,19 +55,20 @@ Higher values increase specificity.}
 - "binomial": Binary outcomes (default)
 - "cox": Survival outcomes}
 
-\item{reliability_test}{Logical to perform stability assessment when \code{scissor_alpha} is specified as a value between 0 and 1.(default: TRUE).}
+\item{reliability_test}{List controlling reliability testing:
+\itemize{
+\item run: Whether to perform reliability test (default: FALSE)
+\item n: Permutation times (default: \code{10L})
+\item nfold: Cross-validation folds (default: \code{10L})
+}}
 
-\item{reliability_test.n}{Number of CV folds for reliability test (default: 10).}
-
-\item{reliability_test.nfold}{Cross-validation folds for reliability test (default: 10).}
-
-\item{cell_evaluation}{Logical to perform cell evaluation (default: FALSE).}
-
-\item{cell_evaluation.benchmark_data}{Path to benchmark data (RData file).}
-
-\item{cell_evaluation.FDR}{FDR threshold for cell evaluation (default: 0.05).}
-
-\item{cell_evaluation.bootstrap_n}{Number of bootstrap iterations for cell evaluation (default: 100).}
+\item{cell_evaluation}{List controlling cell evaluation:
+\itemize{
+\item run: Whether to perform cell evaluation (default: FALSE)
+\item benchmark_data: Path to benchmark data (RData file)
+\item FDR_cutoff: FDR threshold for evaluation (default: \code{0.05})
+\item bootstrap_n: Bootstrap iterations (default: \code{100L})
+}}
 
 \item{...}{Additional arguments. Currently supports:
 \itemize{
@@ -98,7 +103,9 @@ A list containing:
 }
 \description{
 Identifies phenotype-associated cell subpopulations in single-cell data using
-regularized regression on matched bulk expression profiles.
+regularized regression on matched bulk expression profiles. Scissor integrates
+bulk and single-cell RNA-seq data to identify cells that are significantly
+associated with phenotypic outcomes.
 }
 \section{LICENSE}{
 
@@ -128,6 +135,10 @@ Other screen_method:
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}
+
+Other scissor: 
+\code{\link{DoScissorCellEval}()},
+\code{\link{DoScissorRelTest}()}
 }
 \concept{scissor}
 \concept{screen_method}

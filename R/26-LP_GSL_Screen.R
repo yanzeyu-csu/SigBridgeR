@@ -119,14 +119,14 @@ DoLP_SGL <- function(
 
     # * Find Deferentially Expressed Genes if requested
     dge_res <- NULL
-    if (dge_analysis$run) {
-        default_dge_analysis <- list(
-            run = FALSE,
-            logFC_threshold = 1,
-            pval_threshold = 0.05
-        )
-        dge_analysis <- utils::modifyList(default_dge_analysis, dge_analysis)
+    default_dge_analysis <- list(
+        run = FALSE,
+        logFC_threshold = 1,
+        pval_threshold = 0.05
+    )
+    dge_analysis <- utils::modifyList(default_dge_analysis, dge_analysis)
 
+    if (dge_analysis$run) {
         rlang::check_installed('limma')
         dge_res <- rlang::try_fetch(
             LPSGL::perform_DEG_analysis(

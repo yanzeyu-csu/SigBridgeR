@@ -3,7 +3,9 @@
 #' @title Perform Scissor Screening Analysis
 #' @description
 #' Identifies phenotype-associated cell subpopulations in single-cell data using
-#' regularized regression on matched bulk expression profiles.
+#' regularized regression on matched bulk expression profiles. Scissor integrates
+#' bulk and single-cell RNA-seq data to identify cells that are significantly
+#' associated with phenotypic outcomes.
 #'
 #' @usage
 #' DoScissor(
@@ -13,16 +15,20 @@
 #'    sc_data,
 #'    phenotype,
 #'    label_type = "scissor",
-#'    alpha = c(0.05,NULL),
+#'    alpha = c(0.05, NULL),
 #'    cutoff = 0.2,
 #'    scissor_family = c("gaussian", "binomial", "cox"),
-#'    reliability_test = FALSE,
-#'    reliability_test.n = 10,
-#'    reliability_test.nfold = 10,
-#'    cell_evaluation = FALSE,
-#'    cell_evaluation.benchmark_data = "path_to_file.RData",
-#'    cell_evaluation.FDR = 0.05,
-#'    cell_evaluation.bootstrap_n = 100,
+#'    reliability_test = list(
+#'      run = FALSE, # whether to run reliability test
+#'      n = 10L, # permutation times
+#'      nfold = 10L # cross validation folds
+#'    ),
+#'    cell_evaluation = list(
+#'      run = FALSE, # whether to run cell evaluation
+#'      benchmark_data = "path_to_file.RData", # path to benchmark data
+#'      FDR_cutoff = 0.05,
+#'      bootstrap_n = 100L
+#'    ),
 #'    ...
 #' )
 #'
@@ -37,20 +43,21 @@
 #'        - Data frame: with row names matching bulk columns
 #' @param label_type Character specifying phenotype label type (e.g., "SBS1", "time"), stored in `scRNA_data@misc`
 #' @param alpha Parameter used to balance the effect of the l1 norm and the network-based penalties. It can be a number or a searching vector. If alpha = NULL, a default searching vector is used. The range of alpha is between 0 and 1. A larger alpha lays more emphasis on the l1 norm.
-#' @param cutoff  (default: 0.2). When `alpha=NULL`, the cutoff is used to determine the optimal alpha.
+#' @param cutoff  (default: `0.2`). When `alpha=NULL`, the cutoff is used to determine the optimal alpha.
 #'        Higher values increase specificity.
 #' @param scissor_family Model family for outcome type:
 #'        - "gaussian": Continuous outcomes
 #'        - "binomial": Binary outcomes (default)
 #'        - "cox": Survival outcomes
-#' @param reliability_test Logical to perform stability assessment when `scissor_alpha` is specified as a value between 0 and 1.(default: TRUE).
-#' @param reliability_test.n Number of CV folds for reliability test (default: 10).
-#'
-#' @param reliability_test.nfold Cross-validation folds for reliability test (default: 10).
-#' @param cell_evaluation Logical to perform cell evaluation (default: FALSE).
-#' @param cell_evaluation.benchmark_data Path to benchmark data (RData file).
-#' @param cell_evaluation.FDR FDR threshold for cell evaluation (default: 0.05).
-#' @param cell_evaluation.bootstrap_n Number of bootstrap iterations for cell evaluation (default: 100).
+#' @param reliability_test List controlling reliability testing:
+#' - run: Whether to perform reliability test (default: FALSE)
+#' - n: Permutation times (default: `10L`)
+#' - nfold: Cross-validation folds (default: `10L`)
+#' @param cell_evaluation List controlling cell evaluation:
+#' - run: Whether to perform cell evaluation (default: FALSE)
+#' - benchmark_data: Path to benchmark data (RData file)
+#' - FDR_cutoff: FDR threshold for evaluation (default: `0.05`)
+#' - bootstrap_n: Bootstrap iterations (default: `100L`)
 #' @param ... Additional arguments. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'    - `seed`: For reproducibility, default is `123L`
@@ -111,16 +118,20 @@ DoScissor <- function(
     alpha = c(0.05, NULL),
     cutoff = 0.2,
     scissor_family = c("gaussian", "binomial", "cox"),
-    reliability_test = FALSE,
-    reliability_test.n = 10,
-    reliability_test.nfold = 10,
-    cell_evaluation = FALSE,
-    cell_evaluation.benchmark_data = "path_to_file.RData",
-    cell_evaluation.FDR = 0.05,
-    cell_evaluation.bootstrap_n = 100,
+    reliability_test = list(
+        run = FALSE,
+        n = 10L,
+        nfold = 10L
+    ),
+    cell_evaluation = list(
+        run = FALSE,
+        benchmark_data = "path_to_file.RData",
+        FDR_cutoff = 0.05,
+        bootstrap_n = 100L
+    ),
     ...
 ) {
-    # Input validation
+    # * Input validation
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, "Seurat")
     chk::chk_character(label_type)
@@ -133,10 +144,31 @@ DoScissor <- function(
     chk::chk_flag(reliability_test)
     chk::chk_flag(cell_evaluation)
 
-    # get from dots
+    # * get defaults from dots
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
     seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
+
+    # * default setting for `reliability_test` & `cell_evaluation`
+    default_reliability_test <- list(
+        run = FALSE,
+        n = 10L,
+        nfold = 10L
+    )
+    default_cell_evalutaion <- list(
+        run = FALSE,
+        benchmark_data = "path_to_file.RData",
+        FDR = 0.05,
+        bootstrap_n = 100L
+    )
+    reliability_test <- utils::modifyList(
+        default_reliability_test,
+        reliability_test
+    )
+    cell_evaluation <- utils::modifyList(
+        default_cell_evalutaion,
+        cell_evaluation
+    )
 
     if (scissor_family %chin% c("binomial", "cox")) {
         label_type_scissor <- c(
@@ -183,71 +215,33 @@ DoScissor <- function(
             cover = FALSE
         )
 
-    # *reliability test
-    if (reliability_test) {
-        purrr::walk(
-            c(reliability_test.n, reliability_test.nfold, alpha),
-            chk::chk_number
-        )
-
-        # indicate that Y has only two levels, both Pos and Neg cells exist
-        if (length(table(infos1$Y)) < 2) {
-            cli::cli_abort(c(
-                "x" = "Error in reliability test:",
-                ">" = "one of the Pos or Neg cells doesn't exist"
-            ))
-        }
-        if (verbose) {
-            ts_cli$cli_alert_info(
-                cli::col_green("Start reliability test")
-            )
-        }
-
-        reliability_result <- Scissor::reliability.test(
-            infos1$X,
-            infos1$Y,
-            infos1$network,
+    # * reliability test
+    reliability_result <- if (reliability_test$run) {
+        DoScissorRelTest(
+            scissor_res = infos1,
             alpha = alpha,
             family = scissor_family,
             cell_num = length(infos1$Scissor_pos) +
                 length(infos1$Scissor_neg),
-            n = reliability_test.n,
-            nfold = reliability_test.nfold,
+            n = reliability_test$n,
+            nfold = reliability_test$nfold,
             verbose = verbose
         )
-        if (verbose) {
-            ts_cli$cli_alert_info(
-                cli::col_green("reliability test: Done")
-            )
-        }
     } else {
-        reliability_result <- NULL
+        NULL
     }
 
     # * cell_evaluation
-    if (cell_evaluation) {
-        chk::chk_file(cell_evaluation.benchmark_data)
-        chk::chk_number(cell_evaluation.bootstrap_n)
-        chk::chk_range(cell_evaluation.FDR)
-        if (verbose) {
-            ts_cli$cli_alert_info(
-                cli::col_green("Start cell evalutaion")
-            )
-        }
-
-        evaluate_res <- Scissor::evaluate.cell(
-            Load_file = cell_evaluation.benchmark_data,
-            Scissor_result = infos1,
-            FDR_cutoff = cell_evaluation.FDR,
-            bootstrap_n = cell_evaluation.bootstrap_n
+    evaluate_res <- if (cell_evaluation$run) {
+        DoScissorCellEval(
+            benchmark_data_path = cell_evaluation$benchmark_data,
+            scissor_res = infos1,
+            FDR_cutoff = cell_evaluation$FDR_cutoff,
+            bootstrap_n = cell_evaluation$bootstrap_n,
+            verbose = verbose
         )
-        if (verbose) {
-            ts_cli$cli_alert_info(
-                cli::col_green("Cell evalutaion: Done")
-            )
-        }
     } else {
-        evaluate_res <- NULL
+        NULL
     }
 
     list(
@@ -256,4 +250,158 @@ DoScissor <- function(
         reliability_result = reliability_result,
         cell_evaluation = evaluate_res
     )
+}
+
+#' @title Perform Scissor Reliability Test
+#' @description
+#' Performs reliability testing for Scissor results to assess the stability
+#' and robustness of identified phenotype-associated cells.
+#'
+#' @param scissor_res Scissor results from Scissor
+#' @param alpha Alpha parameter used in Scissor, a scalar value between 0 and 1
+#' @param family Model family used in Scissor, one of "gaussian", "binomial", "cox"
+#' @param cell_num Number of cells identified by Scissor
+#' @param n Permutation times (default: `10L`)
+#' @param nfold Cross-validation folds (default: `10L`)
+#' @param verbose Whether to show progress messages (default: `TRUE`)
+#' @param ... No used parameters
+#'
+#' @return Reliability test results including statistics and p-values
+#'
+#' @keywords internal
+#' @family scissor
+DoScissorRelTest <- function(
+    scissor_res,
+    alpha,
+    family,
+    cell_num = length(scissor_res$Scissor_pos) +
+        length(scissor_res$Scissor_neg),
+    n = 10L,
+    nfold = 10L,
+    verbose = getFuncOption('verbose'),
+    ...
+) {
+    skip_flag <- purrr::map_lgl(
+        c(n, nfold),
+        function(x) {
+            if (!is.numeric(x) || is.na(x) || x != floor(x)) {
+                cli::cli_warn(c(
+                    "x" = "`n` and `nfold` must be scalar integer. Skipping reliability test.",
+                    ">" = "Current `n`: {class(n)} {.val {n}}, `nfold`: {class(nfold)} {.val {nfold}}"
+                ))
+                return(TRUE)
+            }
+            FALSE
+        }
+    )
+    if (any(skip_flag)) {
+        return(NULL)
+    }
+
+    # indicate that Y has two levels, both Pos and Neg cells exist
+    if (length(table(scissor_res$Y)) < 2) {
+        cli::cli_warn(c(
+            "x" = "Only one level detected in Scissor result. Skipping reliability test."
+        ))
+        return(NULL)
+    }
+
+    # * start
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            cli::col_green("Start reliability test")
+        )
+    }
+
+    rel_res <- Scissor::reliability.test(
+        X = scissor_res$X,
+        Y = scissor_res$Y,
+        network = scissor_res$network,
+        alpha = alpha,
+        family = family,
+        cell_num = cell_num,
+        n = n,
+        nfold = nfold,
+        verbose = verbose
+    )
+
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            cli::col_green("reliability test: Done")
+        )
+    }
+
+    rel_res
+}
+
+#' @title Perform Scissor Cell Evaluation
+#' @description
+#' Evaluates the significance of Scissor-identified cells using benchmark data
+#' and bootstrap resampling.
+#'
+#' @param benchmark_data_path Path to benchmark data (RData file)
+#' @param scissor_res Scissor results from Scissor
+#' @param FDR_cutoff FDR threshold for significance (default: `0.05`)
+#' @param bootstrap_n Number of bootstrap iterations (default: `100L`)
+#' @param verbose Whether to show progress messages (default: `TRUE`)
+#' @param ... No usage
+#'
+#' @return Cell evaluation results with significance assessments
+#'
+#' @keywords internal
+#' @family scissor
+DoScissorCellEval <- function(
+    benchmark_data_path = 'path_to_file.RData',
+    scissor_res,
+    FDR_cutoff = 0.05,
+    bootstrap_n = 100L,
+    verbose = getFuncOption('verbose'),
+    ...
+) {
+    if (!file.exists(benchmark_data_path)) {
+        cli::cli_warn(c(
+            'x' = '`benchmark_data` does not exist. Skipping cell evaluation'
+        ))
+        return(NULL)
+    }
+    if (FDR_cutoff <= 0 || FDR_cutoff >= 1) {
+        cli::cli_warn(c(
+            'x' = '`FDR_cutoff` must be between 0 and 1. Skipping cell evaluation',
+            '>' = 'Current `FDR_cutoff`: {class(FDR_cutoff)} {.val {FDR_cutoff}}'
+        ))
+        return(NULL)
+    }
+    if (
+        !is.numeric(bootstrap_n) ||
+            is.na(bootstrap_n) ||
+            bootstrap_n != floor(bootstrap_n)
+    ) {
+        cli::cli_warn(c(
+            'x' = '`bootstrap_n` must be scalar integer. Skipping cell evaluation',
+            '>' = 'Current `bootstrap_n`: {class(bootstrap_n)} {.val {bootstrap_n}}'
+        ))
+        return(NULL)
+    }
+
+    # * start
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            cli::col_green("Start cell evalutaion")
+        )
+    }
+
+    evaluate_res <- Scissor::evaluate.cell(
+        Load_file = benchmark_data_path,
+        Scissor_result = scissor_res,
+        FDR_cutoff = FDR_cutoff,
+        bootstrap_n = bootstrap_n
+    )
+
+    if (verbose) {
+        ts_cli$cli_alert_info(
+            cli::col_green("Cell evalutaion finished")
+        )
+    }
+
+    evaluate_res
 }

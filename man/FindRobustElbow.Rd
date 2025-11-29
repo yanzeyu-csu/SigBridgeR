@@ -7,16 +7,16 @@
 FindRobustElbow(
   obj,
   verbose = SigBridgeRUtils::getFuncOption("verbose"),
-  ndims = 50
+  ndims = 50L
 )
 }
 \arguments{
-\item{obj}{A Seurat object that has PCA computed (after RunPCA)}
+\item{obj}{A Seurat object that has PCA computed (after \code{RunPCA})}
 
 \item{verbose}{Logical, if TRUE outputs detailed method results and creates
 visualization plot. If FALSE returns only the final dimension.}
 
-\item{ndims}{Integer, maximum number of dimensions to consider (default: 50)}
+\item{ndims}{Integer, maximum number of dimensions to consider (default: \code{50L})}
 }
 \value{
 Integer, the recommended number of PCA dimensions for downstream analysis
