@@ -22,10 +22,11 @@ Imports:
     ggupset,
     glue,
     IDConverter (>= 0.3.5),
-    LPSGL,
+    LPSGL (>= 0.0.0.9000),
     Matrix,
     methods,
     patchwork,
+    PIPET (>= 0.1.0),
     processx,
     purrr,
     rlang,
@@ -35,7 +36,7 @@ Imports:
     ScPP (>= 0.0.0.9000),
     Seurat (>= 5.0.0),
     SeuratObject (>= 5.0.0),
-    SigBridgeRUtils,
+    SigBridgeRUtils (>= 0.0.0.9000),
     tibble
 Depends: 
     R (>= 4.1.0)
@@ -43,6 +44,7 @@ Remotes:
     bioc::edgeR,
     github::Exceret/DEGAS,
     github::Exceret/LP_SGL,
+    github::Exceret/PIPET,
     github::Exceret/scAB,
     github::Exceret/Scissor,
     github::Exceret/scPAS,
@@ -53,6 +55,7 @@ Suggests:
     anndata,
     carrier,
     furrr,
+    future,
     ggVennDiagram,
     here,
     knitr,
@@ -63,6 +66,7 @@ Suggests:
     randomcoloR,
     reticulate,
     rmarkdown,
+    sparseMatrixStats,
     testthat (>= 3.0.0),
     tidyr,
     zeallot

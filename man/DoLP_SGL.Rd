@@ -94,6 +94,7 @@ Li J, Zhang H, Mu B, Zuo H, Zhou K. Identifying phenotype-associated subpopulati
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},

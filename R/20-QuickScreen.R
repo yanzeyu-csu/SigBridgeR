@@ -250,10 +250,6 @@ Screen <- function(
                 LPSGL_family = LPSGL_family, # "Binary", "Survival", "Continuous"
                 ...
             )
-        },
-        cli::cli_abort(c(
-            "x" = "Screen method not found.",
-            "i" = "Available methods: {.val {available_screen_method}}"
-        ))
+        }
     )
 }

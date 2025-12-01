@@ -93,6 +93,7 @@ Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical si
 Other screen_method: 
 \code{\link{DoDEGAS}()},
 \code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}

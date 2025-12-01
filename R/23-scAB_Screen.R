@@ -122,7 +122,7 @@ DoscAB <- function(
     )
 
     if (verbose) {
-        ts_cli$cli_alert_info("Selecting K...")
+        ts_cli$cli_alert_info("Selecting K")
     }
 
     k <- scAB::select_K.optimized(

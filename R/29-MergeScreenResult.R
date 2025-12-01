@@ -75,7 +75,7 @@ MergeResult <- function(
 
     # extract metadata
     meta_list <- lapply(seurat_objects, function(x) {
-        data.table::as.data.table(x@meta.data, keep.rownames = "cell_id")
+        data.table::as.data.table(x[[]], keep.rownames = "cell_id")
     })
 
     merged_meta <- Reduce(
@@ -98,8 +98,9 @@ MergeResult <- function(
     if (common_cells_len != first_seurat_cells) {
         cli::cli_warn(
             c(
-                "The {.fun MergeResult} was not originally designed for integrating heterogeneous single-cell datasets; Only the intersection of cells will be retained",
-                ">" = "After intersection, only {.val {common_cells_len}} cells retained from {.val {first_seurat_cells}} cells in the first base object."
+                "i" = "The {.fun MergeResult} was not originally designed for integrating heterogeneous single-cell datasets",
+                ">" = " Only the intersection of cells will be retained",
+                ">" = "After intersection, only {.val {common_cells_len}} cells retained from {.val {first_seurat_cells}} cells in the first base object"
             )
         )
     }

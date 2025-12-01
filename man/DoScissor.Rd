@@ -132,6 +132,7 @@ Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et al. Identifying phenotype
 Other screen_method: 
 \code{\link{DoDEGAS}()},
 \code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}

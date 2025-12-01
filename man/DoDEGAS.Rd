@@ -21,9 +21,9 @@ DoDEGAS(
 )
 }
 \arguments{
-\item{select_fraction}{The top percentage of selected cells will be considered as Positive cells, without considering how much larger the possible correlation coefficient of the observation group is compared to that of the control group. Only usedl when \code{phenotype_class} is "binary" or "survival". (default: 0.05)}
+\item{select_fraction}{The top percentage of selected cells will be considered as Positive cells, without considering how much larger the possible correlation coefficient of the observation group is compared to that of the control group. Only usedl when \code{phenotype_class} is "binary" or "survival". (default: \code{0.05})}
 
-\item{min_thresh}{DEGAS will calculate the possible correlation coefficients for each cell related to the phenotype. When the coefficient of the observation group is at least \code{min_thresh} larger than that of the control group, it can be considered related to the phenotype and will be marked as Positive. The priority of \code{min_thresh} is higher than that of \code{select_fraction.} (default: 0.4)}
+\item{min_thresh}{DEGAS will calculate the possible correlation coefficients for each cell related to the phenotype. When the coefficient of the observation group is at least \code{min_thresh} larger than that of the control group, it can be considered related to the phenotype and will be marked as Positive. The priority of \code{min_thresh} is higher than that of \code{select_fraction.} (default: \code{0.4})}
 
 \item{matched_bulk}{Bulk RNA-seq data as matrix or data.frame (rows=genes, columns=samples)}
 
@@ -32,43 +32,43 @@ DoDEGAS(
 \item{phenotype}{Bulk-level phenotype data. For classification: binary matrix with one-hot encoding.
 For survival: matrix with two columns (time and event status). Can be NULL, matrix, data.frame, or vector.}
 
-\item{sc_data.pheno_colname}{Column name for single-cell phenotype in metadata (if available)}
+\item{sc_data.pheno_colname}{Column name for single-cell phenotype in metadata (if available), default: \code{NULL}}
 
-\item{label_type}{Label type for DEGAS results (default: "DEGAS")}
+\item{label_type}{Label type for DEGAS results (default: "\verb{DEGAS"})}
 
 \item{phenotype_class}{Type of phenotype: "binary" (classification), "continuous", or "survival"}
 
-\item{tmp_dir}{Temporary directory for intermediate files (default: "tmp")}
+\item{tmp_dir}{Temporary directory for intermediate files (default: \code{"tmp"})}
 
 \item{env_params}{List of environment parameters for Python setup including:
 \itemize{
-\item env.name: environment name (default: "r-reticulate-degas")
-\item env.type: environment type "conda", "environment", or "venv" (default: "environment")
-\item env.method: environment setup method "system", "conda" (default: "system")
+\item env.name: environment name (default: \code{"r-reticulate-degas"})
+\item env.type: environment type "conda", "environment", or "venv" (default: \code{"environment"})
+\item env.method: environment setup method "system", "conda" (default: \code{"system"})
 \item env.file: path to environment file (default: system.file("conda/DEGAS_environment.yml", package = "SigBridgeR"))
 \item env.python_version: Python version (default: "3.9.15")
 \item env.packages: named vector of Python packages and versions (default: c("tensorflow" = "2.4.1", "protobuf" = "3.20" ,"numpy" = "any"))
-\item env.recreate: whether to recreate environment (default: FALSE)
-\item env.use_conda_forge: whether to use conda-forge channel (conda only, default: TRUE)
-\item env.verbose: verbose output (default: FALSE)
+\item env.recreate: whether to recreate environment (default: \code{FALSE})
+\item env.use_conda_forge: whether to use conda-forge channel (conda only, default: \code{TRUE})
+\item env.verbose: verbose output (default: \code{FALSE})
 }}
 
 \item{degas_params}{List of DEGAS algorithm parameters including:
 \itemize{
 \item DEGAS.model_type: model type ("BlankClass", "ClassBlank", "ClassClass", "ClassCox", "BlankCox")
-\item DEGAS.architecture: "Standard" (feed forward) or "DenseNet" (dense net)
-\item DEGAS.ff_depth: number of layers in model (>=1, default: 3)
-\item DEGAS.pyloc: path to Python executable (default: NULL, automatic detection)
-\item DEGAS.bag_depth: bootstrap aggregation depth (>=1, default: 5)
-\item DEGAS.train_steps: training steps (default: 2000)
-\item DEGAS.scbatch_sz: single-cell batch size (default: 200)
-\item DEGAS.patbatch_sz: patient batch size (default: 50)
-\item DEGAS.hidden_feats: hidden features (default: 50)
-\item DEGAS.do_prc: dropout percentage (default: 0.5)
-\item DEGAS.lambda1: regularization parameter 1 (default: 3.0)
-\item DEGAS.lambda2: regularization parameter 2 (default: 3.0)
-\item DEGAS.lambda3: regularization parameter 3 (default: 3.0)
-\item DEGAS.seed: random seed (default: 2)
+\item DEGAS.architecture: "Standard" (feed forward) or "DenseNet" (dense net), default: \code{"DenseNet"}
+\item DEGAS.ff_depth: number of layers in model (>=1, default: \code{3})
+\item DEGAS.pyloc: path to Python executable (default: \code{NULL}, automatic detection)
+\item DEGAS.bag_depth: bootstrap aggregation depth (>=1, default: \code{5})
+\item DEGAS.train_steps: training steps (default: \code{2000})
+\item DEGAS.scbatch_sz: single-cell batch size (default: \code{200})
+\item DEGAS.patbatch_sz: patient batch size (default: \code{50})
+\item DEGAS.hidden_feats: hidden features (default: \code{50})
+\item DEGAS.do_prc: dropout percentage (default: \code{0.5})
+\item DEGAS.lambda1: regularization parameter 1 (default: \code{3.0})
+\item DEGAS.lambda2: regularization parameter 2 (default: \code{3.0})
+\item DEGAS.lambda3: regularization parameter 3 (default: \code{3.0})
+\item DEGAS.seed: random seed (default: \code{2})
 }}
 
 \item{normality_test_method}{Method for normality testing: "jarque-bera", "d'agostino", or "kolmogorov-smirnov"}
@@ -145,10 +145,17 @@ Johnson TS, Yu CY, Huang Z, Xu S, Wang T, Dong C, et al. Diagnostic Evidence GAu
 \seealso{
 Other screen_method: 
 \code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}
+
+Other DEGAS: 
+\code{\link{DEGASEnvSet}()},
+\code{\link{DEGASFindPy}()},
+\code{\link{DEGASModelDetect}()},
+\code{\link{DEGASParamSet}()}
 }
 \concept{DEGAS}
 \concept{screen_method}
