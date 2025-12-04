@@ -2,7 +2,7 @@
 
 #' @importFrom data.table `:=` `%chin%`
 #' @importFrom dplyr %>%
-#' @import SigBridgeRUtils
+#' @importFrom SigBridgeRUtils AddMisc getFuncOption setFuncOption
 #' @importFrom DEGAS SetupPyEnv ListPyEnv
 NULL
 
