@@ -141,8 +141,8 @@ DoScissor <- function(
         c("gaussian", "binomial", "cox"),
         NULL
     )
-    chk::chk_flag(reliability_test)
-    chk::chk_flag(cell_evaluation)
+    chk::chk_list(reliability_test)
+    chk::chk_list(cell_evaluation)
 
     # * get defaults from dots
     dots <- rlang::list2(...)

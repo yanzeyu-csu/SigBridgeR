@@ -57,141 +57,142 @@
 #' @family visualization_function
 #'
 ScreenUpset <- function(
-    screened_seurat,
-    screen_type = NULL,
-    show_plot = FALSE,
-    n_intersections = 20,
-    x_lab = "Screen Set Intersections",
-    y_lab = "Number of Cells",
-    title = "Cell Counts Across Screen Set Intersections",
-    bar_color = "#4E79A7",
-    combmatrix_point_color = "black",
-    verbose = SigBridgeRUtils::getFuncOption("verbose"),
-    ...
+  screened_seurat,
+  screen_type = NULL,
+  show_plot = FALSE,
+  n_intersections = 20,
+  x_lab = "Screen Set Intersections",
+  y_lab = "Number of Cells",
+  title = "Cell Counts Across Screen Set Intersections",
+  bar_color = "#4E79A7",
+  combmatrix_point_color = "black",
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
+  ...
 ) {
-    # Robust
-    chk::chk_is(screened_seurat, "Seurat")
-    if (!is.null(screen_type)) {
-        chk::chk_character(screen_type)
-    }
-    chk::chk_whole_number(n_intersections)
-    chk::chk_flag(show_plot)
-    purrr::walk(
-        list(x_lab, y_lab, title, bar_color, combmatrix_point_color),
-        ~ chk::chk_character
-    )
+  # Robust
+  chk::chk_is(screened_seurat, "Seurat")
+  if (!is.null(screen_type)) {
+    chk::chk_character(screen_type)
+  }
+  chk::chk_whole_number(n_intersections)
+  chk::chk_flag(show_plot)
+  purrr::walk(
+    list(x_lab, y_lab, title, bar_color, combmatrix_point_color),
+    ~ chk::chk_character
+  )
+  rlang::check_installed(c("ggplot2", "ggupset"))
 
-    meta_data <- screened_seurat[[]]
-    all_screen_types <- colnames(meta_data)
-    if (is.null(screen_type)) {
-        screen_type <- grep(
-            "sc[A-Za-z]+$|DEGAS$",
-            all_screen_types,
-            value = TRUE
+  meta_data <- screened_seurat[[]]
+  all_screen_types <- colnames(meta_data)
+  if (is.null(screen_type)) {
+    screen_type <- grep(
+      "sc[A-Za-z]+$|DEGAS$",
+      all_screen_types,
+      value = TRUE
+    )
+  }
+  if (
+    !all(purrr::map_vec(
+      screen_type,
+      ~ . %in% all_screen_types
+    ))
+  ) {
+    cli::cli_abort(c("x" = "Screen type(s) not found in metadata."))
+  }
+
+  max_comb <- length(screen_type)
+
+  # Generate all combinations from 1 to max_comb
+  all_combinations <- unlist(
+    lapply(seq_len(max_comb), function(k) {
+      if (length(screen_type) >= k) {
+        combs <- utils::combn(screen_type, k, simplify = FALSE)
+        stats::setNames(
+          combs,
+          vapply(
+            combs,
+            function(comb) {
+              if (length(comb) == 1) {
+                comb
+              } else {
+                paste(comb, collapse = " & ")
+              }
+            },
+            FUN.VALUE = character(1)
+          )
         )
-    }
-    if (
-        !all(purrr::map_vec(
-            screen_type,
-            ~ . %in% all_screen_types
-        ))
-    ) {
-        cli::cli_abort(c("x" = "Screen type(s) not found in metadata."))
-    }
+      }
+    }),
+    recursive = FALSE
+  )
 
-    max_comb <- length(screen_type)
+  # Precompute logical matrix for faster filtering
+  positive_matrix <- as.matrix(
+    meta_data[, screen_type, drop = FALSE] == "Positive"
+  )
 
-    # Generate all combinations from 1 to max_comb
-    all_combinations <- unlist(
-        lapply(seq_len(max_comb), function(k) {
-            if (length(screen_type) >= k) {
-                combs <- utils::combn(screen_type, k, simplify = FALSE)
-                stats::setNames(
-                    combs,
-                    vapply(
-                        combs,
-                        function(comb) {
-                            if (length(comb) == 1) {
-                                comb
-                            } else {
-                                paste(comb, collapse = " & ")
-                            }
-                        },
-                        FUN.VALUE = character(1)
-                    )
-                )
-            }
-        }),
-        recursive = FALSE
-    )
+  # Calculate intersection counts using vectorized operations
+  counts <- vapply(
+    all_combinations,
+    function(sets) {
+      # Find rows where all specified sets are positive using vectorized rowSums
+      row_matches <- Matrix::rowSums(positive_matrix[,
+        sets,
+        drop = FALSE
+      ]) ==
+        length(sets)
+      sum(row_matches, na.rm = TRUE)
+    },
+    numeric(1)
+  )
 
-    # Precompute logical matrix for faster filtering
-    positive_matrix <- as.matrix(
-        meta_data[, screen_type, drop = FALSE] == "Positive"
-    )
+  # Create result data frame
+  intersection_data <- tibble::tibble(
+    intersection = names(all_combinations),
+    sets = all_combinations, # Use I() to preserve list structure
+    count = counts
+  )
 
-    # Calculate intersection counts using vectorized operations
-    counts <- vapply(
-        all_combinations,
-        function(sets) {
-            # Find rows where all specified sets are positive using vectorized rowSums
-            row_matches <- Matrix::rowSums(positive_matrix[,
-                sets,
-                drop = FALSE
-            ]) ==
-                length(sets)
-            sum(row_matches, na.rm = TRUE)
-        },
-        numeric(1)
-    )
+  # Arguments allocated to ggplot2::theme() and ggupset::theme_combmatrix()
+  dots <- rlang::list2(...)
+  dots$combmatrix.panel.point.color.fill <- combmatrix_point_color
+  dots$combmatrix.label.make_space <- FALSE
+  verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
 
-    # Create result data frame
-    intersection_data <- tibble::tibble(
-        intersection = names(all_combinations),
-        sets = all_combinations, # Use I() to preserve list structure
-        count = counts
-    )
+  theme_args <- SigBridgeRUtils::FilterArgs4Func(dots, ggplot2::theme)
+  combmatrix_args <- SigBridgeRUtils::FilterArgs4Func(
+    dots,
+    ggupset::theme_combmatrix
+  )
 
-    # Arguments allocated to ggplot2::theme() and ggupset::theme_combmatrix()
-    dots <- rlang::list2(...)
-    dots$combmatrix.panel.point.color.fill <- combmatrix_point_color
-    dots$combmatrix.label.make_space <- FALSE
-    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
-
-    theme_args <- SigBridgeRUtils::FilterArgs4Func(dots, ggplot2::theme)
-    combmatrix_args <- SigBridgeRUtils::FilterArgs4Func(
-        dots,
-        ggupset::theme_combmatrix
-    )
-
-    # Create UpSet plot
-    upset <- ggplot2::ggplot(
-        intersection_data,
-        ggplot2::aes(x = `sets`, y = `count`)
+  # Create UpSet plot
+  upset <- ggplot2::ggplot(
+    intersection_data,
+    ggplot2::aes(x = `sets`, y = `count`)
+  ) +
+    ggplot2::geom_col(fill = bar_color, alpha = 0.9, width = 0.7) +
+    ggplot2::geom_text(ggplot2::aes(label = `count`), vjust = -0.5) +
+    ggupset::scale_x_upset(
+      order_by = "degree",
+      sets = screen_type,
+      n_intersections = n_intersections
     ) +
-        ggplot2::geom_col(fill = bar_color, alpha = 0.9, width = 0.7) +
-        ggplot2::geom_text(ggplot2::aes(label = `count`), vjust = -0.5) +
-        ggupset::scale_x_upset(
-            order_by = "degree",
-            sets = screen_type,
-            n_intersections = n_intersections
-        ) +
-        ggplot2::labs(
-            x = x_lab,
-            y = y_lab,
-            title = title
-        ) +
-        rlang::exec(ggupset::theme_combmatrix, !!!combmatrix_args) +
-        ggplot2::theme_minimal() +
-        rlang::exec(ggplot2::theme, !!!theme_args)
+    ggplot2::labs(
+      x = x_lab,
+      y = y_lab,
+      title = title
+    ) +
+    rlang::exec(ggupset::theme_combmatrix, !!!combmatrix_args) +
+    ggplot2::theme_minimal() +
+    rlang::exec(ggplot2::theme, !!!theme_args)
 
-    if (show_plot) {
-        methods::show(upset)
-    }
+  if (show_plot) {
+    methods::show(upset)
+  }
 
-    if (verbose) {
-        cli::cli_alert_success("ScreenUpset completed.")
-    }
+  if (verbose) {
+    cli::cli_alert_success("ScreenUpset completed.")
+  }
 
-    list(plot = upset, stats = intersection_data)
+  list(plot = upset, stats = intersection_data)
 }

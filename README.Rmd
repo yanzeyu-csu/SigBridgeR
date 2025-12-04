@@ -42,11 +42,13 @@ pak::pkg_install("WangLabCSU/SigBridgeR")
 install.packages("SigBridgeR", repos = "https://wanglabcsu.r-universe.dev")
 ```
 
-It is recommended to install the following packages:
+**It is recommended to install the following packages:**
+
+For better performance:
 
 ```{r,install_extra_packages,eval=FALSE}
-# For better performance.
 pak::pkg_install(c(
+  "sparseMatrixStats",
   "matrixStats",
   "preprocessCore",
   "tidyr",
@@ -54,11 +56,37 @@ pak::pkg_install(c(
   "future",
   "matrixTests"
 ))
+```
 
-# For seamless integration with other file types such as `h5ad`
+For seamless integration with other file types such as `h5ad`
+
+```{r,install_extra_packages2,eval=FALSE}
 pak::pkg_install("anndata")
 # or
 pak::pkg_install("anndataR") # both are supported
+```
+
+For visualization:
+
+```{r,install_extra_packages3,eval=FALSE}
+pak::pkg_install(c(
+  "ggplot2",
+  "randomcoloR", # or RColorBrewer
+  "ggupset", # for upset plot
+  "patchwork", # for fraction plot
+  "ggforce", # for pca plot
+  "ggVennDiagram" # for Venn Diagram
+))
+```
+
+To reproduce the tutorial to learn more usage
+
+```{r,install_extra_packages4,eval=FALSE}
+pak::pkg_install(c(
+  "zeallot",
+  "here",
+  "org.Hs.eg.db"
+))
 ```
 
 ## 📓 Documentation
@@ -70,10 +98,12 @@ Get Started:
 -   View [Github Webpage](https://wanglabcsu.github.io/SigBridgeR/)
 -   Use `?SigBridgeR::function_name` to access the help documents in R.
 
-If you encounter problems, please see:
+If you encounter problems, please check:
 
--   [Troubleshooting Guide](vignettes/Troubleshooting.md)
--   Please use [Github issues](https://github.com/WangLabCSU/SigBridgeR/issues) if you want to file bug reports or feature requests, let us know if you have ideas to make this project better!
+-   the [Troubleshooting Guide](vignettes/Troubleshooting.md), or
+-   the [Github issues](https://github.com/WangLabCSU/SigBridgeR/issues) page if you want to file bug reports or feature requests
+
+Let us know if you have ideas to make this project better!
 
 Other information:
 

@@ -1175,6 +1175,7 @@ Here we use the example data LUAD to demonstrate how to use the functions in `Si
 ```{r,set_working_directory,eval=FALSE}
 # Set working directory
 if (requireNamespace("here", quietly = TRUE)) {
+  here::i_am(".here")
   setwd(here::here())         
   knitr::opts_knit$set(root.dir = here::here())  
 }
