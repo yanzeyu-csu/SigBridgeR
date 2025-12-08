@@ -30,9 +30,7 @@
 #' @param ... Additional arguments to be passed to `PIPET.optimized`.
 #' - seed: Random seed for reproducibility
 #' - verbose: Whether to show progress messages
-#' - parallel: Whether to use parallel processing
-#' - parallel.type: Type of parallel backend
-#' - workers: Number of parallel workers
+#'
 #'
 #' @family screen_method
 #' @family PIPET
@@ -79,8 +77,7 @@ DoPIPET <- function(
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% getFuncOption("verbose")
     seed <- dots$seed %||% getFuncOption("seed")
-    parallel <- dots$parallel %||% getFuncOption("parallel")
-    workers <- dots$workers %||% getFuncOption("workers")
+    parallel <- !inherits(future::plan("list")[[1]], "sequential")
     ## * PIPET params
     distance <- SigBridgeRUtils::MatchArg(
         distance,

@@ -118,12 +118,11 @@ length(seq1) * length(seq2)
 As you can see, with so many (alpha, alpha_2) pairs -- each requiring evaluation -— the runtime can become prohibitively long. In such cases, parallel computing can be employed to accelerate the process.
 
 ```{r,scAB_params3,eval=FALSE}
-# * install `furrr` first, as it is required for parallel computing
-rlang::check_installed("furrr")
+# * install `furrr` & `future.mirai` first, as it is required for parallel computing
+# * We recommend using `future.mirai`, as it is more stable and faster than `future`
+rlang::check_installed(c("furrr", "future.mirai"))
 
-setFuncOption(parallel = TRUE)
-# * This equals to
-# options(SigBridgeR.parallel = TRUE)
+future::plan(future.mirai::mirai_multisession)
 
 scAB_res <- Screen(
   matched_bulk = matched_bulk,
@@ -133,7 +132,7 @@ scAB_res <- Screen(
   screen_method = c("scAB"),
   alpha = seq1,
   alpha_2 = seq2
-  # parallel = TRUE # This also works
+  # parallel = TRUE # Auto-enabled
 )
 # * Output goes like this when using example data
 # ℹ [2025/11/07 08:43:48] Start scAB screening.
@@ -143,7 +142,7 @@ scAB_res <- Screen(
 # • loss of 3: 0.003273
 # ℹ [2025/11/07 08:44:04] Run NMF with phenotype and cell-cell similarity regularization at K = 2
 # ℹ [2025/11/07 08:44:04] Selecting optimal `alpha` and `alpha_2`, this would take a while
-# ℹ [2025/11/07 08:44:07] Using parallel processing with 4 workers
+# ℹ [2025/11/07 08:44:07] Using parallel processing
 #  Progress: ────────────────────────────────────────────────────────────────────────────────────────── 100%
 # ✔ [2025/11/07 08:46:08] Best `alpha` and `alpha_2` are 0.05 and 1e-05
 # ℹ [2025/11/07 08:46:14] Screening cells...
@@ -230,7 +229,7 @@ scPP is based on marker genes, AUC, and enrichment scores, which requires tuning
 # )
 
 # * To
-# * Note that since `parallel = TRUE` was previously enabled, parallel computation will also be used here
+# * Note that since a future strategy was previously enabled, parallel computation will also be used here
 scPP_res <- Screen(
   matched_bulk = matched_bulk,
   sc_data = sc_dataset,
@@ -251,7 +250,7 @@ scPP_res <- Screen(
 # 	gene_pos: 	13 (6% of 230)
 # 	gene_neg: 	54 (12% of 446)
 # ℹ [2025/11/07 08:53:44] Testing thresholds and computing NES differences...
-# ℹ [2025/11/07 08:53:46] Using parallel processing with 4 workers
+# ℹ [2025/11/07 08:53:46] Using parallel processing
 #  Progress: ──────────────────────────────────────────────────────────────────────────────────────────────── 100%
 # Warning: Skipping prob 0.2 because no markers found in both directions
 # Warning: Skipping prob 0.25 because no markers found in both directions

@@ -46,8 +46,6 @@ DoscAB(
 \itemize{
 \item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
 \item \code{seed}: For reproducibility, default is \code{123L}
-\item \code{parallel}: Logical. When \code{alpha} or \code{alpha_2} is a numeric vector or NULL, whether to enable parallel mode to search for the optimal \code{alpha} and \code{alpha_2}. Default: \code{FALSE}.
-\item \code{workers}: Number of workers to use in parallel mode. Default: \code{NULL} (use all 4 cores).
 }}
 }
 \value{

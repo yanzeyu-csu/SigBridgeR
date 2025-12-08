@@ -64,9 +64,6 @@ Column names must match \code{phenotype} identifiers.}
 \itemize{
 \item seed: Random seed for reproducibility
 \item verbose: Whether to show progress messages
-\item parallel: Whether to use parallel processing
-\item parallel.type: Type of parallel backend
-\item workers: Number of parallel workers
 }}
 }
 \description{

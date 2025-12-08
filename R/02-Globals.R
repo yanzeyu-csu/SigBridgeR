@@ -14,8 +14,6 @@ utils::globalVariables(c(
     # pkg options
     "verbose",
     "seed",
-    "parallel",
-    "workers",
     # dplyr/tidyeval and data.table variables
     ".",
     "..duplicate_cols",

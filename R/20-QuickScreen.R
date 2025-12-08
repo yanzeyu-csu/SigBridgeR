@@ -125,7 +125,15 @@ Screen <- function(
     phenotype,
     label_type = NULL,
     phenotype_class = c("binary", "survival", "continuous"),
-    screen_method = c("Scissor", "scPP", "scPAS", "scAB", "DEGAS", "LP_SGL"),
+    screen_method = c(
+        "Scissor",
+        "scPP",
+        "scPAS",
+        "scAB",
+        "DEGAS",
+        "LP_SGL",
+        "PIPET"
+    ),
     ...
 ) {
     chk::chk_is(sc_data, "Seurat")
@@ -145,7 +153,8 @@ Screen <- function(
         "scPAS",
         "scAB",
         "DEGAS",
-        "LP_SGL"
+        "LP_SGL",
+        "PIPET"
     )
     phenotype_class <- SigBridgeRUtils::MatchArg(
         phenotype_class,
@@ -250,6 +259,9 @@ Screen <- function(
                 LPSGL_family = LPSGL_family, # "Binary", "Survival", "Continuous"
                 ...
             )
+        },
+        "PIPET" = {
+            DoPIPET()
         }
     )
 }

@@ -21,9 +21,6 @@
     op <- options()
     op_pkg <- list(
         SigBridgeR.verbose = TRUE,
-        SigBridgeR.parallel = FALSE,
-        SigBridgeR.parallel.type = "multisession",
-        SigBridgeR.workers = 4L,
         SigBridgeR.seed = 123L,
         SigBridgeR.timeout = 180L
     )

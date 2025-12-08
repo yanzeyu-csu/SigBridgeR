@@ -47,8 +47,6 @@ DoscPP(
 \itemize{
 \item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
 \item \code{seed}: For reproducibility, default is \code{123L}
-\item \code{parallel}: Logical. When \code{probs} is a numeric vector or NULL, whether to enable parallel mode to search for the optimal \code{probs} value. Default: \code{FALSE}.
-\item \code{workers}: Number of workers to use in parallel mode. Default: \code{NULL} (use all 4 cores).
 }}
 }
 \value{

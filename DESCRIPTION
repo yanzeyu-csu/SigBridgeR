@@ -52,6 +52,7 @@ Suggests:
     carrier,
     furrr,
     future,
+    future.mirai,
     ggforce,
     ggplot2,
     ggupset,

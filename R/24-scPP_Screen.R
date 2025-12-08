@@ -37,8 +37,8 @@
 #' @param ... Additional arguments. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'    - `seed`: For reproducibility, default is `123L`
-#'    - `parallel`: Logical. When `probs` is a numeric vector or NULL, whether to enable parallel mode to search for the optimal `probs` value. Default: `FALSE`.
-#'    - `workers`: Number of workers to use in parallel mode. Default: `NULL` (use all 4 cores).
+#'
+#'
 #'
 #' @return A list containing:
 #' \describe{
@@ -96,7 +96,7 @@ DoscPP <- function(
     phenotype,
     label_type = "scPP",
     phenotype_class = c("Binary", "Continuous", "Survival"),
-    ref_group = 0,
+    ref_group = 0L,
     Log2FC_cutoff = 0.585,
     estimate_cutoff = 0.2,
     probs = c(0.2, NULL),
@@ -134,10 +134,10 @@ DoscPP <- function(
         }
     }
 
+    # * default options
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
-    parallel <- dots$parallel %||% SigBridgeRUtils::getFuncOption("parallel")
-    workers <- dots$workers %||% SigBridgeRUtils::getFuncOption("workers")
+    parallel <- !inherits(future::plan("list")[[1]], "sequential")
     seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
 
     if (verbose) {
@@ -155,26 +155,52 @@ DoscPP <- function(
             dplyr::rename("Feature" = 2) %>%
             dplyr::mutate(Feature = as.numeric(`Feature`))
     }
-    gene_list <- if (tolower(phenotype_class) == "binary") {
-        ScPP::marker_Binary.optimized(
-            bulk_data = matched_bulk,
-            features = phenotype,
-            ref_group = ref_group,
-            Log2FC_cutoff = Log2FC_cutoff
-        )
-    } else if (tolower(phenotype_class) == "continuous") {
-        ScPP::marker_Continuous.optimized(
-            bulk_data = matched_bulk,
-            features = phenotype$Feature,
-            method = "spearman",
-            estimate_cutoff = estimate_cutoff
-        )
-    } else {
-        ScPP::marker_Survival2(
-            bulk_data = matched_bulk,
-            survival_data = phenotype
-        )
-    }
+
+    gene_list <- switch(
+        phenotype_class,
+        "Binary" = {
+            if (estimate_cutoff != 0.2) {
+                cli::cli_warn(
+                    "The parameters {.arg estimate_cutoff} are not used for survival analysis. Ignore it"
+                )
+            }
+            ScPP::marker_Binary.optimized(
+                bulk_data = matched_bulk,
+                features = phenotype,
+                ref_group = ref_group,
+                Log2FC_cutoff = Log2FC_cutoff
+            )
+        },
+        "Continuous" = {
+            if (Log2FC_cutoff != 0.585) {
+                cli::cli_warn(
+                    "The parameters {.arg Log2FC_cutoff} are not used for survival analysis. Ignore it"
+                )
+            }
+            ScPP::marker_Continuous.optimized(
+                bulk_data = matched_bulk,
+                features = phenotype$Feature,
+                method = "spearman",
+                estimate_cutoff = estimate_cutoff
+            )
+        },
+        "Survival" = {
+            if (estimate_cutoff != 0.2) {
+                cli::cli_warn(
+                    "The parameters {.arg estimate_cutoff} are not used for survival analysis. Ignore it"
+                )
+            }
+            if (Log2FC_cutoff != 0.585) {
+                cli::cli_warn(
+                    "The parameters {.arg Log2FC_cutoff} are not used for survival analysis. Ignore it"
+                )
+            }
+            ScPP::marker_Survival2(
+                bulk_data = matched_bulk,
+                survival_data = phenotype
+            )
+        }
+    )
 
     l <- lapply(gene_list, length)
     pos_null <- FALSE
@@ -193,10 +219,9 @@ DoscPP <- function(
         }
     }
     if (pos_null && neg_null) {
-        cli::cli_warn(c(
+        cli::cli_warn(
             "scPP is not applicable to the current data. Returning {.val NULL}",
-            "scPP screening exits 1."
-        ))
+        )
         return(NULL)
     }
 
@@ -211,7 +236,6 @@ DoscPP <- function(
         probs = probs,
         verbose = verbose,
         parallel = parallel,
-        workers = workers,
         seed = seed
     )
     sc_data[[]] <- scPP_result$metadata

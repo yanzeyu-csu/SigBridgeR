@@ -24,8 +24,8 @@
 #' @param ... Additional arguments. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
 #'    - `seed`: For reproducibility, default is `123L`
-#'    - `parallel`: Logical. When `alpha` or `alpha_2` is a numeric vector or NULL, whether to enable parallel mode to search for the optimal `alpha` and `alpha_2`. Default: `FALSE`.
-#'    - `workers`: Number of workers to use in parallel mode. Default: `NULL` (use all 4 cores).
+#'
+#'
 #
 #'
 #' @return A list containing:
@@ -106,8 +106,7 @@ DoscAB <- function(
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
     seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
-    parallel <- dots$parallel %||% SigBridgeRUtils::getFuncOption("parallel")
-    workers <- dots$workers %||% SigBridgeRUtils::getFuncOption("workers")
+    parallel <- !inherits(future::plan("list")[[1]], "sequential")
 
     if (verbose) {
         ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
