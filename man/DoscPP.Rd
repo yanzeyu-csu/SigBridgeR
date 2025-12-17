@@ -58,12 +58,6 @@ A list containing:
 }
 }
 \item{gene_list}{List of genes used for screening}
-\item{AUC}{A data.frame with area under the ROC curve:
-\describe{
-\item{scPP_AUCup}{AUC for positive}
-\item{scPP_AUCdown}{AUC for negative}
-}
-}
 }
 }
 \description{

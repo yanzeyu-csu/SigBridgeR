@@ -2,8 +2,6 @@
 
 #' @importFrom data.table `:=` `%chin%`
 #' @importFrom dplyr %>%
-#' @importFrom SigBridgeRUtils AddMisc getFuncOption setFuncOption
-#' @importFrom DEGAS SetupPyEnv ListPyEnv
 NULL
 
 # Silence R CMD check NOTES

@@ -154,6 +154,7 @@ BulkPreProcess <- function(
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
     seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
+    method <- dots$method
 
     set.seed(seed)
 
@@ -161,6 +162,15 @@ BulkPreProcess <- function(
         ts_cli$cli_alert_info(
             cli::col_green("Starting data preprocessing...")
         )
+    }
+
+    if (any(duplicated(rownames(data)))) {
+        cli::cli_alert_info("Aggregate Duplicated genes in rownames")
+        data <- AggregateDupRows(data)
+    }
+    if (any(duplicated(colnames(data)))) {
+        cli::cli_alert_info("Aggregate Duplicated samples in colnames")
+        data <- AggregateDupCols(data)
     }
 
     # Handle input data format

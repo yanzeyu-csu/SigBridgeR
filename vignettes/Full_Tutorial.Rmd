@@ -41,6 +41,7 @@ vignette: >
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
         -   [3.5 (Option E) DEGAS Screening](#35-option-e-degas-screening)
         -   [3.6 (Option F) LP_SGL Screening](#36-option-f-lp_sgl-screening)
+        -   [3.7 (Option G) PIPET Screening](#37-option-g-pipet-screening)
         -   [3.8 Merge screening results](#38-merge-screening-results)
     -   [4. Visualization](#4-visualization)
         -   [4.1 UMAP for screening results](#41-umap-for-screening-results)
@@ -740,7 +741,6 @@ scpp_result = Screen(
 
 -   `scRNA_data`: A Seurat object after screening
 -   `gene_list`: A list containing positive genes and negative genes
--   `AUC`: A data.frame with area under the ROC curve
 
 ### 3.5 (Option E) DEGAS Screening
 

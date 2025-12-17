@@ -48,12 +48,6 @@
 #'     }
 #'   }
 #'   \item{gene_list}{List of genes used for screening}
-#'   \item{AUC}{A data.frame with area under the ROC curve:
-#'     \describe{
-#'         \item{scPP_AUCup}{AUC for positive}
-#'         \item{scPP_AUCdown}{AUC for negative}
-#'     }
-#'   }
 #' }
 #'
 #' @section Algorithm Steps:
@@ -254,11 +248,6 @@ DoscPP <- function(
         gene_list = list(
             genes_pos = scPP_result$Genes_pos,
             genes_neg = scPP_result$Genes_neg
-        ),
-        AUC = dplyr::select(
-            scPP_result$metadata,
-            "scPP_AUCup",
-            "scPP_AUCdown"
         )
     )
 }
