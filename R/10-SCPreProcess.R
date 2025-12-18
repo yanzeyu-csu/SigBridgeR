@@ -54,6 +54,9 @@
 #'    If NULL, automatically determined by elbow method. Defaults to `NULL`.
 #' @param ... Additional arguments passed to specific methods. Currently supports:
 #'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `dims_Neighbors`: Dimensions to use for `FindNeighbors`. Defaults to `NULL`, using `dims`.
+#'    - `dims_TSNE`: Dimensions to use for `RunTSNE`. Defaults to `NULL`, using `dims`.
+#'    - `dims_UMAP`: Dimensions to use for `RunUMAP`. Defaults to `NULL`, using `dims`.
 #'
 #' @return A Seurat object containing:
 #' \itemize{
@@ -180,6 +183,10 @@ SCPreProcess.default <- function(
     # dots arguments
     dots <- rlang::list2(...)
     verbose <- dots$verbose %||% getFuncOption("verbose")
+    # pass to `FindNeighbors`, `RunTSNE`, `RunUMAP`
+    dims_Neighbors <- dots$dims_Neighbors
+    dims_TSNE <- dots$dims_TSNE
+    dims_UMAP <- dots$dims_UMAP
 
     sc_seurat <- SeuratObject::CreateSeuratObject(
         counts = sc,
@@ -296,6 +303,9 @@ SCPreProcess.default <- function(
     sc_seurat <- ClusterAndReduce(
         sc_seurat,
         dims = dims,
+        dims_Neighbors = dims_Neighbors,
+        dims_TSNE = dims_TSNE,
+        dims_UMAP = dims_UMAP,
         resolution = resolution,
         verbose = verbose
     )
@@ -648,27 +658,41 @@ ProcessSeuratObject <- function(
         )
 }
 
-#' @title Cluster and reduce dimensions (internal)
-#'
+
+#' @title Cluster and reduce dimensionality of single-cell data
 #' @description
-#' FindNeighbors, FindClusters, RunTSNE, RunUMAP
+#' Performs clustering and dimensionality reduction on a single-cell object using PCA components.
+#' Automatically determines optimal dimensions when not specified.
 #'
-#' @param obj Seurat object
-#' @param dims Dimension to use for clustering and dimension reduction
-#' @param resolution Resolution for clustering
-#' @param verbose logical, whether to print progress messages
-#' @return Seurat object
+#' @param obj A single-cell seurat object containing PCA reductions
+#' @param dims Vector of dimensions to use (default: `NULL`, auto-determines using `FindRobustElbow`)
+#' @param dims_Neighbors Dimensions for neighbor calculation (default: NULL, uses `dims`)
+#' @param dims_TSNE Dimensions for t-SNE  (default: NULL, uses `dims`)
+#' @param dims_UMAP Dimensions for UMAP  (default: NULL, uses `dims`)
+#' @param resolution Clustering resolution parameter (default: `0.6`)
+#' @param verbose Whether to print progress messages (default: `TRUE`)
+#' @param ... Additional arguments passed to downstream methods, currently not used
+#'
+#' @return Modified single-cell object with clustering and dimensionality reduction results
 #'
 #' @keywords internal
-#' @family single_cell_preprocess
+#'
+#' @note Automatically adjusts input dimensions if they exceed available PCA dimensions
 ClusterAndReduce <- function(
     obj,
     dims = NULL,
+    dims_Neighbors = NULL,
+    dims_TSNE = NULL,
+    dims_UMAP = NULL,
     resolution = 0.6,
-    verbose = TRUE
+    verbose = TRUE,
+    ...
 ) {
     n_pcs <- ncol(obj@reductions$pca)
-    if (is.null(dims)) {
+    if (
+        is.null(dims) &&
+            any(is.null(dims_Neighbors), is.null(dims_TSNE), is.null(dims_UMAP))
+    ) {
         dims <- seq_len(FindRobustElbow(obj, verbose = verbose, ndims = 50))
     }
     if (max(dims) > n_pcs) {
@@ -677,14 +701,21 @@ ClusterAndReduce <- function(
             "The input dimension is greater than the dimension in PCA. It is now set to the maximum dimension in PCA."
         )
     }
+    dims_Neighbors <- dims_Neighbors %||% dims
+    dims_TSNE <- dims_TSNE %||% dims
+    dims_UMAP <- dims_UMAP %||% dims
 
-    Seurat::FindNeighbors(object = obj, dims = dims, verbose = verbose) %>%
+    Seurat::FindNeighbors(
+        object = obj,
+        dims = dims_Neighbors,
+        verbose = verbose
+    ) %>%
         Seurat::FindClusters(
             resolution = resolution,
             verbose = verbose
         ) %>%
-        Seurat::RunTSNE(dims = dims) %>%
-        Seurat::RunUMAP(dims = dims, verbose = verbose)
+        Seurat::RunTSNE(dims = dims_TSNE) %>%
+        Seurat::RunUMAP(dims = dims_UMAP, verbose = verbose)
 }
 
 #' @title Filter tumor cells (internal)
@@ -732,7 +763,7 @@ FilterTumorCell <- function(
     }
     if (verbose) {
         cli::cli_text(
-            "Filtering tumor cells from '{.emph {column2only_tumor}}'..."
+            "Filtering tumor cells with '{.emph {column2only_tumor}}'..."
         )
     }
 

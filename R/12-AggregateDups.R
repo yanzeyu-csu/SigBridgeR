@@ -4,9 +4,9 @@
 #' These functions collapse duplicated row names (e.g., gene symbols) or column names (e.g., sample IDs)
 #' in matrix-like objects by aggregating values using configurable methods. They support:
 #' \describe{
-#'   \item{Rows}{\code{\link{AggregateDupRows}}}: merges rows sharing the same row name.}
-#'   \item{Columns}{\code{\link{AggregateDupCols}}}: merges columns sharing the same column name.}
-#'   \item{Both}{\code{\link{AggregateDups}}}: convenience wrapper applying row-then-column aggregation.}
+#'   \item{Rows}{\code{\link{AggregateDupRows}}: merges rows sharing the same row name.}
+#'   \item{Columns}{\code{\link{AggregateDupCols}}: merges columns sharing the same column name.}
+#'   \item{Both}{\code{\link{AggregateDups}}: convenience wrapper applying row-then-column aggregation.}
 #' }
 #' Designed for expression matrices, count tables, or any numeric data where feature/sample duplication occurs.
 #' Handles \code{matrix}, \code{data.frame}, and S4 \code{Matrix} classes (e.g. \code{dgCMatrix}) robustly.
