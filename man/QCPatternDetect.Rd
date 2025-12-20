@@ -45,4 +45,3 @@ Other single_cell_preprocess:
 \code{\link{ProcessSeuratObject}()}
 }
 \concept{single_cell_preprocess}
-\keyword{internal}

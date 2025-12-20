@@ -199,12 +199,6 @@ SCPreProcess.default <- function(
     if (quality_control) {
         chk::chk_character(quality_control.pattern)
 
-        if (verbose) {
-            cli::cli_text(
-                "Using QC patterns {.arg {quality_control.pattern}} to detect metrics"
-            )
-        }
-
         sc_seurat <- QCPatternDetect(
             obj = sc_seurat,
             pattern = quality_control.pattern,
@@ -217,78 +211,10 @@ SCPreProcess.default <- function(
             data_filter.thresh$nFeature_RNA_thresh[1],
             data_filter.thresh$nFeature_RNA_thresh[2]
         )
-        if (verbose) {
-            cli::cli_text(
-                "Filtering cells by {.arg nFeature_RNA} and {.arg QC metrics}"
-            )
-        }
-        data_filter.thresh <- utils::modifyList(
-            # default setting
-            list(
-                nFeature_RNA_thresh = c(200L, 6000L),
-                percent.mt = 20L,
-                percent.rp = 60L
-            ),
-            data_filter.thresh
-        )
-
-        # filter expr is a string of the form
-        # which is used to subset the Seurat object
-        nfeat_condition <- rlang::expr(
-            nFeature_RNA > !!data_filter.thresh$nFeature_RNA_thresh[1] &
-                nFeature_RNA < !!data_filter.thresh$nFeature_RNA_thresh[2]
-        )
-
-        # see `QCPatternDetect()` for the column names generation
-        qc_colnames <- unlist(sc_seurat@misc$qc_colnames)
-        get_qc_condition <- function() {
-            if (is.null(qc_colnames)) {
-                return(NULL)
-            }
-
-            valid_cols <- qc_colnames[
-                vapply(
-                    qc_colnames,
-                    function(col) {
-                        x <- sc_seurat[[col]]
-                        any(!is.na(x) & x > 0, na.rm = TRUE) &&
-                            stats::var(x, na.rm = TRUE) > 0
-                    },
-                    logical(1)
-                )
-            ]
-
-            if (length(valid_cols) == 0) {
-                return(NULL)
-            }
-
-            purrr::map(
-                valid_cols,
-                ~ rlang::expr(!!dplyr::sym(.x) < !!data_filter.thresh[[.x]])
-            )
-        }
-
-        full_expr <- purrr::reduce(
-            .x = c(list(nfeat_condition), get_qc_condition()),
-            .f = function(x, y) rlang::expr(!!x & !!y)
-        )
-        # be aware of expr is not supported in `subset()`
-        meta <- sc_seurat[[]]
-        logical_vec <- base::with(data = meta, expr = eval(full_expr))
-        keep_cells <- rownames(meta)[logical_vec]
-
-        if (verbose) {
-            cli::cli_text(sprintf(
-                "Kept {%d}/{%d} ({%0.2f}%% off) cells after filtering",
-                length(keep_cells),
-                nrow(meta),
-                1 - length(keep_cells) / nrow(meta)
-            ))
-        }
-
-        sc_seurat <- subset(
-            x = sc_seurat,
-            cells = keep_cells
+        sc_seurat <- QCFilter(
+            seurat_obj = sc_seurat,
+            data_filter.thresh = data_filter.thresh,
+            verbose = verbose
         )
     }
     sc_seurat <- ProcessSeuratObject(
@@ -806,8 +732,8 @@ FilterTumorCell <- function(
 #' - For combined patterns (using |), creates names like "mt_rp"
 #' - For other patterns, creates cleaned lowercase names
 #'
-#' @keywords internal
 #' @family single_cell_preprocess
+#' @export
 #'
 QCPatternDetect <- function(
     obj,
@@ -815,6 +741,12 @@ QCPatternDetect <- function(
     verbose = TRUE,
     ...
 ) {
+    if (verbose) {
+        cli::cli_text(
+            "Using QC patterns {.arg {quality_control.pattern}} to detect metrics"
+        )
+    }
+
     # if `pattern` is a list, convert it to a character vector
     patterns <- unlist(pattern)
     colname_mapping <- stats::setNames(
@@ -857,6 +789,155 @@ QCPatternDetect <- function(
     obj@misc$qc_colnames <- unname(colname_mapping)
 
     obj
+}
+
+#' @title Filter Seurat object cells by QC metrics
+#'
+#' @description
+#' Filters cells based on nFeature_RNA and optional QC metrics (e.g. percent.mt, percent.rp),
+#' defined in `seurat_obj@misc$qc_colnames` (See \code{\link{QCPatternDetect}}). Only metrics with non-constant, non-all-zero values are used.
+#'
+#' @param seurat_obj A \code{Seurat} object.
+#' @param data_filter.thresh A named list with thresholds. Default:
+#'   \code{list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L, percent.rp = 60L)}.
+#'   Keys not in default are treated as QC column names.
+#' @param verbose Logical; whether to print progress messages via \code{cli}.
+#' @param ... No use
+#'
+#' @return A filtered \code{Seurat} object.
+#' @export
+#'
+#'
+QCFilter <- function(
+    seurat_obj,
+    data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L,
+        percent.rp = 60L
+    ),
+    verbose = TRUE,
+    ...
+) {
+    if (!inherits(seurat_obj, "Seurat")) {
+        cli::cli_abort(c("x" = "seurat_obj must be a {.cls Seurat} object."))
+    }
+
+    if (!is.list(data_filter.thresh)) {
+        cli::cli_abort(c(
+            "x" = "{.arg data_filter.thresh} must be a named {.cls list}."
+        ))
+    }
+
+    if (verbose) {
+        cli::cli_text(
+            "Filtering cells by {.arg nFeature_RNA} and {.arg QC metrics}"
+        )
+    }
+
+    defaults <- list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L,
+        percent.rp = 60L
+    )
+    thresh <- utils::modifyList(defaults, data_filter.thresh)
+
+    # Ensure nFeature_RNA_thresh is length-2 integer
+    if (length(thresh$nFeature_RNA_thresh) != 2) {
+        cli::cli_abort(c(
+            "x" = "{.arg nFeature_RNA_thresh} must be a numeric vector of length 2."
+        ))
+    }
+    thresh$nFeature_RNA_thresh <- as.integer(thresh$nFeature_RNA_thresh)
+
+    # filter expr is a string of the form
+    # which is used to subset the Seurat object
+    nfeat_condition <- rlang::expr(
+        nFeature_RNA > !!thresh$nFeature_RNA_thresh[1] &
+            nFeature_RNA < !!thresh$nFeature_RNA_thresh[2]
+    )
+
+    # see `QCPatternDetect()` for the column names generation
+    qc_colnames <- NULL
+    if ("qc_colnames" %in% names(seurat_obj@misc)) {
+        qc_colnames <- unlist(seurat_obj@misc$qc_colnames, use.names = FALSE)
+    }
+    if (is.null(qc_colnames) || length(qc_colnames) == 0) {
+        qc_colnames <- character(0)
+    }
+
+    # --- Validate QC columns and build conditions -------------------------------
+    get_qc_condition <- function(qc_colnames, meta, thresh) {
+        if (length(qc_colnames) == 0) {
+            return(NULL)
+        }
+
+        present_cols <- qc_colnames[qc_colnames %in% colnames(meta)]
+
+        valid_cols <- present_cols[vapply(
+            present_cols,
+            function(col) {
+                x <- meta[[col]]
+                any(!is.na(x) & x > 0, na.rm = TRUE) &&
+                    stats::var(x, na.rm = TRUE) > 0
+            },
+            logical(1L)
+        )]
+
+        if (length(valid_cols) == 0) {
+            return(NULL)
+        }
+
+        purrr::map(valid_cols, function(col) {
+            if (!col %in% names(thresh)) {
+                if (verbose) {
+                    cli::cli_alert_info(
+                        "No threshold provided for {.val {col}}; skipping."
+                    )
+                }
+                return(NULL)
+            }
+            rlang::expr(!!dplyr::sym(col) < !!thresh[[col]])
+        }) |>
+            purrr::compact()
+    }
+    # be aware of expr is not supported in `subset()`
+    meta <- seurat_obj[[]]
+    qc_conds <- get_qc_condition(qc_colnames, meta, thresh)
+
+    all_conds <- c(list(nfeat_condition), qc_conds)
+    if (length(all_conds) == 0) {
+        cli::cli_abort(c("x" = "No valid filtering conditions generated."))
+    }
+
+    full_expr <- purrr::reduce(
+        all_conds,
+        .f = function(x, y) rlang::expr(!!x & !!y)
+    )
+
+    # Evaluate safely
+    logical_vec <- base::with(data = meta, expr = rlang::eval_tidy(full_expr))
+
+    if (!is.logical(logical_vec) || length(logical_vec) != nrow(meta)) {
+        cli::cli_abort(c(
+            "x" = "Internal error: filtering condition did not produce a logical vector of length {.val {nrow(meta)}}."
+        ))
+    }
+
+    keep_cells <- rownames(meta)[logical_vec]
+
+    if (verbose) {
+        n_kept <- length(keep_cells)
+        n_total <- nrow(meta)
+        pct_off <- if (n_total > 0) 100 * (1 - n_kept / n_total) else 0
+        cli::cli_text(sprintf(
+            "Kept {.val %d}/{.val %d} ({.val %.2f}%% off) cells after filtering",
+            n_kept,
+            n_total,
+            pct_off
+        ))
+    }
+
+    subset(seurat_obj, cells = keep_cells)
 }
 
 #' @title convert regex patterns to column names (internal)

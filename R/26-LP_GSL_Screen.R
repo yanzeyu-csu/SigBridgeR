@@ -83,7 +83,7 @@ DoLP_SGL <- function(
     chk::chk_is(matched_bulk, c("matrix", "data.frame"))
     chk::chk_is(sc_data, c("matrix", "data.frame", "Seurat"))
     chk::chk_list(dge_analysis)
-    LPSGL_family <- MatchArg(LPSGL_family, c('logit', 'cox', 'linear'), NULL)
+    LPSGL_family <- SigBridgeRUtils::MatchArg(LPSGL_family, c('logit', 'cox', 'linear'), NULL)
 
     # * Default params
     dots <- rlang::list2(...)
