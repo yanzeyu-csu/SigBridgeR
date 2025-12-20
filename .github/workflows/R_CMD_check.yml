@@ -12,7 +12,13 @@
 
 on:
     push:
+        branches:
+            - main
+            - master
     pull_request:
+        branches:
+            - main
+            - master
     # 添加手动触发器
     workflow_dispatch:
         inputs:

@@ -130,6 +130,9 @@ SCPreProcess(sc, ...)
 \item{...}{Additional arguments passed to specific methods. Currently supports:
 \itemize{
 \item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{dims_Neighbors}: Dimensions to use for \code{FindNeighbors}. Defaults to \code{NULL}, using \code{dims}.
+\item \code{dims_TSNE}: Dimensions to use for \code{RunTSNE}. Defaults to \code{NULL}, using \code{dims}.
+\item \code{dims_UMAP}: Dimensions to use for \code{RunUMAP}. Defaults to \code{NULL}, using \code{dims}.
 }}
 
 \item{meta_data}{A data.frame containing metadata for each cell. It will be

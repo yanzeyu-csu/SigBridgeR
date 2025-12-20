@@ -75,7 +75,7 @@ pak::pkg_install(c(
   "ggupset", # for upset plot
   "patchwork", # for fraction plot
   "ggforce", # for pca plot
-  "ggVennDiagram" # for Venn Diagram
+  "ggVennDiagram" # for venn diagram
 ))
 ```
 

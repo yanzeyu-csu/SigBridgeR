@@ -39,7 +39,6 @@ The function automatically generates friendly column names based on the patterns
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
 \code{\link{Pattern2Colname}()},

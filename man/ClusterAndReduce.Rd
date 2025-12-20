@@ -2,32 +2,44 @@
 % Please edit documentation in R/10-SCPreProcess.R
 \name{ClusterAndReduce}
 \alias{ClusterAndReduce}
-\title{Cluster and reduce dimensions (internal)}
+\title{Cluster and reduce dimensionality of single-cell data}
 \usage{
-ClusterAndReduce(obj, dims = NULL, resolution = 0.6, verbose = TRUE)
+ClusterAndReduce(
+  obj,
+  dims = NULL,
+  dims_Neighbors = NULL,
+  dims_TSNE = NULL,
+  dims_UMAP = NULL,
+  resolution = 0.6,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
-\item{obj}{Seurat object}
+\item{obj}{A single-cell seurat object containing PCA reductions}
 
-\item{dims}{Dimension to use for clustering and dimension reduction}
+\item{dims}{Vector of dimensions to use (default: \code{NULL}, auto-determines using \code{FindRobustElbow})}
 
-\item{resolution}{Resolution for clustering}
+\item{dims_Neighbors}{Dimensions for neighbor calculation (default: NULL, uses \code{dims})}
 
-\item{verbose}{logical, whether to print progress messages}
+\item{dims_TSNE}{Dimensions for t-SNE  (default: NULL, uses \code{dims})}
+
+\item{dims_UMAP}{Dimensions for UMAP  (default: NULL, uses \code{dims})}
+
+\item{resolution}{Clustering resolution parameter (default: \code{0.6})}
+
+\item{verbose}{Whether to print progress messages (default: \code{TRUE})}
+
+\item{...}{Additional arguments passed to downstream methods, currently not used}
 }
 \value{
-Seurat object
+Modified single-cell object with clustering and dimensionality reduction results
 }
 \description{
-FindNeighbors, FindClusters, RunTSNE, RunUMAP
+Performs clustering and dimensionality reduction on a single-cell object using PCA components.
+Automatically determines optimal dimensions when not specified.
 }
-\seealso{
-Other single_cell_preprocess: 
-\code{\link{FilterTumorCell}()},
-\code{\link{FindRobustElbow}()},
-\code{\link{Pattern2Colname}()},
-\code{\link{ProcessSeuratObject}()},
-\code{\link{QCPatternDetect}()}
+\note{
+Automatically adjusts input dimensions if they exceed available PCA dimensions
 }
-\concept{single_cell_preprocess}
 \keyword{internal}

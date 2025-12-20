@@ -33,7 +33,6 @@ traceability.
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FindRobustElbow}()},
 \code{\link{Pattern2Colname}()},
 \code{\link{ProcessSeuratObject}()},

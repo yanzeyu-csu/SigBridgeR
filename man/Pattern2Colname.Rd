@@ -38,7 +38,6 @@ Pattern2Colname("Custom_Pattern[0-9]+")    # Returns "custom_pattern_0_9"
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
 \code{\link{ProcessSeuratObject}()},

@@ -34,7 +34,6 @@ Normalize, find variable features, scale, and run PCA
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
 \code{\link{FindRobustElbow}()},
 \code{\link{Pattern2Colname}()},
