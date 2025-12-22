@@ -124,6 +124,14 @@ jobs:
                   extra-packages: |
                       any::rcmdcheck
                       any::remotes
+                      github::Exceret/ScPP
+                      github::ShixiangWang/IDConverter
+                      github::Exceret/scAB
+                      github::Exceret/Scissor
+                      github::Exceret/scPAS
+                      github::Exceret/SigBridgeRUtils
+                      github::Exceret/DEGAS
+                      github::Exceret/PIPET
                   dependencies: '"all"'
                   needs: check
 

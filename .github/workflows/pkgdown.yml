@@ -29,10 +29,29 @@ jobs:
               with:
                   use-public-rspm: true
 
+            # 手动安装问题包
+            - name: Install problematic dependencies
+              run: |
+                  install.packages("remotes")
+                  
+                  # 安装 LPSGL (从 LP_SGL 仓库)
+                  remotes::install_github("Exceret/LP_SGL", force = TRUE)
+              shell: Rscript {0}
+              continue-on-error: true
+
             - uses: r-lib/actions/setup-r-dependencies@v2
               with:
-                  # 在这里添加 github::WangX-Lab/ScPP，使其从 GitHub 安装到正确的库中
-                  extra-packages: any::pkgdown, local::., github::Exceret/ScPP, github::ShixiangWang/IDConverter, github::Exceret/scAB, github::Exceret/Scissor, github::Exceret/scPAS,github::Exceret/PIPET, github::Exceret/SigBridgeRUtils, github::Exceret/LP_SGL=LPSGL, github::Exceret/DEGAS
+                  extra-packages: |
+                      any::pkgdown
+                      local::.
+                      github::Exceret/ScPP
+                      github::ShixiangWang/IDConverter
+                      github::Exceret/scAB
+                      github::Exceret/Scissor
+                      github::Exceret/scPAS
+                      github::Exceret/SigBridgeRUtils
+                      github::Exceret/DEGAS
+                      github::Exceret/PIPET
                   needs: website
 
             - name: Build site
@@ -45,6 +64,5 @@ jobs:
               with:
                   clean: false
                   branch: gh-pages
-                  # root
                   folder: docs
                   enable_jekyll: false
