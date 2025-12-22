@@ -38,6 +38,7 @@ Depends:
     R (>= 4.1.0)
 Remotes: 
     bioc::edgeR,
+    github::Exceret/ALRA,
     github::Exceret/DEGAS,
     github::Exceret/LP_SGL,
     github::Exceret/PIPET,
@@ -48,6 +49,7 @@ Remotes:
     github::WangLabCSU/SigBridgeRUtils,
     github::ShixiangWang/IDConverter
 Suggests: 
+    ALRA,
     anndata,
     carrier,
     furrr,
