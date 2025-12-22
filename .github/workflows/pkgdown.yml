@@ -29,16 +29,6 @@ jobs:
               with:
                   use-public-rspm: true
 
-            # 手动安装问题包
-            - name: Install problematic dependencies
-              run: |
-                  install.packages("remotes")
-                  
-                  # 安装 LPSGL (从 LP_SGL 仓库)
-                  remotes::install_github("Exceret/LP_SGL", force = TRUE)
-              shell: Rscript {0}
-              continue-on-error: true
-
             - uses: r-lib/actions/setup-r-dependencies@v2
               with:
                   extra-packages: |
@@ -51,6 +41,7 @@ jobs:
                       github::Exceret/scPAS
                       github::Exceret/SigBridgeRUtils
                       github::Exceret/DEGAS
+                      github::Exceret/LPSGL
                       github::Exceret/PIPET
                   needs: website
 

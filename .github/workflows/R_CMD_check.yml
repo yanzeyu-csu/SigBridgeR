@@ -132,6 +132,7 @@ jobs:
                       github::Exceret/SigBridgeRUtils
                       github::Exceret/DEGAS
                       github::Exceret/PIPET
+                      github::Exceret/LPSGL
                   dependencies: '"all"'
                   needs: check
 
