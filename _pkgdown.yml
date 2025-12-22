@@ -1,63 +1,50 @@
 url: https://wanglabcsu.github.io/sigbridger/
 
 favicons:
-  - href: favicon.ico
-  - href: favicon-16x16.png
-    sizes: 16x16
-    type: image/png
-  - href: favicon-32x32.png
-    sizes: 32x32
-    type: image/png
-  - href: apple-touch-icon.png
-    sizes: 180x180
-    type: image/png
-  - href: android-chrome-192x192.png
-    sizes: 192x192
-    type: image/png
-  - href: android-chrome-512x512.png
-    sizes: 512x512
-    type: image/png
+    - href: favicon.ico
+    - href: favicon-16x16.png
+      sizes: 16x16
+      type: image/png
+    - href: favicon-32x32.png
+      sizes: 32x32
+      type: image/png
+    - href: apple-touch-icon.png
+      sizes: 180x180
+      type: image/png
+    - href: android-chrome-192x192.png
+      sizes: 192x192
+      type: image/png
+    - href: android-chrome-512x512.png
+      sizes: 512x512
+      type: image/png
 
 template:
+    bootstrap: 5
     bslib:
         bootswatch: sandstone
-        pkgdown-nav-height: 100px
         code_font: { google: "JetBrains Mono" }
-        # 明确配置亮暗主题的颜色方案
-        theme:
-            light: 
-                bg: white
-                fg: black
-                # 可选：为导航栏、按钮等指定更具体的颜色以增强一致性
-                primary: "#2c5f9b"
-                secondary: "#6c757d"
-                # ... 其他颜色变量可按需添加
-            dark:
-                bg: "#121212"  # 深色背景
-                fg: "#ffffff"  # 浅色文字
-                primary: "#2c5f9b"
-                secondary: "#6c757d"
-                # ... 其他颜色变量可按需添加
-        version: 5
-
+        pkgdown-nav-height: 100px
+        bg: white
+        fg: black
+        primary: "#2c5f9b"
+        secondary: "#6c757d"
 
 authors:
     - name: Yuxi Yang
     - email: 15364051195@163.com
 
-
 title: SigBridgeR
 description: >-
-  SigBridgeR: SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
-logo: 
+    SigBridgeR: SigBridgeR integrates multiple algorithms, using single-cell RNA sequencing data, bulk expression data, and sample-related phenotypic data, to identify the cells most closely associated with the phenotypic data, performing as a bridge to existing tools.
+logo:
     light: man/figures/logo_white.png
-    dark:  man/figures/logo_black.png
+    dark: man/figures/logo_black.png
 
 # 导航栏配置
 navbar:
     structure:
         left: [home, reference, articles]
-        right: [toggle_theme,github]
+        right: [toggle_theme, github]
     components:
         toggle_theme: ~
         home:
@@ -66,7 +53,7 @@ navbar:
             href: index.html
         reference:
             text: Functions
-            icon: fa-code 
+            icon: fa-code
             href: reference/index.html
         articles:
             text: Articles
@@ -98,7 +85,7 @@ navbar:
             href: https://github.com/wanglabcsu/sigbridger/
 
 includes:
-  in_header: |
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-    <link rel="manifest" href="site.webmanifest">
+    in_header: |
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+        <link rel="manifest" href="site.webmanifest">
