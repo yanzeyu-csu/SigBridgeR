@@ -9,17 +9,18 @@ DoPIPET(
   sc_data,
   phenotype,
   phenotype_class = c("binary", "continuous"),
-  label_type = "PIPET",
-  lg2FC = 1,
-  p_adjust = 0.05,
-  show_lg2FC = TRUE,
   group = NULL,
-  rm_NA = TRUE,
+  discretize_method = c("kmeans", "median", "custom"),
+  cutoff = NULL,
+  label_type = "PIPET",
+  log2FC = 1L,
+  p_adjust = 0.05,
+  show_log2FC = TRUE,
   freq_counts = NULL,
   normalize = TRUE,
   scale = TRUE,
   nPerm = 1000L,
-  distance = NULL,
+  distance = c("cosine", "pearson", "spearman", "kendall", "euclidean", "maximum"),
   ...
 )
 }
@@ -35,20 +36,26 @@ Column names must match \code{phenotype} identifiers.}
 
 \item{phenotype_class}{Analysis mode:
 - \code{"binary"}: Case-control design (e.g., responder/non-responder)
-- \code{"continuous"}: Continuous outcome (e.g.,)
-- \code{"survival"}: Time-to-event analysis data.frame}
+- \code{"continuous"}: Continuous outcome (e.g.,)}
+
+\item{group}{A character, name of one metadata column to group cells by (for example, orig.ident). The default value is \code{NULL}. In this case, screening will be performed on each group separately.}
+
+\item{discretize_method}{\code{c("median", "kmeans", "custom")}. Discretization
+strategy for continuous phenotypes. Note: \code{"median"} is mapped internally to
+\code{"quantile"} (2-group quantile split). Default: \code{"median"}.}
+
+\item{cutoff}{Numeric vector of length \code{n_group - 1}. Required only when
+\code{discretize_method = "custom"}. Defines interior breakpoints on the
+\emph{normalized, log2-transformed scale} (i.e., after \code{scale(log2(x + 1))}).
+Must be sorted in ascending order.}
 
 \item{label_type}{Character specifying phenotype label type (e.g., "SBS1", "time"), stored in \code{scRNA_data@misc}}
 
-\item{lg2FC}{In the DESeq differential expression analysis results, the cutoff value of lg2FC. The default value is \code{1L}.}
+\item{log2FC}{In the DESeq differential expression analysis results, the cutoff value of log2FC. The default value is \code{1L}.}
 
 \item{p_adjust}{In the DESeq differential expression analysis results, the cutoff value of adjust P. The default value is \code{0.05}.}
 
-\item{show_lg2FC}{Select whether to show log2 fold changes. The default value is \code{TRUE}.}
-
-\item{group}{A character, name of one metadata column to group cells by (for example, orig.ident). The default value is \code{NULL}}
-
-\item{rm_NA}{Select Whether to remove NA values. The default value is \code{TRUE}.}
+\item{show_log2FC}{Select whether to show log2 fold changes. The default value is \code{TRUE}.}
 
 \item{freq_counts}{An integer, keep genes expressed in more than a certain number of cells. The default value is \code{NULL}, which means no filtering.}
 
@@ -64,6 +71,7 @@ Column names must match \code{phenotype} identifiers.}
 \itemize{
 \item seed: Random seed for reproducibility
 \item verbose: Whether to show progress messages
+\item parallel: Whether to use parallel processing, default is \code{FALSE}. future::plan() must be set before calling this function.
 }}
 }
 \description{

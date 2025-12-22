@@ -32,8 +32,8 @@ AddMetaFeature <- function(seurat_obj, ..., assay = "RNA") {
     n_genes <- nrow(seurat_obj)
     gene_names <- rownames(seurat_obj)
 
-    # Extract current meta.features (ensure data.frame)
-    mf <- assay_obj@meta.features
+    # Extract current meta.feature (ensure data.frame)
+    mf <- assay_obj[[]]
     if (is.null(mf) || nrow(mf) == 0L) {
         # Create empty data.frame
         mf <- as.data.frame(
@@ -47,7 +47,7 @@ AddMetaFeature <- function(seurat_obj, ..., assay = "RNA") {
     } else if (!identical(rownames(mf), gene_names)) {
         # Ensure rownames match — critical for later
         cli::cli_abort(c(
-            "meta.features rownames was corrupted and must be reset."
+            "meta.data features rownames was corrupted and must be reset."
         ))
     }
 
@@ -113,16 +113,13 @@ AddMetaFeature <- function(seurat_obj, ..., assay = "RNA") {
             data.table::setattr(dt_meta, "row.names", rn)
         } else {
             # data.frame / data.table / tibble
-            dt_meta <- data.table::as.data.table(meta, keep.rownames = TRUE)
-            if ("rn" %in% names(dt_meta)) {
-                data.table::setnames(dt_meta, "rn", "gene")
-            }
+            dt_meta <- data.table::as.data.table(meta, keep.rownames = "gene")
 
             if (gene_dim == 2L) {
                 # genes in columns → melt + dcast is heavy; better transpose via matrix
                 # But avoid if possible — prefer user to pass genes in rows
                 mat <- data.matrix(dt_meta[, !"gene", with = FALSE])
-                rn_orig <- if ("gene" %in% names(dt_meta)) {
+                rn_orig <- if ("gene" %chin% names(dt_meta)) {
                     dt_meta[["gene"]]
                 } else {
                     rownames(meta)
@@ -137,7 +134,7 @@ AddMetaFeature <- function(seurat_obj, ..., assay = "RNA") {
                     ))
                 }
 
-                mat_t <- t(mat)
+                mat_t <- Matrix::t(mat)
                 dt_meta <- data.table::as.data.table(mat_t)
                 data.table::setnames(dt_meta, cn_orig)
                 data.table::setattr(dt_meta, "row.names", rn_orig)
@@ -178,7 +175,7 @@ AddMetaFeature <- function(seurat_obj, ..., assay = "RNA") {
     rownames(mf_final) <- rn_final
 
     # Assign back
-    assay_obj@meta.features <- mf_final
+    assay_obj[[]] <- mf_final
     seurat_obj@assays[[assay]] <- assay_obj
 
     invisible(seurat_obj)

@@ -134,279 +134,113 @@ NULL
 #' @rdname SCPreProcess
 #' @export
 SCPreProcess <- function(sc, ...) {
-    UseMethod("SCPreProcess")
+  UseMethod("SCPreProcess")
 }
 
 #' @rdname SCPreProcess
 #' @export
 SCPreProcess.default <- function(
-    sc,
-    meta_data = NULL,
-    column2only_tumor = NULL,
-    project = "SC_Screening_Proj",
-    min_cells = 400L,
-    min_features = 0L,
-    quality_control = TRUE,
-    quality_control.pattern = c("^MT-"),
-    data_filter = TRUE,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        # * only used when specifed in `quality_control.pattern`
-        percent.mt = 20L, # mitochondrial genes
-        percent.rp = 60L # ribosomal protein genes
-        # ? When combined pattern is used, like `quality_control.pattern = "^MT-|^RP[LS]"`
-        # ? Use `_` to separate different patterns like this:
-        # percent.mt_rp = 60L
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-"),
+  data_filter = TRUE,
+  data_filter.thresh = list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    # * only used when specifed in `quality_control.pattern`
+    percent.mt = 20L, # mitochondrial genes
+    percent.rp = 60L # ribosomal protein genes
+    # ? When combined pattern is used, like `quality_control.pattern = "^MT-|^RP[LS]"`
+    # ? Use `_` to separate different patterns like this:
+    # percent.mt_rp = 60L
 
-        # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
-        # ? the column names are in lowercase letter form with regular expression symbols removed.
-        # `quality_control.pattern = "^[rt]rna"`
-        # Correct threshhold setting is `percent.rt_rna = 60L`
+    # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
+    # ? the column names are in lowercase letter form with regular expression symbols removed.
+    # `quality_control.pattern = "^[rt]rna"`
+    # Correct threshhold setting is `percent.rt_rna = 60L`
 
-        # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
-    ),
-    normalization_method = "LogNormalize",
-    scale_factor = 10000L,
-    scale_features = NULL,
-    selection_method = "vst",
-    resolution = 0.6,
-    dims = NULL,
-    ...
+    # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
+  ),
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  ...
 ) {
-    if (!is.null(meta_data)) {
-        chk::chk_data(meta_data)
-    }
-    if (!is.null(column2only_tumor)) {
-        chk::chk_character(column2only_tumor)
-    }
+  if (!is.null(meta_data)) {
+    chk::chk_data(meta_data)
+  }
+  if (!is.null(column2only_tumor)) {
+    chk::chk_character(column2only_tumor)
+  }
 
-    # dots arguments
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-    # pass to `FindNeighbors`, `RunTSNE`, `RunUMAP`
-    dims_Neighbors <- dots$dims_Neighbors
-    dims_TSNE <- dots$dims_TSNE
-    dims_UMAP <- dots$dims_UMAP
+  # dots arguments
+  dots <- rlang::list2(...)
+  verbose <- dots$verbose %||% getFuncOption("verbose") %||% TRUE
+  # pass to `FindNeighbors`, `RunTSNE`, `RunUMAP`
+  dims_Neighbors <- dots$dims_Neighbors
+  dims_TSNE <- dots$dims_TSNE
+  dims_UMAP <- dots$dims_UMAP
 
-    sc_seurat <- SeuratObject::CreateSeuratObject(
-        counts = sc,
-        project = project,
-        meta.data = meta_data,
-        min.cells = min_cells,
-        min.features = min_features
+  sc_seurat <- SeuratObject::CreateSeuratObject(
+    counts = sc,
+    project = project,
+    meta.data = meta_data,
+    min.cells = min_cells,
+    min.features = min_features
+  )
+
+  if (quality_control) {
+    chk::chk_character(quality_control.pattern)
+
+    sc_seurat <- QCPatternDetect(
+      obj = sc_seurat,
+      pattern = quality_control.pattern,
+      verbose = verbose
     )
-
-    if (quality_control) {
-        chk::chk_character(quality_control.pattern)
-
-        sc_seurat <- QCPatternDetect(
-            obj = sc_seurat,
-            pattern = quality_control.pattern,
-            verbose = verbose
-        )
-    }
-    if (data_filter) {
-        # first 2 numbers will be used
-        chk::chk_lt(
-            data_filter.thresh$nFeature_RNA_thresh[1],
-            data_filter.thresh$nFeature_RNA_thresh[2]
-        )
-        sc_seurat <- QCFilter(
-            seurat_obj = sc_seurat,
-            data_filter.thresh = data_filter.thresh,
-            verbose = verbose
-        )
-    }
-    sc_seurat <- ProcessSeuratObject(
-        obj = sc_seurat,
-        normalization_method = normalization_method,
-        scale_factor = scale_factor,
-        scale_features = scale_features,
-        selection_method = selection_method,
-        verbose = verbose
+  }
+  if (data_filter) {
+    # first 2 numbers will be used
+    chk::chk_lt(
+      data_filter.thresh$nFeature_RNA_thresh[1],
+      data_filter.thresh$nFeature_RNA_thresh[2]
     )
-
-    sc_seurat <- ClusterAndReduce(
-        sc_seurat,
-        dims = dims,
-        dims_Neighbors = dims_Neighbors,
-        dims_TSNE = dims_TSNE,
-        dims_UMAP = dims_UMAP,
-        resolution = resolution,
-        verbose = verbose
+    sc_seurat <- QCFilter(
+      seurat_obj = sc_seurat,
+      data_filter.thresh = data_filter.thresh,
+      verbose = verbose
     )
+  }
+  sc_seurat <- ProcessSeuratObject(
+    obj = sc_seurat,
+    normalization_method = normalization_method,
+    scale_factor = scale_factor,
+    scale_features = scale_features,
+    selection_method = selection_method,
+    verbose = verbose
+  )
 
-    FilterTumorCell(
-        obj = sc_seurat,
-        column2only_tumor = column2only_tumor,
-        verbose = verbose
-    )
-}
+  sc_seurat <- ClusterAndReduce(
+    sc_seurat,
+    dims = dims,
+    dims_Neighbors = dims_Neighbors,
+    dims_TSNE = dims_TSNE,
+    dims_UMAP = dims_UMAP,
+    resolution = resolution,
+    verbose = verbose
+  )
 
-#' @rdname SCPreProcess
-#' @export
-#'
-SCPreProcess.matrix <- function(
-    sc,
-    meta_data = NULL,
-    column2only_tumor = NULL,
-    project = "SC_Screening_Proj",
-    min_cells = 400L,
-    min_features = 0L,
-    quality_control = TRUE,
-    quality_control.pattern = c("^MT-"),
-    data_filter = TRUE,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L, # mitochondrial genes
-        percent.rp = 60L # ribosomal protein genes
-    ),
-    normalization_method = "LogNormalize",
-    scale_factor = 10000L,
-    scale_features = NULL,
-    selection_method = "vst",
-    resolution = 0.6,
-    dims = NULL,
-    ...
-) {
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-
-    # sc is a count matrix
-    if (verbose) {
-        cli::cli_text("Start from count matrix")
-    }
-    NextMethod(
-        generic = "SCPreProcess",
-        sc = Matrix::Matrix(sc),
-        meta_data = meta_data,
-        column2only_tumor = column2only_tumor,
-        project = project,
-        min_cells = min_cells,
-        min_features = min_features,
-        quality_control = quality_control,
-        quality_control.pattern = quality_control.pattern,
-        data_filter = data_filter,
-        data_filter.thresh = data_filter.thresh,
-        normalization_method = normalization_method,
-        scale_factor = scale_factor,
-        scale_features = scale_features,
-        selection_method = selection_method,
-        resolution = resolution,
-        dims = dims,
-        verbose = verbose,
-        ...
-    )
-}
-
-#' @rdname SCPreProcess
-#' @export
-#'
-SCPreProcess.data.frame <- function(
-    sc,
-    meta_data = NULL,
-    column2only_tumor = NULL,
-    project = "SC_Screening_Proj",
-    min_cells = 400L,
-    min_features = 0L,
-    quality_control = TRUE,
-    quality_control.pattern = c("^MT-"),
-    data_filter = TRUE,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L, # mitochondrial genes
-        percent.rp = 60L # ribosomal protein genes
-    ),
-    normalization_method = "LogNormalize",
-    scale_factor = 10000L,
-    scale_features = NULL,
-    selection_method = "vst",
-    resolution = 0.6,
-    dims = NULL,
-    ...
-) {
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-
-    # sc is a count matrix
-    if (verbose) {
-        cli::cli_text("Start from data.frame, convert it to matrix")
-    }
-    NextMethod(
-        generic = "SCPreProcess",
-        sc = Matrix::Matrix(as.matrix(sc)),
-        meta_data = meta_data,
-        column2only_tumor = column2only_tumor,
-        project = project,
-        min_cells = min_cells,
-        min_features = min_features,
-        quality_control = quality_control,
-        quality_control.pattern = quality_control.pattern,
-        data_filter = data_filter,
-        data_filter.thresh = data_filter.thresh,
-        normalization_method = normalization_method,
-        scale_factor = scale_factor,
-        scale_features = scale_features,
-        selection_method = selection_method,
-        resolution = resolution,
-        dims = dims,
-        verbose = verbose,
-        ...
-    )
-}
-
-#' @rdname SCPreProcess
-#' @export
-#'
-SCPreProcess.dgCMatrix <- function(
-    sc,
-    meta_data = NULL,
-    column2only_tumor = NULL,
-    project = "SC_Screening_Proj",
-    min_cells = 400L,
-    min_features = 0L,
-    quality_control = TRUE,
-    quality_control.pattern = c("^MT-"),
-    data_filter = TRUE,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L, # mitochondrial genes
-        percent.rp = 60L # ribosomal protein genes
-    ),
-    normalization_method = "LogNormalize",
-    scale_factor = 10000L,
-    scale_features = NULL,
-    selection_method = "vst",
-    resolution = 0.6,
-    dims = NULL,
-    ...
-) {
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
-
-    # sc is a count matrix
-    if (verbose) {
-        cli::cli_text("Start from count dgCMatrix")
-    }
-    SCPreProcess.default(
-        sc = sc,
-        meta_data = meta_data,
-        column2only_tumor = column2only_tumor,
-        project = project,
-        min_cells = min_cells,
-        min_features = min_features,
-        quality_control = quality_control,
-        quality_control.pattern = quality_control.pattern,
-        data_filter = data_filter,
-        data_filter.thresh = data_filter.thresh,
-        normalization_method = normalization_method,
-        scale_factor = scale_factor,
-        scale_features = scale_features,
-        selection_method = selection_method,
-        resolution = resolution,
-        dims = dims,
-        ...
-    )
+  FilterTumorCell(
+    obj = sc_seurat,
+    column2only_tumor = column2only_tumor,
+    verbose = verbose
+  )
 }
 
 # * ---- anndata and anndataR ----
@@ -414,131 +248,131 @@ SCPreProcess.dgCMatrix <- function(
 #' @rdname SCPreProcess
 #' @export
 SCPreProcess.R6 <- function(
-    sc,
-    meta_data = NULL,
-    column2only_tumor = NULL,
-    project = "SC_Screening_Proj",
-    min_cells = 400L,
-    min_features = 0L,
-    quality_control = TRUE,
-    quality_control.pattern = c("^MT-"),
-    data_filter = TRUE,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L, # mitochondrial genes
-        percent.rp = 60L # ribosomal protein genes
-    ),
-    normalization_method = "LogNormalize",
-    scale_factor = 10000L,
-    scale_features = NULL,
-    selection_method = "vst",
-    resolution = 0.6,
-    dims = NULL,
-    ...
+  sc,
+  meta_data = NULL,
+  column2only_tumor = NULL,
+  project = "SC_Screening_Proj",
+  min_cells = 400L,
+  min_features = 0L,
+  quality_control = TRUE,
+  quality_control.pattern = c("^MT-"),
+  data_filter = TRUE,
+  data_filter.thresh = list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    percent.mt = 20L, # mitochondrial genes
+    percent.rp = 60L # ribosomal protein genes
+  ),
+  normalization_method = "LogNormalize",
+  scale_factor = 10000L,
+  scale_features = NULL,
+  selection_method = "vst",
+  resolution = 0.6,
+  dims = NULL,
+  ...
 ) {
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
+  dots <- rlang::list2(...)
+  verbose <- dots$verbose %||% getFuncOption("verbose")
 
-    # Both `anndata` and `anndataR` are based on R6
-    if (is.null(sc$X)) {
-        cli::cli_abort(c("x" = "Input must contain $X matrix"))
-    }
-    if (verbose) {
-        cli::cli_text(
-            "Start from an anndata object, attempt to retrieve the count matrix and metadata from it."
-        )
-    }
-    meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
-        cbind(meta_data, sc$obs)
-    } else if (!is.null(sc$obs)) {
-        sc$obs
-    }
-
-    NextMethod(
-        generic = "SCPreProcess",
-        sc = Matrix::t(sc$X),
-        meta_data = meta_data,
-        column2only_tumor = column2only_tumor,
-        project = project,
-        min_cells = min_cells,
-        min_features = min_features,
-        quality_control = quality_control,
-        quality_control.pattern = quality_control.pattern,
-        data_filter = data_filter,
-        data_filter.thresh = data_filter.thresh,
-        normalization_method = normalization_method,
-        scale_factor = scale_factor,
-        scale_features = scale_features,
-        selection_method = selection_method,
-        resolution = resolution,
-        dims = dims,
-        verbose = verbose,
-        ...
+  # Both `anndata` and `anndataR` are based on R6
+  if (is.null(sc$X)) {
+    cli::cli_abort(c("x" = "Input must contain $X matrix"))
+  }
+  if (verbose) {
+    cli::cli_text(
+      "Start from an anndata object, attempt to retrieve the count matrix and cell-level metadata from it."
     )
+  }
+  meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
+    cbind(meta_data, sc$obs)
+  } else if (!is.null(sc$obs)) {
+    sc$obs
+  }
+
+  NextMethod(
+    generic = "SCPreProcess",
+    sc = Matrix::t(sc$X),
+    meta_data = meta_data,
+    column2only_tumor = column2only_tumor,
+    project = project,
+    min_cells = min_cells,
+    min_features = min_features,
+    quality_control = quality_control,
+    quality_control.pattern = quality_control.pattern,
+    data_filter = data_filter,
+    data_filter.thresh = data_filter.thresh,
+    normalization_method = normalization_method,
+    scale_factor = scale_factor,
+    scale_features = scale_features,
+    selection_method = selection_method,
+    resolution = resolution,
+    dims = dims,
+    verbose = verbose,
+    ...
+  )
 }
 
 #' @rdname SCPreProcess
 #' @export
 #'
 SCPreProcess.Seurat <- function(
-    sc,
-    column2only_tumor = NULL,
-    ...
+  sc,
+  column2only_tumor = NULL,
+  ...
 ) {
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% getFuncOption("verbose")
+  dots <- rlang::list2(...)
+  verbose <- dots$verbose %||% getFuncOption("verbose")
 
-    if (verbose) {
-        ts_cli$cli_alert_info("Start from Seurat object")
-    }
+  if (verbose) {
+    ts_cli$cli_alert_info("Start from Seurat object")
+  }
 
-    # Validation message can be TRUE or message vector
-    valid_msg <- methods::validObject(object = sc, test = TRUE)
+  # Validation message can be TRUE or message vector
+  valid_msg <- methods::validObject(object = sc, test = TRUE)
 
-    # * Successful validation
-    if (is.logical(valid_msg)) {
-        return(FilterTumorCell(
-            obj = sc,
-            column2only_tumor = column2only_tumor,
-            verbose = verbose
-        ))
-    }
+  # * Successful validation
+  if (is.logical(valid_msg)) {
+    return(FilterTumorCell(
+      obj = sc,
+      column2only_tumor = column2only_tumor,
+      verbose = verbose
+    ))
+  }
 
-    # * Failure to validate the Seurat object
-    if (verbose) {
-        ts_cli$cli_alert_info(
-            "Seurat object validation failed, try repairing it..."
-        )
-        cli::cli_h3(cli::style_bold("Validation message:"))
-        purrr::walk(valid_msg, cli::cli_alert_danger)
-        cli::cli_h3(cli::style_bold(
-            "Try repairing with {.fn UpdateSeuratObject}:"
-        ))
-    }
-
-    # Decorator function to wrap the UpdateSeuratObject function
-    SafelyUpdateSeuratObject <- purrr::safely(
-        SeuratObject::UpdateSeuratObject
+  # * Failure to validate the Seurat object
+  if (verbose) {
+    ts_cli$cli_alert_info(
+      "Seurat object validation failed, try repairing it..."
     )
-    updated_res <- SafelyUpdateSeuratObject(sc)
-    # Successful repair
-    if (is.null(updated_res$error) && verbose) {
-        ts_cli$cli_alert_success(cli::col_green(
-            "Successfully repaired the Seurat object"
-        ))
-    } else if (verbose) {
-        # Failure to repair
-        cli::cli_alert_danger(updated_res$error)
-        cli::cli_warn(
-            "Seurat object repair failed. It is recommended to rebuild the Seurat object. Filtering is still being performed but may not be reliable."
-        )
-    }
+    cli::cli_h3(cli::style_bold("Validation message:"))
+    purrr::walk(valid_msg, cli::cli_alert_danger)
+    cli::cli_h3(cli::style_bold(
+      "Try repairing with {.fn UpdateSeuratObject}:"
+    ))
+  }
 
-    FilterTumorCell(
-        obj = sc,
-        column2only_tumor = column2only_tumor,
-        verbose = verbose
+  # Decorator function to wrap the UpdateSeuratObject function
+  SafelyUpdateSeuratObject <- purrr::safely(
+    SeuratObject::UpdateSeuratObject
+  )
+  updated_res <- SafelyUpdateSeuratObject(sc)
+  # Successful repair
+  if (is.null(updated_res$error) && verbose) {
+    ts_cli$cli_alert_success(cli::col_green(
+      "Successfully repaired the Seurat object"
+    ))
+  } else if (verbose) {
+    # Failure to repair
+    cli::cli_alert_danger(updated_res$error)
+    cli::cli_warn(
+      "Seurat object repair failed. It is recommended to rebuild the Seurat object. Filtering is still being performed but may not be reliable."
     )
+  }
+
+  FilterTumorCell(
+    obj = sc,
+    column2only_tumor = column2only_tumor,
+    verbose = verbose
+  )
 }
 
 # * ---- Preprocess ----
@@ -560,28 +394,28 @@ SCPreProcess.Seurat <- function(
 #' @family single_cell_preprocess
 #'
 ProcessSeuratObject <- function(
-    obj,
-    normalization_method = "LogNormalize",
-    scale_factor = 10000,
-    scale_features = NULL,
-    selection_method = "vst",
-    verbose = TRUE
+  obj,
+  normalization_method = "LogNormalize",
+  scale_factor = 10000,
+  scale_features = NULL,
+  selection_method = "vst",
+  verbose = TRUE
 ) {
-    Seurat::NormalizeData(
-        object = obj,
-        normalization.method = normalization_method,
-        scale.factor = scale_factor,
-        verbose = verbose
+  Seurat::NormalizeData(
+    object = obj,
+    normalization.method = normalization_method,
+    scale.factor = scale_factor,
+    verbose = verbose
+  ) %>%
+    Seurat::FindVariableFeatures(
+      selection.method = selection_method,
+      verbose = verbose
     ) %>%
-        Seurat::FindVariableFeatures(
-            selection.method = selection_method,
-            verbose = verbose
-        ) %>%
-        Seurat::ScaleData(verbose = verbose, features = scale_features) %>%
-        Seurat::RunPCA(
-            features = Seurat::VariableFeatures(.),
-            verbose = verbose
-        )
+    Seurat::ScaleData(verbose = verbose, features = scale_features) %>%
+    Seurat::RunPCA(
+      features = Seurat::VariableFeatures(.),
+      verbose = verbose
+    )
 }
 
 
@@ -605,43 +439,43 @@ ProcessSeuratObject <- function(
 #'
 #' @note Automatically adjusts input dimensions if they exceed available PCA dimensions
 ClusterAndReduce <- function(
-    obj,
-    dims = NULL,
-    dims_Neighbors = NULL,
-    dims_TSNE = NULL,
-    dims_UMAP = NULL,
-    resolution = 0.6,
-    verbose = TRUE,
-    ...
+  obj,
+  dims = NULL,
+  dims_Neighbors = NULL,
+  dims_TSNE = NULL,
+  dims_UMAP = NULL,
+  resolution = 0.6,
+  verbose = TRUE,
+  ...
 ) {
-    n_pcs <- ncol(obj@reductions$pca)
-    if (
-        is.null(dims) &&
-            any(is.null(dims_Neighbors), is.null(dims_TSNE), is.null(dims_UMAP))
-    ) {
-        dims <- seq_len(FindRobustElbow(obj, verbose = verbose, ndims = 50))
-    }
-    if (max(dims) > n_pcs) {
-        dims <- seq_len(min(max(dims), n_pcs))
-        cli::cli_warn(
-            "The input dimension is greater than the dimension in PCA. It is now set to the maximum dimension in PCA."
-        )
-    }
-    dims_Neighbors <- dims_Neighbors %||% dims
-    dims_TSNE <- dims_TSNE %||% dims
-    dims_UMAP <- dims_UMAP %||% dims
+  n_pcs <- ncol(obj@reductions$pca)
+  if (
+    is.null(dims) &&
+      any(is.null(dims_Neighbors), is.null(dims_TSNE), is.null(dims_UMAP))
+  ) {
+    dims <- seq_len(FindRobustElbow(obj, verbose = verbose, ndims = 50))
+  }
+  if (max(dims) > n_pcs) {
+    dims <- seq_len(min(max(dims), n_pcs))
+    cli::cli_warn(
+      "The input dimension is greater than the dimension in PCA. It is now set to the maximum dimension in PCA."
+    )
+  }
+  dims_Neighbors <- dims_Neighbors %||% dims
+  dims_TSNE <- dims_TSNE %||% dims
+  dims_UMAP <- dims_UMAP %||% dims
 
-    Seurat::FindNeighbors(
-        object = obj,
-        dims = dims_Neighbors,
-        verbose = verbose
+  Seurat::FindNeighbors(
+    object = obj,
+    dims = dims_Neighbors,
+    verbose = verbose
+  ) %>%
+    Seurat::FindClusters(
+      resolution = resolution,
+      verbose = verbose
     ) %>%
-        Seurat::FindClusters(
-            resolution = resolution,
-            verbose = verbose
-        ) %>%
-        Seurat::RunTSNE(dims = dims_TSNE) %>%
-        Seurat::RunUMAP(dims = dims_UMAP, verbose = verbose)
+    Seurat::RunTSNE(dims = dims_TSNE) %>%
+    Seurat::RunUMAP(dims = dims_UMAP, verbose = verbose)
 }
 
 #' @title Filter tumor cells (internal)
@@ -671,43 +505,43 @@ ClusterAndReduce <- function(
 #' @family single_cell_preprocess
 #'
 FilterTumorCell <- function(
-    obj,
-    column2only_tumor = NULL,
-    verbose = TRUE
+  obj,
+  column2only_tumor = NULL,
+  verbose = TRUE
 ) {
-    raw_dim <- dim(obj)
-    obj <- SigBridgeRUtils::AddMisc(obj, self_dim = raw_dim, cover = TRUE)
+  raw_dim <- dim(obj)
+  obj <- SigBridgeRUtils::AddMisc(obj, self_dim = raw_dim, cover = TRUE)
 
-    if (is.null(column2only_tumor)) {
-        return(obj)
-    }
-    if (!column2only_tumor %chin% colnames(obj[[]])) {
-        cli::cli_warn(
-            "Column '{.emph {column2only_tumor}}' not found, skip tumor cell filtering"
-        )
-        return(obj)
-    }
-    if (verbose) {
-        cli::cli_text(
-            "Filtering tumor cells with '{.emph {column2only_tumor}}'..."
-        )
-    }
-
-    labels <- obj[[column2only_tumor]][[1]]
-    tumor_cells <- grepl(
-        "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm|[Tt]um",
-        labels
+  if (is.null(column2only_tumor)) {
+    return(obj)
+  }
+  if (!column2only_tumor %chin% colnames(obj[[]])) {
+    cli::cli_warn(
+      "Column '{.emph {column2only_tumor}}' not found, skip tumor cell filtering"
     )
-
-    obj <- obj[, tumor_cells]
-
-    SigBridgeRUtils::AddMisc(
-        seurat_obj = obj,
-        raw_dim = raw_dim,
-        self_dim = dim(obj),
-        column2only_tumor = column2only_tumor,
-        cover = TRUE
+    return(obj)
+  }
+  if (verbose) {
+    cli::cli_text(
+      "Filtering tumor cells with '{.emph {column2only_tumor}}'..."
     )
+  }
+
+  labels <- obj[[column2only_tumor]][[1]]
+  tumor_cells <- grepl(
+    "^[Tt]umo.?r|[Cc]ancer[Mm]alignant|[Nn]eoplasm|[Tt]um",
+    labels
+  )
+
+  obj <- obj[, tumor_cells]
+
+  SigBridgeRUtils::AddMisc(
+    seurat_obj = obj,
+    raw_dim = raw_dim,
+    self_dim = dim(obj),
+    column2only_tumor = column2only_tumor,
+    cover = TRUE
+  )
 }
 
 #' @title Calculate Percentage of Features Matching Patterns
@@ -736,59 +570,59 @@ FilterTumorCell <- function(
 #' @export
 #'
 QCPatternDetect <- function(
-    obj,
-    pattern = c("^MT-", "^mt-", "^RP[SL]", "^MT-|^RP[SL]"),
-    verbose = TRUE,
-    ...
+  obj,
+  pattern = c("^MT-", "^mt-", "^RP[SL]", "^MT-|^RP[SL]"),
+  verbose = TRUE,
+  ...
 ) {
-    if (verbose) {
-        cli::cli_text(
-            "Using QC patterns {.arg {quality_control.pattern}} to detect metrics"
-        )
-    }
-
-    # if `pattern` is a list, convert it to a character vector
-    patterns <- unlist(pattern)
-    colname_mapping <- stats::setNames(
-        paste0("percent.", purrr::map_chr(patterns, Pattern2Colname)),
-        patterns
+  if (verbose) {
+    cli::cli_text(
+      "Using QC patterns {.arg {pattern}} to detect metrics"
     )
-    # Maybe these filter already exist in the object
-    existing_cols <- colnames(obj[[]])
-    existing <- colname_mapping %chin% existing_cols
-    patterns_to_process <- names(colname_mapping)[!existing]
+  }
 
-    if (verbose && any(existing)) {
-        skipped_cols <- colname_mapping[existing]
-        skipped_patterns <- names(skipped_cols)
+  # if `pattern` is a list, convert it to a character vector
+  patterns <- unlist(pattern)
+  colname_mapping <- stats::setNames(
+    paste0("percent.", purrr::map_chr(patterns, Pattern2Colname)),
+    patterns
+  )
+  # Maybe these filter already exist in the object
+  existing_cols <- colnames(obj[[]])
+  existing <- colname_mapping %chin% existing_cols
+  patterns_to_process <- names(colname_mapping)[!existing]
 
-        purrr::walk2(
-            skipped_cols,
-            skipped_patterns,
-            ~ cli::cli_warn(
-                "Column {.val {.x}} already exists. Skipping pattern: {.val {.y}}"
-            )
-        )
-    }
+  if (verbose && any(existing)) {
+    skipped_cols <- colname_mapping[existing]
+    skipped_patterns <- names(skipped_cols)
 
-    obj <- purrr::reduce(
-        .x = patterns_to_process,
-        .f = function(obj_acc, pat) {
-            col_name <- colname_mapping[[pat]]
-            obj_acc[[col_name]] <- Seurat::PercentageFeatureSet(
-                obj_acc,
-                pattern = pat,
-                ...
-            )
-            obj_acc
-        },
-        .init = obj
+    purrr::walk2(
+      skipped_cols,
+      skipped_patterns,
+      ~ cli::cli_warn(
+        "Column {.val {.x}} already exists. Skipping pattern: {.val {.y}}"
+      )
     )
+  }
 
-    # Record these colnames to misc slot for further data filter
-    obj@misc$qc_colnames <- unname(colname_mapping)
+  obj <- purrr::reduce(
+    .x = patterns_to_process,
+    .f = function(obj_acc, pat) {
+      col_name <- colname_mapping[[pat]]
+      obj_acc[[col_name]] <- Seurat::PercentageFeatureSet(
+        obj_acc,
+        pattern = pat,
+        ...
+      )
+      obj_acc
+    },
+    .init = obj
+  )
 
-    obj
+  # Record these colnames to misc slot for further data filter
+  obj@misc$qc_colnames <- unname(colname_mapping)
+
+  obj
 }
 
 #' @title Filter Seurat object cells by QC metrics
@@ -809,135 +643,135 @@ QCPatternDetect <- function(
 #'
 #'
 QCFilter <- function(
-    seurat_obj,
-    data_filter.thresh = list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L,
-        percent.rp = 60L
-    ),
-    verbose = TRUE,
-    ...
+  seurat_obj,
+  data_filter.thresh = list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    percent.mt = 20L,
+    percent.rp = 60L
+  ),
+  verbose = TRUE,
+  ...
 ) {
-    if (!inherits(seurat_obj, "Seurat")) {
-        cli::cli_abort(c("x" = "seurat_obj must be a {.cls Seurat} object."))
-    }
+  if (!inherits(seurat_obj, "Seurat")) {
+    cli::cli_abort(c("x" = "seurat_obj must be a {.cls Seurat} object."))
+  }
 
-    if (!is.list(data_filter.thresh)) {
-        cli::cli_abort(c(
-            "x" = "{.arg data_filter.thresh} must be a named {.cls list}."
-        ))
-    }
+  if (!is.list(data_filter.thresh)) {
+    cli::cli_abort(c(
+      "x" = "{.arg data_filter.thresh} must be a named {.cls list}."
+    ))
+  }
 
-    if (verbose) {
-        cli::cli_text(
-            "Filtering cells by {.arg nFeature_RNA} and {.arg QC metrics}"
-        )
-    }
-
-    defaults <- list(
-        nFeature_RNA_thresh = c(200L, 6000L),
-        percent.mt = 20L,
-        percent.rp = 60L
+  if (verbose) {
+    cli::cli_text(
+      "Filtering cells by {.arg nFeature_RNA} and {.arg QC metrics}"
     )
-    thresh <- utils::modifyList(defaults, data_filter.thresh)
+  }
 
-    # Ensure nFeature_RNA_thresh is length-2 integer
-    if (length(thresh$nFeature_RNA_thresh) != 2) {
-        cli::cli_abort(c(
-            "x" = "{.arg nFeature_RNA_thresh} must be a numeric vector of length 2."
-        ))
+  defaults <- list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    percent.mt = 20L,
+    percent.rp = 60L
+  )
+  thresh <- utils::modifyList(defaults, data_filter.thresh)
+
+  # Ensure nFeature_RNA_thresh is length-2 integer
+  if (length(thresh$nFeature_RNA_thresh) != 2) {
+    cli::cli_abort(c(
+      "x" = "{.arg nFeature_RNA_thresh} must be a numeric vector of length 2."
+    ))
+  }
+  thresh$nFeature_RNA_thresh <- as.integer(thresh$nFeature_RNA_thresh)
+
+  # filter expr is a string of the form
+  # which is used to subset the Seurat object
+  nfeat_condition <- rlang::expr(
+    nFeature_RNA > !!thresh$nFeature_RNA_thresh[1] &
+      nFeature_RNA < !!thresh$nFeature_RNA_thresh[2]
+  )
+
+  # see `QCPatternDetect()` for the column names generation
+  qc_colnames <- NULL
+  if ("qc_colnames" %in% names(seurat_obj@misc)) {
+    qc_colnames <- unlist(seurat_obj@misc$qc_colnames, use.names = FALSE)
+  }
+  if (is.null(qc_colnames) || length(qc_colnames) == 0) {
+    qc_colnames <- character(0)
+  }
+
+  # --- Validate QC columns and build conditions -------------------------------
+  get_qc_condition <- function(qc_colnames, meta, thresh) {
+    if (length(qc_colnames) == 0) {
+      return(NULL)
     }
-    thresh$nFeature_RNA_thresh <- as.integer(thresh$nFeature_RNA_thresh)
 
-    # filter expr is a string of the form
-    # which is used to subset the Seurat object
-    nfeat_condition <- rlang::expr(
-        nFeature_RNA > !!thresh$nFeature_RNA_thresh[1] &
-            nFeature_RNA < !!thresh$nFeature_RNA_thresh[2]
-    )
+    present_cols <- qc_colnames[qc_colnames %in% colnames(meta)]
 
-    # see `QCPatternDetect()` for the column names generation
-    qc_colnames <- NULL
-    if ("qc_colnames" %in% names(seurat_obj@misc)) {
-        qc_colnames <- unlist(seurat_obj@misc$qc_colnames, use.names = FALSE)
+    valid_cols <- present_cols[vapply(
+      present_cols,
+      function(col) {
+        x <- meta[[col]]
+        any(!is.na(x) & x > 0, na.rm = TRUE) &&
+          stats::var(x, na.rm = TRUE) > 0
+      },
+      logical(1L)
+    )]
+
+    if (length(valid_cols) == 0) {
+      return(NULL)
     }
-    if (is.null(qc_colnames) || length(qc_colnames) == 0) {
-        qc_colnames <- character(0)
-    }
 
-    # --- Validate QC columns and build conditions -------------------------------
-    get_qc_condition <- function(qc_colnames, meta, thresh) {
-        if (length(qc_colnames) == 0) {
-            return(NULL)
+    purrr::map(valid_cols, function(col) {
+      if (!col %in% names(thresh)) {
+        if (verbose) {
+          cli::cli_alert_info(
+            "No threshold provided for {.val {col}}; skipping."
+          )
         }
+        return(NULL)
+      }
+      rlang::expr(!!dplyr::sym(col) < !!thresh[[col]])
+    }) |>
+      purrr::compact()
+  }
+  # be aware of expr is not supported in `subset()`
+  meta <- seurat_obj[[]]
+  qc_conds <- get_qc_condition(qc_colnames, meta, thresh)
 
-        present_cols <- qc_colnames[qc_colnames %in% colnames(meta)]
+  all_conds <- c(list(nfeat_condition), qc_conds)
+  if (length(all_conds) == 0) {
+    cli::cli_abort(c("x" = "No valid filtering conditions generated."))
+  }
 
-        valid_cols <- present_cols[vapply(
-            present_cols,
-            function(col) {
-                x <- meta[[col]]
-                any(!is.na(x) & x > 0, na.rm = TRUE) &&
-                    stats::var(x, na.rm = TRUE) > 0
-            },
-            logical(1L)
-        )]
+  full_expr <- purrr::reduce(
+    all_conds,
+    .f = function(x, y) rlang::expr(!!x & !!y)
+  )
 
-        if (length(valid_cols) == 0) {
-            return(NULL)
-        }
+  # Evaluate safely
+  logical_vec <- base::with(data = meta, expr = rlang::eval_tidy(full_expr))
 
-        purrr::map(valid_cols, function(col) {
-            if (!col %in% names(thresh)) {
-                if (verbose) {
-                    cli::cli_alert_info(
-                        "No threshold provided for {.val {col}}; skipping."
-                    )
-                }
-                return(NULL)
-            }
-            rlang::expr(!!dplyr::sym(col) < !!thresh[[col]])
-        }) |>
-            purrr::compact()
-    }
-    # be aware of expr is not supported in `subset()`
-    meta <- seurat_obj[[]]
-    qc_conds <- get_qc_condition(qc_colnames, meta, thresh)
+  if (!is.logical(logical_vec) || length(logical_vec) != nrow(meta)) {
+    cli::cli_abort(c(
+      "x" = "Internal error: filtering condition did not produce a logical vector of length {.val {nrow(meta)}}."
+    ))
+  }
 
-    all_conds <- c(list(nfeat_condition), qc_conds)
-    if (length(all_conds) == 0) {
-        cli::cli_abort(c("x" = "No valid filtering conditions generated."))
-    }
+  keep_cells <- rownames(meta)[logical_vec]
 
-    full_expr <- purrr::reduce(
-        all_conds,
-        .f = function(x, y) rlang::expr(!!x & !!y)
-    )
+  if (verbose) {
+    n_kept <- length(keep_cells)
+    n_total <- nrow(meta)
+    pct_off <- if (n_total > 0) 100 * (1 - n_kept / n_total) else 0
+    cli::cli_text(sprintf(
+      "Kept  %d/ %d (%.2f%% off) cells after filtering",
+      n_kept,
+      n_total,
+      pct_off
+    ))
+  }
 
-    # Evaluate safely
-    logical_vec <- base::with(data = meta, expr = rlang::eval_tidy(full_expr))
-
-    if (!is.logical(logical_vec) || length(logical_vec) != nrow(meta)) {
-        cli::cli_abort(c(
-            "x" = "Internal error: filtering condition did not produce a logical vector of length {.val {nrow(meta)}}."
-        ))
-    }
-
-    keep_cells <- rownames(meta)[logical_vec]
-
-    if (verbose) {
-        n_kept <- length(keep_cells)
-        n_total <- nrow(meta)
-        pct_off <- if (n_total > 0) 100 * (1 - n_kept / n_total) else 0
-        cli::cli_text(sprintf(
-            "Kept {.val %d}/{.val %d} ({.val %.2f}%% off) cells after filtering",
-            n_kept,
-            n_total,
-            pct_off
-        ))
-    }
-
-    subset(seurat_obj, cells = keep_cells)
+  subset(seurat_obj, cells = keep_cells)
 }
 
 #' @title convert regex patterns to column names (internal)
@@ -973,30 +807,30 @@ QCFilter <- function(
 #' @family single_cell_preprocess
 #'
 Pattern2Colname <- function(pat) {
-    pat_lower <- tolower(pat)
+  pat_lower <- tolower(pat)
 
-    if (grepl("\\|", pat_lower)) {
-        # Handle combined patterns (with | separator)
-        parts <- strsplit(pat_lower, "|", fixed = TRUE)[[1]]
-        names <- purrr::map_chr(parts, function(p) {
-            dplyr::case_when(
-                grepl("mt", p) ~ "mt",
-                grepl("rp", p) ~ "rp",
-                TRUE ~ tolower(gsub("[^[:alnum:]]", "", p))
-            )
-        })
+  if (grepl("\\|", pat_lower)) {
+    # Handle combined patterns (with | separator)
+    parts <- strsplit(pat_lower, "|", fixed = TRUE)[[1]]
+    names <- purrr::map_chr(parts, function(p) {
+      dplyr::case_when(
+        grepl("mt", p) ~ "mt",
+        grepl("rp", p) ~ "rp",
+        TRUE ~ tolower(gsub("[^[:alnum:]]", "", p))
+      )
+    })
 
-        return(paste(sort(unique(names)), collapse = "_"))
+    return(paste(sort(unique(names)), collapse = "_"))
+  }
+  # Handle single patterns
+  dplyr::case_when(
+    grepl("mt", pat_lower) ~ "mt",
+    grepl("rp", pat_lower) ~ "rp",
+    TRUE ~ {
+      clean <- gsub("[^[:alnum:]]", "_", pat_lower)
+      clean <- gsub("_+", "_", clean) # Collapse multiple underscores
+      clean <- gsub("^_+|_+$", "", clean) # Trim leading/trailing underscores
+      tolower(clean)
     }
-    # Handle single patterns
-    dplyr::case_when(
-        grepl("mt", pat_lower) ~ "mt",
-        grepl("rp", pat_lower) ~ "rp",
-        TRUE ~ {
-            clean <- gsub("[^[:alnum:]]", "_", pat_lower)
-            clean <- gsub("_+", "_", clean) # Collapse multiple underscores
-            clean <- gsub("^_+|_+$", "", clean) # Trim leading/trailing underscores
-            tolower(clean)
-        }
-    )
+  )
 }

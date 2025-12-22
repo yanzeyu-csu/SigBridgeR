@@ -156,7 +156,7 @@ DoLP_SGL <- function(
         )
         ts_cli$cli_alert_info("Identified {msg}")
 
-        ts_cli$cli_alert_success(cli::col_green("LP-SGL screening completed"))
+        ts_cli$cli_alert_success(cli::col_green("LP-SGL screening done."))
     }
 
     list(

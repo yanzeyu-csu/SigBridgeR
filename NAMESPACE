@@ -2,10 +2,7 @@
 
 S3method(SCPreProcess,R6)
 S3method(SCPreProcess,Seurat)
-S3method(SCPreProcess,data.frame)
 S3method(SCPreProcess,default)
-S3method(SCPreProcess,dgCMatrix)
-S3method(SCPreProcess,matrix)
 export(AddMetaFeature)
 export(AddMisc)
 export(AggregateDupCols)

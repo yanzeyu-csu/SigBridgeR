@@ -7,8 +7,5 @@ NULL
 # These symbols are used inside the package
 utils::globalVariables(c(
     # environment variables
-    "ts_cli",
-    # pkg options
-    "verbose",
-    "seed"
+    "ts_cli"
 ))

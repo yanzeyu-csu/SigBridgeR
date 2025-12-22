@@ -3,9 +3,6 @@
 \name{SCPreProcess}
 \alias{SCPreProcess}
 \alias{SCPreProcess.default}
-\alias{SCPreProcess.matrix}
-\alias{SCPreProcess.data.frame}
-\alias{SCPreProcess.dgCMatrix}
 \alias{SCPreProcess.R6}
 \alias{SCPreProcess.Seurat}
 \title{Single-Cell RNA-seq Preprocessing Pipeline}
@@ -13,69 +10,6 @@
 SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{default}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  ...
-)
-
-\method{SCPreProcess}{matrix}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  ...
-)
-
-\method{SCPreProcess}{data.frame}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  ...
-)
-
-\method{SCPreProcess}{dgCMatrix}(
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,

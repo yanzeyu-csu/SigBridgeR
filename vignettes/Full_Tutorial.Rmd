@@ -886,6 +886,46 @@ lpsgl_result <- Screen(
 - `cvfit` : Cross-validation results
 - `dge_res` : Differential expression results if requested (NULL otherwise)
 
+### 3.7 (Option G) PIPET Screening
+
+Parameters pass to `...` when using `PIPET` method 
+
+- **Phenotype adaptation parameters**:
+  - `discretize_method`: Character: "kmeans"/"quantile"/"custom" (default: "kmeans")
+  - `cutoff`: Numeric vector for custom discretization when `discretize_method` is "custom" (default: NULL)
+
+- **Marker generation parameters**:
+  - `log2FC`: Numeric: log2FC threshold (default: 1)
+  - `p.adjust`: Numeric: adjusted p-value threshold (default: 0.05)
+
+- **Single-cell annotation parameters**:
+  - `distance`: Character: "cosine"/"pearson"/"spearman" (default: "cosine")
+  - `nPerm`: Integer: permutation times for statistical test (default: 1000L)
+
+**Usage**:
+
+```{R,PIPET_screening,eval=FALSE}
+pipet_result = Screen(
+    matched_bulk = matched_bulk,
+    sc_data = sc_dataset, # A Seurat object after preprocessing
+    phenotype = matched_phenotype_data,
+    label_type = "TP53", # The filtering labels are stored in the `Seurat_object@misc`
+    phenotype_class = "binary", # `survival` is not supported 
+    screen_method = "PIPET",
+    # PIPET specific parameters
+    lg2FC = 1,
+    p.adjust = 0.05,
+    distance = "cosine",
+    nPerm = 1000,
+    parallel = FALSE # Whether to use parallel computing, before using this parameter, please make sure that future::plan() has been called
+)
+```
+
+**Returning structure**: A list containing:
+
+- `scRNA_data`: A Seurat object after screening (with PIPET annotations in meta.data)
+- `markers`: Phenotype-specific marker genes
+
 ### 3.8 Merge screening results
 
 If you have performed multiple screening methods one the same single-cell data, you can use the `MergeResult` to merge the screening results of these methods. The Seurat object or a results list from `Screen` is accepted.
@@ -896,8 +936,10 @@ merged_seurat = MergeResult(
     your_scPAS_result, 
     your_scAB_result, 
     your_scPP_result,
-    your_DEGAS_result,
-    your_LP_SGL_result
+    your_DEGAS_result
+    # # * Add more if you want
+    # ,your_LP_SGL_result,
+    # your_PIPET_result
 )
 
 # * mixed input form is alse supported 
@@ -907,8 +949,10 @@ merged_seurat = MergeResult(
     your_scPAS_result$scRNA_data, 
     your_scAB_result, 
     your_scPP_result,
-    your_DEGAS_result,
-    your_LP_SGL_result$scRNA_data
+    your_DEGAS_result
+    # # * Add more if you want
+    # ,your_LP_SGL_result$scRNA_data,
+    # your_PIPET_result
 )
 
 ```
@@ -943,8 +987,9 @@ c(
     scissor_umap,
     scab_umap,
     scpas_umap,
-    scpp_umap，
-    degas_umap
+    scpp_umap,
+    degas_umap,
+    # * Add more if you want
 ) %<-%
     purrr::map(
         # make sure these column names exist
@@ -966,6 +1011,7 @@ umaps = celltype_umap +
     scpas_umap +
     scpp_umap +
     degas_umap +
+    # * Add more if you want
     patchwork::plot_layout(ncol = 3)
 
 umaps

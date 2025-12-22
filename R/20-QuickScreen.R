@@ -120,148 +120,159 @@
 #'
 #' @export
 Screen <- function(
-    matched_bulk,
-    sc_data,
-    phenotype,
-    label_type = NULL,
-    phenotype_class = c("binary", "survival", "continuous"),
-    screen_method = c(
-        "Scissor",
-        "scPP",
-        "scPAS",
-        "scAB",
-        "DEGAS",
-        "LP_SGL",
-        "PIPET"
-    ),
-    ...
+  matched_bulk,
+  sc_data,
+  phenotype,
+  label_type = NULL,
+  phenotype_class = c("binary", "survival", "continuous"),
+  screen_method = c(
+    "Scissor",
+    "scPP",
+    "scPAS",
+    "scAB",
+    "DEGAS",
+    "LP_SGL",
+    "PIPET"
+  ),
+  ...
 ) {
-    chk::chk_is(sc_data, "Seurat")
-    chk::chk_length(phenotype_class)
-    chk::chk_length(screen_method)
+  chk::chk_is(sc_data, "Seurat")
+  chk::chk_length(phenotype_class)
+  chk::chk_length(screen_method)
 
-    if (is.null(label_type) || length(label_type) != 1) {
-        cli::cli_alert_info(c(
-            "i" = "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
-        ))
-        label_type <- screen_method
-    }
-    available_phenotype_class <- c("binary", "survival", "continuous")
-    available_screen_method <- c(
-        "Scissor",
-        "scPP",
-        "scPAS",
-        "scAB",
-        "DEGAS",
-        "LP_SGL",
-        "PIPET"
-    )
-    phenotype_class <- SigBridgeRUtils::MatchArg(
+  if (is.null(label_type) || length(label_type) != 1) {
+    cli::cli_alert_info(c(
+      "i" = "{.var label_type} not specified or not of length {.val 1}, using {.val {screen_method}}"
+    ))
+    label_type <- screen_method
+  }
+  available_phenotype_class <- c("binary", "survival", "continuous")
+  available_screen_method <- c(
+    "Scissor",
+    "scPP",
+    "scPAS",
+    "scAB",
+    "DEGAS",
+    "LP_SGL",
+    "PIPET"
+  )
+  phenotype_class <- SigBridgeRUtils::MatchArg(
+    phenotype_class,
+    available_phenotype_class,
+    NULL
+  )
+  screen_method <- SigBridgeRUtils::MatchArg(
+    screen_method,
+    available_screen_method,
+    NULL
+  )
+
+  switch(
+    screen_method,
+    "Scissor" = {
+      family <- switch(
         phenotype_class,
-        available_phenotype_class,
-        NULL
-    )
-    screen_method <- SigBridgeRUtils::MatchArg(
-        screen_method,
-        available_screen_method,
-        NULL
-    )
+        "binary" = "binomial",
+        "survival" = "cox",
+        "continuous" = "gaussian"
+      )
 
-    switch(
-        screen_method,
-        "Scissor" = {
-            family <- switch(
-                phenotype_class,
-                "binary" = "binomial",
-                "survival" = "cox",
-                "continuous" = "gaussian"
-            )
+      DoScissor(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        scissor_family = family, # "gaussian", "binomial", "cox"
+        ...
+      )
+    },
+    "scPAS" = {
+      family <- switch(
+        phenotype_class,
+        "binary" = "binomial",
+        "survival" = "cox",
+        "continuous" = "gaussian",
+      )
 
-            DoScissor(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                scissor_family = family, # "gaussian", "binomial", "cox"
-                ...
-            )
-        },
-        "scPAS" = {
-            family <- switch(
-                phenotype_class,
-                "binary" = "binomial",
-                "survival" = "cox",
-                "continuous" = "gaussian",
-            )
+      DoscPAS(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        scPAS_family = family, # "gaussian", "binomial", "cox"
+        ...
+      )
+    },
+    "scPP" = {
+      phenotype_class <- glue::glue(
+        toupper(substr(phenotype_class, 1, 1)),
+        tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
+      )
 
-            DoscPAS(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                scPAS_family = family, # "gaussian", "binomial", "cox"
-                ...
-            )
-        },
-        "scPP" = {
-            phenotype_class <- glue::glue(
-                toupper(substr(phenotype_class, 1, 1)),
-                tolower(substr(phenotype_class, 2, nchar(phenotype_class)))
-            )
+      DoscPP(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        phenotype_class = phenotype_class, # "Binary", "Continuous", "Survival"
+        ...
+      )
+    },
+    "scAB" = {
+      if (phenotype_class == "continuous") {
+        cli::cli_abort(c(
+          "x" = "{.strong scAB} does not support continuous phenotype."
+        ))
+      }
 
-            DoscPP(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                phenotype_class = phenotype_class, # "Binary", "Continuous", "Survival"
-                ...
-            )
-        },
-        "scAB" = {
-            if (phenotype_class == "continuous") {
-                cli::cli_abort(c(
-                    "x" = "{.strong scAB} does not support continuous phenotype."
-                ))
-            }
-
-            DoscAB(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                phenotype_class = phenotype_class, # "Binary", "Survival"
-                ...
-            )
-        },
-        "DEGAS" = {
-            DoDEGAS(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                phenotype_class = phenotype_class, # "Binary", "Survival", "Continuous"
-                ...
-            )
-        },
-        "LP_SGL" = {
-            LPSGL_family = switch(
-                phenotype_class,
-                "binary" = 'logit',
-                "survival" = 'cox',
-                "continuous" = 'linear'
-            )
-            DoLP_SGL(
-                sc_data = sc_data,
-                matched_bulk = matched_bulk,
-                phenotype = phenotype,
-                label_type = label_type,
-                LPSGL_family = LPSGL_family, # "Binary", "Survival", "Continuous"
-                ...
-            )
-        },
-        "PIPET" = {
-            DoPIPET()
-        }
-    )
+      DoscAB(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        phenotype_class = phenotype_class, # "Binary", "Survival"
+        ...
+      )
+    },
+    "DEGAS" = {
+      DoDEGAS(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        phenotype_class = phenotype_class, # "Binary", "Survival", "Continuous"
+        ...
+      )
+    },
+    "LP_SGL" = {
+      LPSGL_family = switch(
+        phenotype_class,
+        "binary" = 'logit',
+        "survival" = 'cox',
+        "continuous" = 'linear'
+      )
+      DoLP_SGL(
+        sc_data = sc_data,
+        matched_bulk = matched_bulk,
+        phenotype = phenotype,
+        label_type = label_type,
+        LPSGL_family = LPSGL_family, # "Binary", "Survival", "Continuous"
+        ...
+      )
+    },
+    "PIPET" = {
+      if (phenotype_class == "survival") {
+        cli::cli_abort(c(
+          "x" = "{.strong PIPET} does not support survival phenotype."
+        ))
+      }
+      DoPIPET(
+        matched_bulk = matched_bulk,
+        sc_data = sc_data,
+        phenotype = phenotype,
+        phenotype_class = phenotype_class,
+        ...
+      )
+    }
+  )
 }
