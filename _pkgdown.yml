@@ -68,7 +68,7 @@ navbar:
                   href: articles/Full_Tutorial.html
                 - text: -------
                 - text: Advanced
-                - text: Finding the optimal parameters
+                - text: Find the optimal parameters
                   icon: fa-cogs
                   href: articles/Optimal_Parameters.html
                 - text: -------

@@ -35,6 +35,24 @@ seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
 seurat_obj <- AddMisc(seurat_obj, list(attr1 = "value1", attr2 = "value2"))
 ```
 
+## Add Gene-level Metadata to the Seurat object
+
+SigBridgeR uses `AddMetaFeature()` to update the `SeuratObject@assays$RNA@meta.data`
+
+Add a new column to the metadata
+```{r,add_meta_feature_example,eval=FALSE}
+gene_type <- rep("test", nrow(seurat_obj))
+
+seurat_obj <- AddMetaFeature(seurat_obj, "gene_type" = gene_type)
+```
+
+Add a data.frame to the metadata, with the column names as the metadata names. 
+
+```{r,add_meta_feature_example_2,eval=FALSE}
+seurat_obj <- AddMetaFeature(seurat_obj, data.frame(gene_type = gene_type, gene_name = rownames(seurat_obj)))
+```
+
+If duplicate column names are detected, they will be suffixed with an underscore and a number (e.g., `_1`, `_2`) for disambiguation.
 
 ## Load reference data
 
@@ -206,8 +224,6 @@ Currently, 5 package options are provided:
 - `verbose`: Whether to print the progress of the function. Default is `TRUE`.
 - `seed`: The random seed used in the function. Default is `123L`.
 - `timeout`: The maximum timeout time when downloading data. Default is `180L`.
-- `parallel`: Whether to use parallel computing when finding optimal parameters. Default is `FALSE`
-- `workers`: The number of workers to use when using parallel computing. Default is `4L`.
 
 These options can be modified using either the `setFuncOption` or `Options` function (the former is recommended).
 

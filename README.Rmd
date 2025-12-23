@@ -105,10 +105,3 @@ If you encounter problems, please check:
 -   the [Github issues](https://github.com/WangLabCSU/SigBridgeR/issues) page if you want to file bug reports or feature requests
 
 Let us know if you have ideas to make this project better!
-
-Other information:
-
--   What is *Single Cell Sequencing*?
-    -   [Veiw in Wiki](https://en.wikipedia.org/wiki/Single-cell_sequencing)
--   What is *RNA-seq*?
-    -   [View in Wiki](https://en.wikipedia.org/wiki/RNA-Seq)
