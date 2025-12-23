@@ -79,24 +79,35 @@ jobs:
             - name: Determine version bump type
               id: version_bump
               run: |
-                  # 将commit message转换为小写以便不区分大小写匹配
-                  commit_msg=$(echo "${{ steps.commit_msg.outputs.msg }}" | tr '[:upper:]' '[:lower:]')
+                  # 1. 优先使用 workflow_dispatch 输入（手动触发）
+                  INPUT_TYPE="${{ github.event.inputs.version_type }}"
+                  CUSTOM_VERSION="${{ github.event.inputs.custom_version }}"
 
-                  # 使用更精确的单词边界匹配，避免部分匹配
-                  if echo "$commit_msg" | grep -q "\<major\>\|\<breaking\>\|feat!"; then
-                      echo "type=major" >> $GITHUB_OUTPUT
-                      echo "Bump type: major" >&2
-                  elif echo "$commit_msg" | grep -q "\<feat\>\|\<feature\>\|\<minor\>"; then
-                      echo "type=minor" >> $GITHUB_OUTPUT
-                      echo "Bump type: minor" >&2
-                  elif echo "$commit_msg" | grep -q "\<patch\>\|\<fix\>\|\<bug\>"; then
-                      echo "type=patch" >> $GITHUB_OUTPUT
-                      echo "Bump type: patch" >&2
+                  BUMP_TYPE="none"
+
+                  if [ -n "$CUSTOM_VERSION" ]; then
+                  echo "Using custom version: $CUSTOM_VERSION"
+                  echo "type=custom" >> $GITHUB_OUTPUT
+                  echo "custom_version=$CUSTOM_VERSION" >> $GITHUB_OUTPUT
+                  exit 0
+                  elif [ -n "$INPUT_TYPE" ] && [ "$INPUT_TYPE" != "none" ]; then
+                  BUMP_TYPE="$INPUT_TYPE"
+                  echo "Bump type from input: $BUMP_TYPE"
                   else
-                      echo "type=none" >> $GITHUB_OUTPUT
-                      echo "Bump type: none (no version change)" >&2
-                      exit 0
+                  # 2. fallback: 从 commit message 推断（仅适用于 push/PR）
+                  commit_msg=$(git log -1 --pretty=%B 2>/dev/null | tr '[:upper:]' '[:lower:]')
+
+                  if echo "$commit_msg" | grep -qE '\<(major|breaking)\>|feat!'; then
+                      BUMP_TYPE="major"
+                  elif echo "$commit_msg" | grep -qE '\<(feat|feature|minor)\>'; then
+                      BUMP_TYPE="minor"
+                  elif echo "$commit_msg" | grep -qE '\<(patch|fix|bug)\>'; then
+                      BUMP_TYPE="patch"
                   fi
+                  echo "Bump type from commit message: $BUMP_TYPE"
+                  fi
+
+                  echo "type=$BUMP_TYPE" >> $GITHUB_OUTPUT
 
             - name: Update version in DESCRIPTION
               id: update_version
@@ -105,12 +116,39 @@ jobs:
                   CURRENT_VERSION=$(Rscript -e 'cat(as.character(desc::desc_get_version()))')
                   echo "Current version: $CURRENT_VERSION"
 
-                  if [ "${{ steps.version_bump.outputs.type }}" = "major" ]; then
-                    NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[1] <- as.character(as.numeric(parts[1]) + 1); parts[2] <- "0"; parts[3] <- "0"; cat(paste(parts, collapse="."))')
-                  elif [ "${{ steps.version_bump.outputs.type }}" = "minor" ]; then
-                    NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[2] <- as.character(as.numeric(parts[2]) + 1); parts[3] <- "0"; cat(paste(parts, collapse="."))')
-                  elif [ "${{ steps.version_bump.outputs.type }}" = "patch" ]; then
-                    NEW_VERSION=$(Rscript -e 'v <- as.character(desc::desc_get_version()); parts <- unlist(strsplit(v, "\\.")); parts[3] <- as.character(as.numeric(parts[3]) + 1); cat(paste(parts, collapse="."))')
+                  BUMP_TYPE="${{ steps.version_bump.outputs.type }}"
+                  CUSTOM_VERSION="${{ steps.version_bump.outputs.custom_version }}"
+
+                  if [ "$BUMP_TYPE" = "custom" ] && [ -n "$CUSTOM_VERSION" ]; then
+                  NEW_VERSION="$CUSTOM_VERSION"
+                  echo "Using custom version: $NEW_VERSION"
+                  elif [ "$BUMP_TYPE" = "major" ]; then
+                  NEW_VERSION=$(Rscript -e '
+                      v <- as.character(desc::desc_get_version())
+                      parts <- as.integer(unlist(strsplit(v, "\\.")[1:3]))
+                      parts[1] <- parts[1] + 1
+                      parts[2] <- 0
+                      parts[3] <- 0
+                      cat(paste(parts, collapse = "."))
+                  ')
+                  elif [ "$BUMP_TYPE" = "minor" ]; then
+                  NEW_VERSION=$(Rscript -e '
+                      v <- as.character(desc::desc_get_version())
+                      parts <- as.integer(unlist(strsplit(v, "\\.")[1:3]))
+                      parts[2] <- parts[2] + 1
+                      parts[3] <- 0
+                      cat(paste(parts, collapse = "."))
+                  ')
+                  elif [ "$BUMP_TYPE" = "patch" ]; then
+                  NEW_VERSION=$(Rscript -e '
+                      v <- as.character(desc::desc_get_version())
+                      parts <- as.integer(unlist(strsplit(v, "\\.")[1:3]))
+                      parts[3] <- parts[3] + 1
+                      cat(paste(parts, collapse = "."))
+                  ')
+                  else
+                  echo "Unknown bump type: $BUMP_TYPE"
+                  exit 1
                   fi
 
                   echo "New version: $NEW_VERSION"
