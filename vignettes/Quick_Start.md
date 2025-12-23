@@ -142,7 +142,8 @@ width="600" alt="fraction_q" />](https://github.com/WangLabCSU/SigBridgeR/blob/m
         "#a33333ff",
         "#37ae00ff",
         "#008383ff"
-      )
+      ),
+      label_geom = c("text")
     ) +
       ggplot2::scale_fill_gradient(low = "white", high = "#ffb6b6ff") +
       ggplot2::ggtitle("Screening Venn Diagram")

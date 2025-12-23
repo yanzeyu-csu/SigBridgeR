@@ -13,13 +13,12 @@
         -   [1.1 Stable Release from
             GitHub](#11-stable-release-from-github)
         -   [1.2 Release from r-universe](#12-release-from-r-universe)
-    -   [2. Loading and preprocessing
-        data](#2-loading-and-preprocessing-data)
+    -   [2. Load and Preprocess data](#2-load-and-preprocess-data)
         -   [2.1 Single-cell RNA-seq Data](#21-single-cell-rna-seq-data)
             -   [2.1.1 (Option A) Start from Raw
                 Matrix](#211-option-a-start-from-raw-matrix)
-            -   [2.1.2 (Option B) Start from AnnDataR6
-                Object](#212-option-b-start-from-anndatar6-object)
+            -   [2.1.2 (Option B) Start from AnnData
+                Object](#212-option-b-start-from-anndata-object)
             -   [2.1.8 (Optional) Filter Out Tumor
                 Cells](#218-optional-filter-out-tumor-cells)
         -   [2.2 Bulk expression data](#22-bulk-expression-data)
@@ -32,8 +31,8 @@
             -   [2.2.2 Gene Symbol
                 Conversion](#222-gene-symbol-conversion)
         -   [2.3 Phenotype Data](#23-phenotype-data)
-    -   [3. Screening Cells Associated with
-        Phenotype](#3-screening-cells-associated-with-phenotype)
+    -   [3. Screen Cells Associated with
+        Phenotype](#3-screen-cells-associated-with-phenotype)
         -   [3.1 (Option A) Scissor
             Screening](#31-option-a-scissor-screening)
         -   [3.2 (Option B) scPAS
@@ -42,6 +41,10 @@
         -   [3.4 (Option D) scPP Screening](#34-option-d-scpp-screening)
         -   [3.5 (Option E) DEGAS
             Screening](#35-option-e-degas-screening)
+        -   [3.6 (Option F) LP\_SGL
+            Screening](#36-option-f-lp_sgl-screening)
+        -   [3.7 (Option G) PIPET
+            Screening](#37-option-g-pipet-screening)
         -   [3.8 Merge screening results](#38-merge-screening-results)
     -   [4. Visualization](#4-visualization)
         -   [4.1 UMAP for screening
@@ -59,16 +62,8 @@
             screening](#52-continuous-phenotype-associated-cell-screening)
         -   [5.3 Binarized phenotype-associated cell
             screening](#53-binarized-phenotype-associated-cell-screening)
-    -   [6. Other function details](#6-other-function-details)
-        -   [6.1 Add miscellaneous information to the Seurat
-            object](#61-add-miscellaneous-information-to-the-seurat-object)
-        -   [6.2 Load reference data](#62-load-reference-data)
-        -   [6.3 Setting up Python
-            Environment](#63-setting-up-python-environment)
-        -   [6.4 Finding the Optimal Number of Principle
-            Components](#64-finding-the-optimal-number-of-principle-components)
-    -   [7. Troubleshooting](#7-troubleshooting)
-    -   [8. References](#8-references)
+    -   [6. Troubleshooting](#6-troubleshooting)
+    -   [7. References](#7-references)
 
 ### 0.1 Introduction to SigBridgeR
 
@@ -106,13 +101,13 @@ the package indicated in [7. Troubleshooting](#7-troubleshooting).
 
 ------------------------------------------------------------------------
 
-## 2. Loading and preprocessing data
+## 2. Load and Preprocess data
 
 First load the packages, you will see a version number message
 indicating successful loading:
 
     library(SigBridgeR)
-    # ✔ SigBridgeR v2.5.2 loaded
+    # ✔ SigBridgeR v2.x.x loaded
 
 ### 2.1 Single-cell RNA-seq Data
 
@@ -129,7 +124,7 @@ use.
 
     your_seurat <- SCPreProcess(
       your_matrix,
-      # Parameters used in Seurat preprocessing pipeline
+      # * Parameters used in Seurat preprocessing pipeline
       meta_data = NULL,
       project = "Screen_Single_Cell", 
       min_cells = 400,
@@ -141,13 +136,23 @@ use.
       resolution = 0.6,
       dims = 1:10,
       verbose = TRUE,
-      # Parameters used in SigBridgeR workflow
-      future_global_maxsize = 6 * 1024^3,
+      # * Parameters used in SigBridgeR workflow
       quality_control = TRUE,
-      quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+      # Filter mitochondrial genes, human for '^MT-', mouse for '^mt-', or specify your own pattern
+      quality_control.pattern = c("^MT-"), 
       data_filter = TRUE,
-      data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
-      data_filter.percent.mt = 20,
+      data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        percent.mt = 20L, # mitochondrial genes
+        # percent.rp = 60L # ribosomal protein genes
+
+        # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
+        # ? the column names are in lowercase letter form with regular expression symbols removed.
+        # `quality_control.pattern = "^[rt]rna"`
+        # Correct threshhold setting is `percent.rt_rna = 60L`
+
+        # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
+      ),
       column2only_tumor = NULL,
       ...
     )
@@ -171,9 +176,9 @@ use.
     Cells are retained only if they satisfy **all** of the following:
 
     -   `nFeature_RNA` lies between the lower and upper bounds defined
-        by `data_filter.nFeature_RNA_thresh`.  
+        by `data_filter.thresh$nFeature_RNA_thresh`.  
     -   `percent.mt` is below the user-defined cut-off
-        (`data_filter.percent.mt`).
+        (`data_filter.thresh$percent.mt`).
 
 4.  **Normalisation, variable-feature selection and scaling**  
     Encapsulated in `ProcessSeuratObject()`:
@@ -197,21 +202,34 @@ use.
     column specified by `column2only_tumor` and filters the Seurat
     object to contain only the cancer cells.
 
-#### 2.1.2 (Option B) Start from AnnDataR6 Object
+#### 2.1.2 (Option B) Start from AnnData Object
 
-`SCPreProcess` also supports AnnData objects. You may reference and use
-the following code:
+`SCPreProcess` also supports AnnData objects, which is a popular format
+for storing single-cell data. You can use package `anndata` or
+`anndataR` to read in your AnnData object from `.h5ad` file.
+
+You may reference and use the following code to read in your file via
+`anndata`:
 
     reticulate::use_pythonenv("The_path_to_your_python") 
     # reticulate::use_condaenv("conda_env_name")
 
     anndata_obj <- anndata::read_h5ad("path_to_your_file.h5ad") # Or other file formats, make sure the matrix is in obj$X.
 
+Or use `anndataR` to read in your file:
+
+    reticulate::use_pythonenv("The_path_to_your_python") 
+    # reticulate::use_condaenv("conda_env_name")
+
+    anndata_obj <- anndataR::read_h5ad("path_to_your_file.h5ad") # basically no difference 
+
+Then just pass it to `SCPreProcess`:
+
     your_seurat <- SCPreProcess(
       anndata_obj,
-      # Parameters used in Seurat preprocessing pipeline
-      meta_data = NULL,
-      project = "Screen_Single_Cell", 
+      # * Parameters used in Seurat preprocessing pipeline
+      meta_data = NULL, # auto-detect from anndata_obj$obs
+      project = "Screen_Single_Cell",
       min_cells = 400,
       min_features = 0,
       normalization_method = "LogNormalize",
@@ -219,16 +237,20 @@ the following code:
       scale_features = NULL,
       selection_method = "vst",
       resolution = 0.6,
-      dims = 1:10,
+      dims = NULL, # auto-detect from an elbow plot
       verbose = TRUE,
-      # Parameters used in SigBridgeR workflow
-      future_global_maxsize = 6 * 1024^3,
-      quality_control = TRUE, 
-      quality_control.pattern = c("^MT-"), # human for '^MT-', mouse for '^mt-', or specify your own pattern
+      # * Parameters used in SigBridgeR workflow
+      quality_control = TRUE,
+      # Filter mitochondrial genes and ribosomal protein genes,
+      quality_control.pattern = c("^MT-", "^RP[SL]"),
       data_filter = TRUE,
-      data_filter.nFeature_RNA_thresh = c(200, 6000), # [min, max]
-      data_filter.percent.mt = 20,
-      column2only_tumor = NULL,
+      data_filter.thresh = list(
+        nFeature_RNA_thresh = c(200L, 6000L),
+        # Corresponding to `quality_control.pattern`
+        percent.mt = 20L, # mitochondrial genes
+        percent.rp = 60L # ribosomal protein genes
+      ),
+      column2only_tumor = "Tissue", # keep only cells from tumor tissues
       ...
     )
 
@@ -237,7 +259,11 @@ The description of data (meta.data) in `anndata_obj$obs` will be add to
 
 **helpful documentation:**
 
+For the structure of `anndata`, you can refer to
+
 -   [AnnData for R](https://github.com/dynverse/anndata)
+-   [{anndataR}: An R package for working with AnnData
+    objects](https://github.com/scverse/anndataR)
 
 #### 2.1.8 (Optional) Filter Out Tumor Cells
 
@@ -260,8 +286,8 @@ column:
 > <!-- -->
 >
 >     # For glioblastoma (GBM)
->     seurat_obj@meta.data$is_tumor <- ifelse(
->      grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj@meta.data$Celltype, ignore.case = TRUE),
+>     seurat_obj[[]]$is_tumor <- ifelse(
+>      grepl("GBM|glioblastoma|astrocytoma_grade_IV", seurat_obj[[]]$Celltype, ignore.case = TRUE),
 >      "Tumor",  # or "Tumour" 
 >      "Normal"  # or "Non-Tumor" 
 >     )
@@ -567,29 +593,32 @@ location of NA values in your phenotype data:
 
 ------------------------------------------------------------------------
 
-## 3. Screening Cells Associated with Phenotype
+## 3. Screen Cells Associated with Phenotype
 
 The function **`Screen`** provide 5 different options for screening
 cells associated with phenotype, These 5 algorithms come from the
-repositories mentioned in [Section 0.1](#01-introduction-to-sigbridger),
-and you can choose one of them to screen your cells.
+repositories mentioned in [7. References](#7-references), and you can
+choose one of them to screen your cells.
 
 Key parameters for `Screen`:
 
 -   `matched_bulk`: A data frame of bulk expression data after
-    intersecting samples.
+    intersecting samples. Make sure the rownames of `matched_bulk` is
+    identical to `phenotype`.
 -   `sc_data`: A Seurat object after preprocessing, you can use the
     output of `Preprocess` function or your own preprocessed Seurat
     object.
--   `phenotype`: A data frame of phenotype data after intersecting
-    samples.
+-   `phenotype`: A data frame or named vacor of phenotype data after
+    intersecting samples. See [5. Example](#5-example) for more details.
 -   `label_type`: A character value specifying the filtering labels are
-    stored in the `Seurat_object@misc` , default: `NULL`.
+    stored in the `Seurat_object@misc` . Default: `NULL`, meaning the
+    name of metho will be used.
 -   `phenotype_class`: A character value specifying the phenotype data
     type, i.e. `"binary"`, `"survival"` or `"continuous"`.
 -   `screen_method`: A character value specifying the screening method,
-    i.e. “Scissor”, “scPAS”, “scAB” or “scPP”
--   `...`: Other parameters for the screening methods.
+    i.e. “Scissor”, “scPAS”, “scAB”, “scPP”, “DEGAS”, “LP\_SGL”, or
+    “PIPET”
+-   `...`: Other parameters for the screening methods, see below
 
 ### 3.1 (Option A) Scissor Screening
 
@@ -597,7 +626,7 @@ Parameters pass to `...` when using `Scissor` method:
 
 -   `path2save_scissor_inputs`: A character value specifying the path to
     save intermediate data, you can also set
-    `path2load_scissor_cache=NULL` to suppress the saving of
+    `path2load_scissor_cache = NULL` to suppress the saving of
     intermediate files. Default: `Scissor_inputs.RData`
 -   `path2load_scissor_cahce`: A character value specifying the path to
     load intermediate data
@@ -609,7 +638,8 @@ Parameters pass to `...` when using `Scissor` method:
 -   `cutoff`: Cutoff for the percentage of the Scissor selected cells in
     total cells. This parameter is used to restrict the number of the
     Scissor selected cells. A cutoff less than 50% (default 20%) is
-    recommended depending on the input data.
+    recommended depending on the input data. Only used when
+    `alpha = NULL`.
 -   `reliability_test`: A logical value specifying whether to perform
     reliability test. Default: `FALSE`
 -   `reliability_test.n`: Permutation times (default: 10)
@@ -637,7 +667,7 @@ Parameters pass to `...` when using `Scissor` method:
     )
 
 You can use the intermediate data for repeated runs. This is an inherent
-feature of the `scissor`.
+feature of the `Scissor`.
 
     scissor_result = Screen(
       sc_data = sc_dataset, 
@@ -658,7 +688,7 @@ can also be applied.
       screen_method = c("Scissor"),
       path2load_scissor_cahce = "Tmp/Scissor_inputs.RData", # Intermediate data
       alpha = NULL, 
-      cutoff = 0.05 
+      cutoff = 0.2
     )
 
 **Returning structure**: A list containing:
@@ -705,6 +735,8 @@ from the `scPAS`’s documentation):
 
     -   `assay`: Name of Assay to get.
     -   `imputation`: Logical. imputation or not.
+    -   `imputation_method`: Character. Name of alternative method for
+        imputation.
     -   `nfeature`: Numeric. The Number of features to select as top
         variable features in `sc_data`. Top variable features will be
         used to intersect with the features of `matched_bulk`. Default
@@ -721,6 +753,13 @@ from the `scPAS`’s documentation):
         depending on the input data.
     -   `network_class`: The source of feature-feature similarity
         network. By default this is set to sc and the other one is bulk.
+    -   `FDR_threshold`: Numeric. FDR value threshold for identifying
+        phenotype-associated cells (default: 0.05)
+    -   `independent`: Logical. The background distribution of risk
+        scores is constructed independently of each cell. (default:
+        TRUE)
+    -   `permutation_times`: Number of permutations to perform (default:
+        2000)
 
 **usage**:
 
@@ -728,9 +767,19 @@ from the `scPAS`’s documentation):
       matched_bulk = matched_bulk,
       sc_data = A_Seurat_object,
       phenotype = phenotype,
-      label_type = "TP53", # The filtering labels are stored in the `@misc` 
-      screen_method = "scpas",
-      phenotype_class = "binary"
+      label_type = "TP53", # The filtering labels are stored in the `@misc`
+      screen_method = "scPAS",
+      phenotype_class = "binary",
+      assay = 'RNA',
+      imputation = FALSE,
+      imputation_method = c("KNN", "ALRA"),
+      nfeature = 3000L,
+      alpha = c(0.01, NULL),
+      cutoff = 0.2,
+      network_class = c("SC", "bulk"),
+      permutation_times = 2000L,
+      FDR_threshold = 0.05,
+      independent = TRUE
     )
 
 **returning structure**: A list containing:
@@ -744,9 +793,12 @@ from the `scPAS`’s documentation):
 Parameters pass to `...` when using `scAB` method (basically adapted
 from the `scAB`’s documentation):
 
--   `alpha`: Coefficient of phenotype regularization, default is `0.005`
+-   `alpha`: Coefficient of phenotype regularization, default is
+    `0.005`. When specified `NULL`, a default searching vector is used.
+    A custom numeric vector is also supported.
 -   `alpha_2`: Coefficient of cell-cell similarity regularization,
-    default is `5e-05`
+    default is `0.005`. When specified `NULL`, a default searching
+    vector is used. A custom numeric vector is also supported
 -   `maxiter`: Maximum number of iterations, default is `2000`
 -   `tred`: Threshold for early stopping, default is `2`
 
@@ -756,10 +808,25 @@ from the `scAB`’s documentation):
       matched_bulk = your_matched_bulk,
       sc_data = A_Seurat_object,
       phenotype = your_matched_phenotype,
-      label_type = "TP53", # The filtering labels are stored in the `@misc` 
+      label_type = "TP53", # The filtering labels are stored in the `@misc`
       screen_method = "scAB",
       phenotype_class = "binary",
+      alpha = c(0.005, NULL),
+      alpha_2 = c(0.005, NULL),
+      maxiter = 2000L,
+      tred = 2L
     )
+
+**note**:
+
+When both `alpha` and `alpha_2` are specified as `NULL` or as search
+vectors, the total number of searches equals the product of their
+lengths, which may lead to long runtimes. In such cases, we recommend
+enabling parallel computation.
+
+    setFuncOption(parallel = TRUE, parallel.type = 'multisession', workers = 4L)
+
+Then simply run the function directly.
 
 **returning structure**: A list containing:
 
@@ -771,12 +838,14 @@ from the `scAB`’s documentation):
 Parameters pass to `...` when using `scPP` method :
 
 -   `ref_group`: The reference group for the binary analysis, default is
-    `1`
+    `0`
 -   `Log2FC_cutoff`: The cutoff for the log2 fold change of the binary
     analysis, default is `0.585`
 -   `estimate_cutoff`: Effect size threshold for continuous traits,
     default is `0.2`
--   `probs`: Quantile cutoff for cell classification, default is `0.2`
+-   `probs`: Quantile cutoff in (0, 0.5) for cell classification,
+    default is `0.2`. When specified `NULL`, a default searching vector
+    is used. A custom searching vector is also supported.
 
 **usage**:
 
@@ -788,13 +857,16 @@ Parameters pass to `...` when using `scPP` method :
       label_type = "TP53", # The filtering labels are stored in the `@misc` 
       screen_method = "scpp",
       phenotype_class = "binary",
+      ref_group = 0,
+      Log2FC_cutoff = 0.585,
+      estimate_cutoff = 0.2,
+      probs = c(0.2, NULL)
     )
 
 **returning structure**: A list containing:
 
 -   `scRNA_data`: A Seurat object after screening
 -   `gene_list`: A list containing positive genes and negative genes
--   `AUC`: A data.frame with area under the ROC curve
 
 ### 3.5 (Option E) DEGAS Screening
 
@@ -803,8 +875,8 @@ Parameters pass to `...` when using `DEGAS` method
 -   `sc_data.pheno_colname`: The column name of the phenotype in the
     `sc_data@meta.data` slot, used to specify the phenotype for more
     accurate screening. Default is `NULL`.
--   `tmp_dir`: The directory for storing the intermediate files, default
-    is `NULL`.
+-   `tmp_dir`: The directory for storing the intermediate files. Default
+    is `NULL`, a directory named `tmp` will be created.
 -   `env_params` : A list of parameters for the environment, default is
     `list()`. Use `?DoDEGAS` to see the details.
 -   `degas_params`: A list of parameters for the DEGAS algorithm,
@@ -839,8 +911,11 @@ Parameters pass to `...` when using `DEGAS` method
           "tensorflow" = "2.4.1",
           "protobuf" = "3.20.3"
         ),
+        # Force re-creating the env
         env.recreate = FALSE,
+        # Use conda-forge channel for env creating
         env.use_conda_forge = TRUE,
+        # Message output when creating the env 
         env.verbose = FALSE
       ),
       # DEGAS parameters
@@ -895,8 +970,8 @@ creating a new one (unless specified
 
 You can use `ListPyEnvs()` to list all the python environments in your
 system, including virtual environments. Both Windows and Unix-like
-systems are supported. More information can be found in [Section
-6.3](#63-setting-up-python-environment)
+systems are supported. More information can be found in
+<https://wanglabcsu.github.io/SigBridgeR/articles/Other_Function_Details.html>
 
     # * On Unix-like system it goes like this
     ListPyEnv()
@@ -906,8 +981,7 @@ systems are supported. More information can be found in [Section
     # 3               test                  /home/user/.virtualenvs/test/bin/python  venv
 
 Please note that the environmental dependencies required for DEGAS to
-run are quite stringent, and conflicts are highly likely to occur. This
-is why the use of this screening method is not recommended.
+run are quite stringent, and conflicts are highly likely to occur.
 
 **returning structure**: A list containing:
 
@@ -917,6 +991,87 @@ is why the use of this screening method is not recommended.
 -   `DEGAS_prediction`: Using the model to conduct prediction for each
     cell, resulting in a data.frame where each phenotype has a predicted
     probability score.
+
+### 3.6 (Option F) LP\_SGL Screening
+
+Parameters pass to `...` when using `LP_SGL` method
+
+-   `resolution`: Resolution parameter for Leiden clustering (default:
+    `0.6`)
+-   `alpha`: Alpha parameter for SGL balancing L1 and L2 penalties
+    (default: `0.5`)
+-   `nfold`: Number of folds for cross-validation (default: `5`)
+-   `dge_analysis`: List controlling differential expression analysis:
+    -   `run`: Whether to run DEG analysis (default: `FALSE`)
+    -   `logFC_threshold`: Log fold change threshold (default: `1`)
+    -   `pval_threshold`: P-value threshold (default: `0.05`)
+
+<!-- -->
+
+    lpsgl_result <- Screen(
+      matched_bulk = your_matched_bulk,
+      sc_data = A_Seurat_object,
+      phenotype = your_matched_phenotype,
+      label_type = "TP53",
+      resolution = 0.6,
+      alpha = 0.5,
+      nfold = 5,
+      dge_analysis = list(
+        run = FALSE, # whether to run DEG analysis
+        logFC_threshold = 1,
+        pval_threshold = 0.05
+      ),
+      ... # Additional parameters like verbose, seed
+    )
+
+**returning structure**: A list containing:
+
+-   `scRNA_data`: A Seurat object after screening
+-   `sgl_fit` : Fitted SGL model object
+-   `cvfit` : Cross-validation results
+-   `dge_res` : Differential expression results if requested (NULL
+    otherwise)
+
+### 3.7 (Option G) PIPET Screening
+
+Parameters pass to `...` when using `PIPET` method
+
+-   **Phenotype adaptation parameters**:
+    -   `discretize_method`: Character: “kmeans”/“quantile”/“custom”
+        (default: “kmeans”)
+    -   `cutoff`: Numeric vector for custom discretization when
+        `discretize_method` is “custom” (default: NULL)
+-   **Marker generation parameters**:
+    -   `log2FC`: Numeric: log2FC threshold (default: 1)
+    -   `p.adjust`: Numeric: adjusted p-value threshold (default: 0.05)
+-   **Single-cell annotation parameters**:
+    -   `distance`: Character: “cosine”/“pearson”/“spearman” (default:
+        “cosine”)
+    -   `nPerm`: Integer: permutation times for statistical test
+        (default: 1000L)
+
+**Usage**:
+
+    pipet_result = Screen(
+        matched_bulk = matched_bulk,
+        sc_data = sc_dataset, # A Seurat object after preprocessing
+        phenotype = matched_phenotype_data,
+        label_type = "TP53", # The filtering labels are stored in the `Seurat_object@misc`
+        phenotype_class = "binary", # `survival` is not supported 
+        screen_method = "PIPET",
+        # PIPET specific parameters
+        lg2FC = 1,
+        p.adjust = 0.05,
+        distance = "cosine",
+        nPerm = 1000,
+        parallel = FALSE # Whether to use parallel computing, before using this parameter, please make sure that future::plan() has been called
+    )
+
+**Returning structure**: A list containing:
+
+-   `scRNA_data`: A Seurat object after screening (with PIPET
+    annotations in meta.data)
+-   `markers`: Phenotype-specific marker genes
 
 ### 3.8 Merge screening results
 
@@ -931,6 +1086,9 @@ results of these methods. The Seurat object or a results list from
         your_scAB_result, 
         your_scPP_result,
         your_DEGAS_result
+        # # * Add more if you want
+        # ,your_LP_SGL_result,
+        # your_PIPET_result
     )
 
     # * mixed input form is alse supported 
@@ -941,16 +1099,22 @@ results of these methods. The Seurat object or a results list from
         your_scAB_result, 
         your_scPP_result,
         your_DEGAS_result
+        # # * Add more if you want
+        # ,your_LP_SGL_result$scRNA_data,
+        # your_PIPET_result
     )
 
-This function simply merges the `meta.data` and `misc` slots of the
-input Seurat objects. Please note that the intermediate data (e.g.,
-`scissor_result$reliability.test` or `scab_result$scAB_result`) will not
-be preserved in this process.
+This function merges all slots from the input Seurat objects. Note that
+intermediate data (e.g., `scissor_result$reliability.test` or
+`scab_result$scAB_result`) will not be retained during the merge. While
+the function can technically combine different single-cell datasets, it
+is specifically designed for merging replicates or batches of the *same*
+single-cell RNA-seq experiment; using it for heterogeneous data may lead
+to subtle (and potentially hard-to-detect) errors.
 
 **returning structure**:
 
-A Seurat object with merged `meta.data` and `misc` slots.
+A Seurat object with all merged slots.
 
 ------------------------------------------------------------------------
 
@@ -958,7 +1122,7 @@ A Seurat object with merged `meta.data` and `misc` slots.
 
 Here we provide some visualization methods for the screening results.
 Considering that many people have different needs for data
-visualization, `SigBridgR` hardly provides visualization (except for
+visualization, `SigBridgeR` hardly provides visualization (except for
 fraction plot and upset plot, because we provide some statistic results
 for them). We only provide the source code for reference.
 
@@ -981,8 +1145,9 @@ patient, you may reference and use the following code:
         scissor_umap,
         scab_umap,
         scpas_umap,
-        scpp_umap，
-        degas_umap
+        scpp_umap,
+        degas_umap,
+        # * Add more if you want
     ) %<-%
         purrr::map(
             # make sure these column names exist
@@ -1004,6 +1169,7 @@ patient, you may reference and use the following code:
         scpas_umap +
         scpp_umap +
         degas_umap +
+        # * Add more if you want
         patchwork::plot_layout(ncol = 3)
 
     umaps
@@ -1112,7 +1278,7 @@ selected by each algorithm. You can refer to and use the following code:
 
     library(ggVennDiagram)
 
-    # # *If you have merged the results, you can use the following code instead:
+    # # * If you have merged the results, you can use the following code instead:
     # c(scissor_pos, scab_pos, scpas_pos, scpp_pos, degas_pos) %<-%
     #     purrr::map(
     #         c("scissor", "scAB", "scPAS", "scPP", "DEGAS"),
@@ -1235,13 +1401,13 @@ functions in `SigBridgeR` to screen cells associated with phenotype.
 
     # Set working directory
     if (requireNamespace("here", quietly = TRUE)) {
+      here::i_am(".here")
       setwd(here::here())         
       knitr::opts_knit$set(root.dir = here::here())  
     }
 
     library(SigBridgeR)
     library(zeallot)
-    library(Seurat)
 
     # * load the example data
     c(mat_exam, bulk, pheno) %<-% LoadRefData(data_type = "survival")
@@ -1274,6 +1440,9 @@ This single-cell RNA data is from humans. We set many parameters to
 analyses and capture a broader range of biological signals, so as to
 avoid insignificant results caused by too small a dataset.
 
+In practical data analysis, please adjust the thresholds and parameters
+as needed for your specific use case.
+
 Now we use `SCPreProcess()` to pre-process the single-cell RNA
 expression matrix data.
 
@@ -1295,23 +1464,30 @@ reflect the most accurate situation. You can choose whether to filter or
 retain based on your own needs. See also [2.2 Bulk expression
 data](#22-bulk-expression-data) for more details.
 
-To facilitate the demonstration of the use of the sample\_info
+To facilitate the demonstration of the use of the `sample_info`
 parameter, we will divide the `pheno` based on its survival status into
-two groups, which will be stored in the `condition` column.
+two groups, which will be stored in the `condition` column. `batch`
+column is used to store the batch information of the samples. The
+example is from one single batch.
+
+In practice, please replace this with your actual phenotype
+classification; the approach shown here is for demonstration purposes
+only and is not recommended for real analyses.
 
     sample_info <- tibble::rownames_to_column(pheno, var = "sample") %>%
       dplyr::rename(condition = status)
+    sample_info$batch <- 'batch1'
 
     head(sample_info)
-    #         sample  time condition
-    # 1 TCGA-69-7978  4.40         0
-    # 2 TCGA-62-8399 88.57         0
-    # 3 TCGA-78-7539 25.99         0
-    # 4 TCGA-73-4658 52.56         1
-    # 5 TCGA-44-6775 23.16         0
-    # 6 TCGA-44-2655 43.50         0
+    #         sample  time condition  batch
+    # 1 TCGA-69-7978  4.40         0 batch1   
+    # 2 TCGA-62-8399 88.57         0 batch1
+    # 3 TCGA-78-7539 25.99         0 batch1
+    # 4 TCGA-73-4658 52.56         1 batch1
+    # 5 TCGA-44-6775 23.16         0 batch1
+    # 6 TCGA-44-2655 43.50         0 batch1
 
-    bulk = BulkPreProcess(
+    bulk <- BulkPreProcess(
       data = bulk,
       sample_info = sample_info,
       min_count_threshold = 0,
@@ -1457,9 +1633,9 @@ additional reliability test.
     #  [9,] 0.6390805 0.6548913 0.5049310 0.6299639 0.6385135 0.5964392 0.5381605 0.7462687 0.5185185 0.6585859
     # [10,] 0.5207373 0.5000000 0.6051780 0.4932127 0.6892430 0.4786517 0.5619266 0.6614583 0.6502242 0.5333333
 
-Next, we use scPAS, scAB and scPP to do the same screening. Generally
-you only need to change the `screen_method`, as long as you have not
-specified any particular parameters.
+Next, we use scPAS, scAB, scPP, LP\_SGL and PIPET to do the same
+screening. Generally you only need to change the `screen_method`, as
+long as you have not specified any particular parameters.
 
     scpas_result <- Screen(
         matched_bulk = bulk,
@@ -1554,7 +1730,7 @@ You can also adjust the `cutoff` parameter as you like.
     # Negative  Neutral Positive 
     #        5     1085        3 
 
-Now we use scAB, scPP and DEGAS to screen cells.
+Now we use scAB, scPP, DEGAS, LP\_SGL and PIPET to screen cells.
 
     scab_result = Screen(
         matched_bulk = bulk,
@@ -1613,9 +1789,9 @@ Now we use scAB, scPP and DEGAS to screen cells.
     # ℹ [2025/10/09 18:41:08] 3-layer DenseNet BlankCox DEGAS model
     # ℹ [2025/10/09 18:41:10] Python check passed, using Python 3.9.15
     # ℹ [2025/10/09 18:41:10] Training...
-    ######################
-    # Many python output #
-    ######################
+    ###########################
+    # Many output from python #
+    ###########################
     # ℹ [2025/10/10 17:35:04] Predicting and Labeling...
     # ℹ [2025/10/10 17:35:04] Labeling screened cells...
     # ℹ [2025/10/10 17:35:04] Searching for survival-associated cells...
@@ -1625,6 +1801,39 @@ Now we use scAB, scPP and DEGAS to screen cells.
     table(degas_result$scRNA_data$DEGAS)
     #    Other Positive 
     #     1038       55 
+
+    # I recommend running this code in the background.
+    lpsgl_result <- Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "LP_SGL"  
+    )
+    # ℹ [2025/11/22 21:14:29] Starting LP-SGL screening analysis
+    # ℹ [2025/11/22 21:14:29] Fetch graph from Seurat object
+    # ℹ [2025/11/22 21:14:29] Run Leiden clustering
+    # ℹ [2025/11/22 21:14:30] Calculating correlation matrix...
+    # ℹ [2025/11/22 21:14:33] Fitting SGL model with alpha = 0.5, this may take a while
+    # ℹ [2025/11/22 21:14:49] Running 5-fold cross-validation
+    # ℹ [2025/11/22 21:17:31] Optimal lambda index: 20 (error = 1380.7537932881)
+    # ℹ [2025/11/22 21:17:31] LP-SGL screening completed
+
+    table(lpsgl_result$scRNA_data$LP_SGL)
+    # Negative  Neutral Positive 
+    #       77      778      233 
+
+    pipet_result <- Screen(
+        matched_bulk = bulk,
+        sc_data = seurat,
+        phenotype = pheno,
+        label_type = "survival",
+        phenotype_class = "survival",
+        screen_method = "PIPET"
+    )
+
+    table(pipet_result$scRNA_data$PIPET)
 
 After these algorithms have been run, the four sets of data can be
 merged since screening methods performed on the same data.
@@ -1989,194 +2198,7 @@ convert it to a `named vector`:
 
 ------------------------------------------------------------------------
 
-## 6. Other function details
-
-### 6.1 Add miscellaneous information to the Seurat object
-
-SigBridgeR uses `AddMisc()` to record what data features or evidence the
-various screening algorithms are based on during execution.
-
--   `AddMisc()` : Add miscellaneous information to the Seurat object.
-    Support for adding multiple attributes to the `SeuratObject@misc`
-    slot simultaneously.
-
-<!-- -->
-
-    # basic usage
-    seurat_obj <- AddMisc(seurat_obj, "QC_stats" = qc_df)
-
-    # Auto-incrementing example when `cover` set to FALSE
-    seurat_obj <- AddMisc(seurat_obj, markers = markers1)
-    seurat_obj <- AddMisc(seurat_obj, markers = markers2, cover=FALSE)
-
-    # Add multiple attributes to the `SeuratObject@misc` slot simultaneously
-    seurat_obj <- AddMisc(seurat_obj, markers1 = markers1, markers2 = markers2)
-
-### 6.2 Load reference data
-
-#### Parameters
-
--   `data_type`: The type of data to load. Can be either “continuous”,
-    “survival” or “binary”, case-insensitive.
--   `path`: The path to the data directory.
--   `cache`: Whether to cache the data. Defaults to `TRUE`.
--   `timeout`: The maximum timeout time when downloading data.
-
-When loading the example data, the single-cell RNA expression matrix,
-the bulk RNA expression matrix, and the clinical phenotype data are
-loaded all at once. These data are combined into a list and returned.
-
-    mydata <- LoadRefData(
-        data_type = c("survival"),
-        path = tempdir(),
-        cache = TRUE,
-        timeout = 60
-    )
-
-    # * mat_exam (matrix_example)
-    mydata[[1]][1:6,1:6]
-    #          SMC01.T_AAACCTGCATACGCCG SMC01.T_AAACCTGGTCGCATAT SMC01.T_AAACCTGTCCCTTGCA SMC01.T_AAACGGGAGGGAAACA SMC01.T_AAACGGGGTATAGGTA SMC01.T_AAAGATGAGGCCGAAT
-    # A1BG                            0                        0                        0                        0                        0                        0
-    # A1BG.AS1                        0                        0                        0                        0                        0                        0
-    # A1CF                            0                        2                        0                        0                        3                        0
-    # A2M                             0                        0                        0                        0                        0                        0
-    # A2M.AS1                         0                        0                        0                        0                        0                        0
-    # A2ML1                           0                        0                        0                        0                        0                        0
-
-    # * bulk_survival
-    mydata[[2]][1:6,1:6]
-    #         TCGA-69-7978 TCGA-62-8399 TCGA-78-7539 TCGA-73-4658 TCGA-44-6775 TCGA-44-2655
-    # HIF3A         4.2598      11.6239       9.1362       5.0288       4.0573       5.5335
-    # RTN4RL2       8.2023       5.5819       3.5365       7.4156       7.7107       5.3257
-    # HMGCLL1       2.7476       5.8513       3.8334       3.6447       2.9188       4.8820
-    # LRRTM1        0.0000       0.4628       4.7506       6.8005       7.7819       2.2882
-    # GRIN1         6.6074       5.4257       4.9563       7.3510       3.5361       3.3311
-    # LRRTM3        1.7458       2.0092       0.0000       1.4468       0.0000       0.0000
-
-    # * pheno_survival
-    mydata[[3]] |> head()
-    #               time status
-    # TCGA-69-7978  4.40      0
-    # TCGA-62-8399 88.57      0
-    # TCGA-78-7539 25.99      0
-    # TCGA-73-4658 52.56      1
-    # TCGA-44-6775 23.16      0
-    # TCGA-44-2655 43.50      0
-
-We recommend using the `zeallot` package’s `%<-%` function to assign
-values and rename them simultaneously.
-
-    library(zeallot)
-
-    c(mat_exam, bulk, pheno) %<-%  LoadRefData(
-        data_type = c("survival"),
-        path = tempdir(),
-        cache = TRUE,
-        timeout = 60
-    )
-
-### 6.3 Setting up Python Environment
-
-Some screening methods (e.g. [Section 3.5
-DEGAS](#35-option-e-degas-screening)) are built using Python and require
-an execution environment. Here is a function to help you set up a Python
-environment. Both Windows and Unix-like systems are supported.
-
-    # * This is an example of setting up a Python environment using conda
-    SetupPyEnv(
-        env_type = "conda",
-        env_name = "test-condaenv",
-        method = c("reticulate", "system","environment"), # choose one of them, default is "reticulate"
-        env_file = NULL # path to environment.yml file, used when method = "environment"
-        python_version = NULL,
-        packages = c(
-            "pandas" = "1.3",
-            "numpy" = "any"
-        ),
-        recreate = FALSE, # whether to remove the existing environment and recreate it
-        use_conda_forge = TRUE,
-        verbose = TRUE
-    ) 
-
-    reticualte::use_condaenv("test-condaenv")
-
-    # * Or use virtualenv via reticulate
-    SetupPyEnv(
-        env_type = "venv", 
-        env_name = "test-venv", 
-        python_version = "3.9.15",
-        packages = c("tensorflow" = "2.4.1", "protobuf" = "3.20.3"),
-        python_path = NULL,
-        recreate = FALSE,
-        verbose = TRUE
-    )
-
-    reticulate::use_virtualenv("test-venv")
-
-You can use `ListPyEnv()` to list all the Python environments you have
-set up. Both conda and virtual environments are supported.
-
-    # * Unix-like systems
-    ListPyEnv()
-    #                 name                                                  python  type
-    # 1               base                        /home/user/miniconda3/bin/python conda
-    # 2      test-condaenv     /home/user/miniconda3/envs/test-condaenv/bin/python conda
-    # 3          test-venv         /home/user/miniconda3/envs/test-venv/bin/python  venv
-
-Show the conda environments only:
-
-    # * Unix-like systems
-    ListPyEnv(env_type = "conda")
-    #                 name                                                  python  type
-    # 1               base                        /home/user/miniconda3/bin/python conda
-    # 2      test-condaenv     /home/user/miniconda3/envs/test-condaenv/bin/python conda
-
-If the virtual environment isn’t installed in the default location, you
-can specify the location of the virtual environment with the
-`venv_locations` parameter.
-
-    ListPyEnv(env_type = "venv",venv_locations ="~/here_is_a_dir/.virtualenvs")
-
-### 6.4 Finding the Optimal Number of Principle Components
-
-Usually the number if principle components (PCs) is manually set to 10
-or 20 according to the elbow plot. However, it is not always the case
-that the PCs with the highest variance are the most informative. Here is
-a function to help you find the optimal number of PCs.
-
-    ndims <- FindRobustElbow(
-      obj = seurat,
-      verbose = TRUE,
-      ndims = 50 
-    )
-    # ── Method Results 
-    # ℹ Method 1A (Cumulative Variance > 90%): 1:40
-    # ℹ Method 1B (Variance > Mean): 1:11
-    # ℹ Method 1C (Variance > 2*SD): 1:4
-    # ℹ Method 2 (Second Derivative): 1:2
-    # ℹ Method 3 (Distance-based): 1:8
-    # ✔ Final Recommended Dimensions:  1:35
-
-    # ── Summary 
-    # ℹ Cumulative variance at 35 PCs: 84.8%
-    # ℹ Variance explained by PC35: 1.09%
-
-    print(ndims)
-    # 35
-
-This function will draw an elbow plot with each method and the
-recommended number of PCs. You can also use the `ndims` parameter to
-specify the maximum number of PCs to be tested. The default value is
-`50`.
-
-    knitr::include_graphics("vignettes/example_figures/elbow.png")
-
-[<img src="example_figures/elbow.png" data-fig-align="center" width="600"
-alt="elbow" />]((https://github.com/WangLabCSU/SigBridgeR/blob/main/vignettes/example_figures/elbow.png))
-
-------------------------------------------------------------------------
-
-## 7. Troubleshooting
+## 6. Troubleshooting
 
 View
 Troubleshooting[(https://github.com/WangX-Lab/SigBridgeR/wiki/Troubleshooting)](https://wanglabcsu.github.io/SigBridgeR/articles/Troubleshooting.html)
@@ -2236,7 +2258,7 @@ Session information:
 
 ------------------------------------------------------------------------
 
-## 8. References
+## 7. References
 
 > 1.  Sun D, Guan X, Moran AE, Wu LY, Qian DZ, Schedin P, et
 >     al. Identifying phenotype-associated subpopulations by integrating
