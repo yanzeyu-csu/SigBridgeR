@@ -48,135 +48,135 @@ NULL
 #' @rdname aggregate-dups
 #' @export
 AggregateDupRows <- function(
-    x,
-    method = c("max", "sum", "mean", "median", "first")
+  x,
+  method = c("max", "sum", "mean", "median", "first")
 ) {
-    method <- SigBridgeRUtils::MatchArg(
-        method,
-        c("max", "sum", "mean", "median", "first")
-    )
+  method <- SigBridgeRUtils::MatchArg(
+    method,
+    c("max", "sum", "mean", "median", "first")
+  )
 
-    row_names <- rownames(x)
-    if (is.null(row_names)) {
-        cli::cli_abort(c("x" = "Input must have row names"))
-    }
+  row_names <- rownames(x)
+  if (is.null(row_names)) {
+    cli::cli_abort(c("x" = "Input must have row names"))
+  }
 
-    if (!any(duplicated(row_names))) {
-        cli::cli_alert_success("No duplicated row names found.")
-        return(x)
-    }
+  if (!any(duplicated(row_names))) {
+    cli::cli_alert_success("No duplicated row names found.")
+    return(x)
+  }
 
-    is_matrix <- is.matrix(x) && !is.data.frame(x)
-    is_dataframe <- is.data.frame(x)
-    is_s4matrix <- inherits(x, "Matrix")
+  is_matrix <- is.matrix(x) && !is.data.frame(x)
+  is_dataframe <- is.data.frame(x)
+  is_s4matrix <- inherits(x, "Matrix")
 
-    if (is_s4matrix) {
-        x <- as.matrix(x)
-        is_matrix <- TRUE
-    }
+  if (is_s4matrix) {
+    x <- as.matrix(x)
+    is_matrix <- TRUE
+  }
 
-    # Use data.table only if data.frame path needed; for pure matrix, vectorize via tapply/split
-    # But your current impl is fine — keep for readability if performance is acceptable
+  # Use data.table only if data.frame path needed; for pure matrix, vectorize via tapply/split
+  # But your current impl is fine — keep for readability if performance is acceptable
 
-    dt <- data.table::as.data.table(x, keep.rownames = "rname")
-    value_cols <- names(dt)[-1]
+  dt <- data.table::as.data.table(x, keep.rownames = "rname")
+  value_cols <- names(dt)[-1]
 
-    res_dt <- switch(
-        method,
-        max = dt[,
-            lapply(.SD, max, na.rm = TRUE),
-            by = rname,
-            .SDcols = value_cols
-        ],
-        sum = dt[,
-            lapply(.SD, sum, na.rm = TRUE),
-            by = rname,
-            .SDcols = value_cols
-        ],
-        mean = dt[,
-            lapply(.SD, mean, na.rm = TRUE),
-            by = rname,
-            .SDcols = value_cols
-        ],
-        median = dt[,
-            lapply(.SD, median, na.rm = TRUE),
-            by = rname,
-            .SDcols = value_cols
-        ],
-        first = dt[, .SD[1], by = rname, .SDcols = value_cols]
-    )
+  res_dt <- switch(
+    method,
+    max = dt[,
+      lapply(.SD, max, na.rm = TRUE),
+      by = rname,
+      .SDcols = value_cols
+    ],
+    sum = dt[,
+      lapply(.SD, sum, na.rm = TRUE),
+      by = rname,
+      .SDcols = value_cols
+    ],
+    mean = dt[,
+      lapply(.SD, mean, na.rm = TRUE),
+      by = rname,
+      .SDcols = value_cols
+    ],
+    median = dt[,
+      lapply(.SD, median, na.rm = TRUE),
+      by = rname,
+      .SDcols = value_cols
+    ],
+    first = dt[, .SD[1], by = rname, .SDcols = value_cols]
+  )
 
-    uniq_rnames <- unique(row_names)
-    data.table::setkey(res_dt, rname)
-    res_dt <- res_dt[uniq_rnames]
+  uniq_rnames <- unique(row_names)
+  data.table::setkey(res_dt, rname)
+  res_dt <- res_dt[uniq_rnames]
 
-    if (is_matrix) {
-        res <- as.matrix(res_dt[, -1])
-        rownames(res) <- res_dt$rname
-        res
-    } else if (is_dataframe) {
-        res <- as.data.frame(res_dt[, -1])
-        rownames(res) <- res_dt$rname
-        res
-    } else {
-        res_dt
-    }
+  if (is_matrix) {
+    res <- as.matrix(res_dt[, -1])
+    rownames(res) <- res_dt$rname
+    res
+  } else if (is_dataframe) {
+    res <- as.data.frame(res_dt[, -1])
+    rownames(res) <- res_dt$rname
+    res
+  } else {
+    res_dt
+  }
 }
 
 
 #' @rdname aggregate-dups
 #' @export
 AggregateDupCols <- function(
-    x,
-    method = c("max", "sum", "mean", "median", "first")
+  x,
+  method = c("max", "sum", "mean", "median", "first")
 ) {
-    method <- SigBridgeRUtils::MatchArg(
+  method <- SigBridgeRUtils::MatchArg(
+    method,
+    c("max", "sum", "mean", "median", "first")
+  )
+
+  col_names <- colnames(x)
+  if (is.null(col_names)) {
+    cli::cli_abort(c("x" = "Input must have column names"))
+  }
+
+  if (!any(duplicated(col_names))) {
+    cli::cli_alert_success("No duplicated column names found.")
+    return(x)
+  }
+
+  is_matrix <- is.matrix(x) && !is.data.frame(x)
+  is_dataframe <- is.data.frame(x)
+  orig_rownames <- rownames(x)
+
+  if (inherits(x, "Matrix")) {
+    x <- as.matrix(x)
+    is_matrix <- TRUE
+  }
+
+  uniq_samples <- unique(col_names)
+  col_groups <- split(seq_along(col_names), col_names)[uniq_samples]
+
+  res_list <- lapply(col_groups, function(idx) {
+    if (length(idx) == 1L) {
+      x[, idx, drop = FALSE]
+    } else {
+      sub_mat <- x[, idx, drop = FALSE]
+      switch(
         method,
-        c("max", "sum", "mean", "median", "first")
-    )
-
-    col_names <- colnames(x)
-    if (is.null(col_names)) {
-        cli::cli_abort(c("x" = "Input must have column names"))
+        sum = SigBridgeRUtils::rowSums3(sub_mat, na.rm = TRUE),
+        mean = SigBridgeRUtils::rowMeans3(sub_mat, na.rm = TRUE),
+        max = SigBridgeRUtils::rowMaxs3(sub_mat, na.rm = TRUE),
+        median = SigBridgeRUtils::rowMedians3(sub_mat, na.rm = TRUE),
+        first = sub_mat[, 1L, drop = FALSE]
+      )
     }
+  })
 
-    if (!any(duplicated(col_names))) {
-        cli::cli_alert_success("No duplicated column names found.")
-        return(x)
-    }
+  res <- do.call(cbind, res_list)
+  dimnames(res) <- list(orig_rownames, uniq_samples)
 
-    is_matrix <- is.matrix(x) && !is.data.frame(x)
-    is_dataframe <- is.data.frame(x)
-    orig_rownames <- rownames(x)
-
-    if (inherits(x, "Matrix")) {
-        x <- as.matrix(x)
-        is_matrix <- TRUE
-    }
-
-    uniq_samples <- unique(col_names)
-    col_groups <- split(seq_along(col_names), col_names)[uniq_samples]
-
-    res_list <- lapply(col_groups, function(idx) {
-        if (length(idx) == 1L) {
-            x[, idx, drop = FALSE]
-        } else {
-            sub_mat <- x[, idx, drop = FALSE]
-            switch(
-                method,
-                sum = SigBridgeRUtils::rowSums3(sub_mat, na.rm = TRUE),
-                mean = SigBridgeRUtils::rowMeans3(sub_mat, na.rm = TRUE),
-                max = SigBridgeRUtils::rowMaxs3(sub_mat, na.rm = TRUE),
-                median = SigBridgeRUtils::rowMedians3(sub_mat, na.rm = TRUE),
-                first = sub_mat[, 1L, drop = FALSE]
-            )
-        }
-    })
-
-    res <- do.call(cbind, res_list)
-    dimnames(res) <- list(orig_rownames, uniq_samples)
-
-    if (is_dataframe) as.data.frame(res) else res
+  if (is_dataframe) as.data.frame(res) else res
 }
 
 
@@ -201,22 +201,22 @@ AggregateDupCols <- function(
 #'
 #' @export
 AggregateDups <- function(
-    x,
-    method = c("max", "sum", "mean", "median", "first"),
-    row_method = NULL,
-    col_method = NULL
+  x,
+  method = c("max", "sum", "mean", "median", "first"),
+  row_method = NULL,
+  col_method = NULL
 ) {
-    method <- SigBridgeRUtils::MatchArg(
-        method,
-        c("max", "sum", "mean", "median", "first")
-    )
-    if (is.null(row_method)) {
-        row_method <- method
-    }
-    if (is.null(col_method)) {
-        col_method <- method
-    }
+  method <- SigBridgeRUtils::MatchArg(
+    method,
+    c("max", "sum", "mean", "median", "first")
+  )
+  if (is.null(row_method)) {
+    row_method <- method
+  }
+  if (is.null(col_method)) {
+    col_method <- method
+  }
 
-    x <- AggregateDupRows(x, method = row_method)
-    AggregateDupCols(x, method = col_method)
+  x <- AggregateDupRows(x, method = row_method)
+  AggregateDupCols(x, method = col_method)
 }

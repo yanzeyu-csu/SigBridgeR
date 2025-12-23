@@ -26,21 +26,21 @@ BulkPreProcess(
 
 \item{gene_symbol_conversion}{Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE}
 
-\item{check}{Whether to perform detailed quality checks, default: TRUE}
+\item{check}{Whether to perform detailed quality checks, default: \code{TRUE}}
 
-\item{min_count_threshold}{Minimum count threshold for gene filtering, default: 10}
+\item{min_count_threshold}{Minimum count threshold for gene filtering. Only values greater than this threshold are considered to represent valid gene expression. Default: \code{10L}}
 
-\item{min_gene_expressed}{Minimum number of samples a gene must be expressed in, default: 3}
+\item{min_gene_expressed}{Minimum number of samples a gene must be expressed in, default: \code{3L}}
 
-\item{min_total_reads}{Minimum total reads per sample, default: 1e6}
+\item{min_total_reads}{Minimum total reads per sample, default: \code{1e6L}}
 
-\item{min_genes_detected}{Minimum number of genes detected per sample, default: 10000}
+\item{min_genes_detected}{Minimum number of genes detected per sample, default: \code{10000}}
 
-\item{min_correlation}{Minimum correlation threshold between samples, default: 0.8}
+\item{min_correlation}{Minimum correlation threshold between samples, default: \code{0.8}}
 
-\item{n_top_genes}{Number of top variable genes for PCA analysis, default: 500}
+\item{n_top_genes}{Number of top variable genes for PCA analysis, default: \code{500}}
 
-\item{show_plot_results}{Whether to generate visualization plots, default: TRUE}
+\item{show_plot_results}{Whether to generate visualization plots, default: \code{TRUE}}
 
 \item{...}{Additional arguments. Currently supports:
 \itemize{

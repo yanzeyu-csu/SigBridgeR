@@ -401,7 +401,7 @@ ProcessSeuratObject <- function(
   selection_method = "vst",
   verbose = TRUE
 ) {
-  Seurat::NormalizeData(
+  obj <- Seurat::NormalizeData(
     object = obj,
     normalization.method = normalization_method,
     scale.factor = scale_factor,
@@ -410,12 +410,34 @@ ProcessSeuratObject <- function(
     Seurat::FindVariableFeatures(
       selection.method = selection_method,
       verbose = verbose
-    ) %>%
-    Seurat::ScaleData(verbose = verbose, features = scale_features) %>%
-    Seurat::RunPCA(
-      features = Seurat::VariableFeatures(.),
-      verbose = verbose
     )
+
+  # 🔍 Resolve scale_features with extended semantics:
+  #   • NULL          → scale ALL genes (Seurat default)
+  #   • "hvg" / "HVG" → scale VariableFeatures(obj)
+  #   • character()   → user-provided gene list
+  if (is.null(scale_features)) {
+    scale_features <- NULL
+  } else if (
+    is.character(scale_features) &&
+      length(scale_features) == 1L &&
+      toupper(scale_features) == "HVG"
+  ) {
+    scale_features <- Seurat::VariableFeatures(obj)
+  }
+
+  # Scale (NULL features = scale all)
+  obj <- Seurat::ScaleData(
+    object = obj,
+    features = scale_features, # works: NULL → all; character() → subset
+    verbose = verbose
+  )
+
+  Seurat::RunPCA(
+    object = obj,
+    features = Seurat::VariableFeatures(obj),
+    verbose = verbose
+  )
 }
 
 
