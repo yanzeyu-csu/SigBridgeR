@@ -14,6 +14,7 @@ ScreenUpset(
   title = "Cell Counts Across Screen Set Intersections",
   bar_color = "#4E79A7",
   combmatrix_point_color = "black",
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
   ...
 )
 }
@@ -37,6 +38,8 @@ Default: NULL, indicating that a self-search pattern will be used.}
 \item{bar_color}{Color for the bars in the plot. Default: "#4E79A7".}
 
 \item{combmatrix_point_color}{Color for points in the combination matrix. Default: "black".}
+
+\item{verbose}{Logical, whether to print a message}
 
 \item{...}{Additional arguments passed to \code{ggplot2::theme()} for customizing the plot appearance.}
 }
@@ -82,6 +85,7 @@ result <- ScreenUpset(
   bar_color = "darkred"
 )
 }
+
 
 }
 \seealso{

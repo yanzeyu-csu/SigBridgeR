@@ -1,13 +1,13 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 R/9.*
+R/99.*
 tmp
 Tmp
 LICENSE.md
 .*\.RData$
 _pkgdown.yml
 docs/
-pkgdown/
 .github
 .Rhistory
 .Rprofile
@@ -24,3 +24,5 @@ benchmark_data
 prework
 ^release/.*
 ^tests/.*
+^[.]?air[.]toml$
+^\.vscode$

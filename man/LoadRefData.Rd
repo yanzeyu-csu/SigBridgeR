@@ -7,8 +7,8 @@
 LoadRefData(
   data_type = c("survival", "binary", "continuous"),
   path = NULL,
-  cache = TRUE,
-  timeout = 60
+  timeout = SigBridgeRUtils::getFuncOption("timeout"),
+  ...
 )
 }
 \arguments{
@@ -16,9 +16,12 @@ LoadRefData(
 
 \item{path}{Optional path to save the downloaded file, default: NULL, saving in package.}
 
-\item{cache}{Logical. If TRUE (default), saves the data for future sessions.}
+\item{timeout}{Integer. Connection timeout in seconds (default: 60)}
 
-\item{timeout}{Integer. Connection timeout in seconds (default: 60).}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+}}
 }
 \value{
 The requested datasets, stored in a list.

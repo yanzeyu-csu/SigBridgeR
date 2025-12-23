@@ -3,7 +3,7 @@ Title: Multi-algorithm Integration of Phenotypic, scRNA-seq, and Bulk Data for C
 Version: 2.5.4
 Authors@R: 
     person("Yuxi", "Yang", email = "15364051195@163.com", role = c("cre", "aut"),  comment = c(ORCID = "0009-0006-1329-1224"))
-Description: SigBridgeR is an integrative toolkit designed to identify phenotype-associated cell subpopulations by combining phenotype(e.g. survival, drug sensitivity), bulk expression and single-cell RNA-seq data. It leverages multiple algorithms (including 'Scissor', 'scPAS', 'scPP', 'scAB' and 'DEGAS') to robustly link cell features with clinical or functional phenotypes. The package provides a unified pipeline for cross-modal data analysis, enabling the discovery of biologically and clinically relevant cell states in heterogeneous  samples.  
+Description: SigBridgeR is an integrative toolkit designed to identify phenotype-associated cell subpopulations by combining phenotype(e.g. survival, drug sensitivity), bulk expression and single-cell RNA-seq data. It leverages multiple algorithms to robustly link cell features with clinical or functional phenotypes. The package provides a unified pipeline for cross-modal data analysis, enabling the discovery of biologically and clinically relevant cell states in heterogeneous  samples.  
 License: GPL (>= 3)
 Encoding: UTF-8
 URL: https://github.com/WangLabCSU/SigBridgeR
@@ -11,52 +11,68 @@ BugReports: https://github.com/WangLabCSU/SigBridgeR/issues
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
-    AUCell,
     chk,
-    cli, 
+    cli,
     data.table,
     DEGAS (>= 1.0.0),
     dplyr,
     edgeR,
-    fgsea,
-    ggforce,
-    ggplot2,
-    ggupset,
     glue,
     IDConverter (>= 0.3.5),
+    LPSGL (>= 0.0.0.9000),
     Matrix,
     methods,
-    patchwork,
+    PIPET (>= 0.1.2),
     processx,
     purrr,
-    reticulate,
     rlang,
-    scAB (>= 1.0.0),
+    scAB (>= 1.0.1),
     Scissor (>= 2.0.0),
     scPAS (>= 0.2.0),
     ScPP (>= 0.0.0.9000),
     Seurat (>= 5.0.0),
     SeuratObject (>= 5.0.0),
-    tibble,
-    tidyr
+    SigBridgeRUtils (>= 0.1.0),
+    tibble
 Depends: 
     R (>= 4.1.0)
 Remotes: 
-    tsteelejohnson91/DEGAS,
-    ShixiangWang/IDConverter,
-    Qinran-Zhang/scAB,
-    sunduanchen/Scissor,
-    aiminXie/scPAS,
-    WangX-Lab/ScPP
+    bioc::edgeR,
+    github::Exceret/ALRA,
+    github::Exceret/DEGAS,
+    github::Exceret/LPSGL,
+    github::Exceret/PIPET,
+    github::Exceret/scAB,
+    github::Exceret/Scissor,
+    github::Exceret/scPAS,
+    github::Exceret/ScPP,
+    github::WangLabCSU/SigBridgeRUtils,
+    github::ShixiangWang/IDConverter
 Suggests: 
+    ALRA,
     anndata,
+    carrier,
+    furrr,
+    future,
+    future.mirai,
+    ggforce,
+    ggplot2,
+    ggupset,
     ggVennDiagram,
     here,
+    KernSmooth,
     knitr,
     matrixStats,
+    matrixTests,
     org.Hs.eg.db,
+    patchwork,
     preprocessCore,
     randomcoloR,
+    reticulate,
     rmarkdown,
+    sparseMatrixStats,
+    testthat (>= 3.0.0),
+    tidyr,
     zeallot
 VignetteBuilder: knitr
+Config/testthat/edition: 3

@@ -6,13 +6,14 @@
 #' on cell barcodes to ensure only cells present in all inputs are retained.
 #'
 #' @usage
-#' MergeResult(...)
+#' MergeResult(..., verbose = SigBridgeRUtils::getFuncOption("verbose"))
 #'
 #' @param ... Input objects to merge. Can be:
 #'        - Seurat objects
 #'        - Lists containing `scRNA_data` (Seurat objects)
 #'        - Mixed combinations of the above
 #'        - The first one will be used as base object for merging, priority given to first one when duplicate columns are found
+#' @param verbose Logical, whether to print a message
 #'
 #' @return A merged Seurat object containing:
 #' \itemize{
@@ -39,12 +40,12 @@
 #' }
 #'
 #' @export
-#' @importFrom cli cli_abort cli_alert_warning cli_alert_success
-#' @importFrom data.table merge.data.table
-#' @importFrom purrr map
 #'
-MergeResult <- function(...) {
-    args <- list(...)
+MergeResult <- function(
+    ...,
+    verbose = SigBridgeRUtils::getFuncOption("verbose")
+) {
+    args <- rlang::list2(...)
 
     if (length(args) == 0) {
         cli::cli_abort(
@@ -74,7 +75,7 @@ MergeResult <- function(...) {
 
     # extract metadata
     meta_list <- lapply(seurat_objects, function(x) {
-        data.table::as.data.table(x@meta.data, keep.rownames = "cell_id")
+        data.table::as.data.table(x[[]], keep.rownames = "cell_id")
     })
 
     merged_meta <- Reduce(
@@ -91,8 +92,21 @@ MergeResult <- function(...) {
     )
 
     common_cells <- merged_meta$cell_id
+    # check if all cells are present, ignore it if data are identical
+    common_cells_len <- length(common_cells)
+    first_seurat_cells <- ncol(seurat_objects[[1]])
+    if (common_cells_len != first_seurat_cells) {
+        cli::cli_warn(
+            c(
+                "i" = "The {.fun MergeResult} was not originally designed for integrating heterogeneous single-cell datasets",
+                ">" = " Only the intersection of cells will be retained",
+                ">" = "After intersection, only {.val {common_cells_len}} cells retained from {.val {first_seurat_cells}} cells in the first base object"
+            )
+        )
+    }
+
     merged_obj <- subset(seurat_objects[[1]], cells = common_cells)
-    merged_obj[[]] <- Col2Rownames(merged_meta, "cell_id")
+    merged_obj[[]] <- SigBridgeRUtils::Col2Rownames(merged_meta, "cell_id")
 
     # merge slots
     merged_obj <- Reduce(
@@ -129,11 +143,13 @@ MergeResult <- function(...) {
         misc_list[[key]] <- if (length(values) == 1) values[[1]] else values
     }
 
-    merged_obj <- AddMisc(merged_obj, misc_list, cover = TRUE)
+    merged_obj <- SigBridgeRUtils::AddMisc(merged_obj, misc_list, cover = TRUE)
 
-    cli::cli_alert_success(
-        "Successfully merged {.val {length(seurat_objects)}} objects."
-    )
+    if (verbose) {
+        cli::cli_alert_success(
+            "Successfully merged {.val {length(seurat_objects)}} objects."
+        )
+    }
 
     merged_obj
 }

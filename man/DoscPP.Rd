@@ -14,7 +14,6 @@ DoscPP(
   Log2FC_cutoff = 0.585,
   estimate_cutoff = 0.2,
   probs = c(0.2, NULL),
-  verbose = TRUE,
   ...
 )
 }
@@ -42,11 +41,13 @@ DoscPP(
 
 \item{estimate_cutoff}{Effect size threshold for \strong{continuous} traits (default: 0.2)}
 
-\item{probs}{A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: 0.2)}
+\item{probs}{A numeric value indicating the quantile cutoff for cell classification. This parameter can also be a numeric vector, in which case an optimal threshold will be selected based on the AUC and enrichment score.(default: \code{0.2})}
 
-\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
-
-\item{...}{For future update.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 A list containing:
@@ -57,12 +58,6 @@ A list containing:
 }
 }
 \item{gene_list}{List of genes used for screening}
-\item{AUC}{A data.frame with area under the ROC curve:
-\describe{
-\item{scPP_AUCup}{AUC for positive}
-\item{scPP_AUCdown}{AUC for negative}
-}
-}
 }
 }
 \description{
@@ -105,18 +100,15 @@ surv_res <- DoscPP(
 )
 }
 
-
 }
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPAS}()}
-
-Other scPP: 
-\code{\link{Check0VarRows}()},
-\code{\link{ScPP.optimized}()}
 }
 \concept{scPP}
 \concept{screen_method}

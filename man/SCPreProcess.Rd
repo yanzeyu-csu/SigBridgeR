@@ -3,15 +3,10 @@
 \name{SCPreProcess}
 \alias{SCPreProcess}
 \alias{SCPreProcess.default}
-\alias{SCPreProcess.matrix}
-\alias{SCPreProcess.data.frame}
-\alias{SCPreProcess.dgCMatrix}
-\alias{SCPreProcess.AnnDataR6}
+\alias{SCPreProcess.R6}
 \alias{SCPreProcess.Seurat}
 \title{Single-Cell RNA-seq Preprocessing Pipeline}
 \usage{
-SCPreProcess(sc, ...)
-
 SCPreProcess(sc, ...)
 
 \method{SCPreProcess}{default}(
@@ -24,19 +19,18 @@ SCPreProcess(sc, ...)
   quality_control = TRUE,
   quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
-\method{SCPreProcess}{matrix}(
+\method{SCPreProcess}{R6}(
   sc,
   meta_data = NULL,
   column2only_tumor = NULL,
@@ -44,101 +38,40 @@ SCPreProcess(sc, ...)
   min_cells = 400L,
   min_features = 0L,
   quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
+  quality_control.pattern = c("^MT-"),
   data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
+    percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
   selection_method = "vst",
   resolution = 0.6,
   dims = NULL,
-  verbose = TRUE,
   ...
 )
 
-\method{SCPreProcess}{data.frame}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  verbose = TRUE,
-  ...
-)
-
-\method{SCPreProcess}{dgCMatrix}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  verbose = TRUE,
-  ...
-)
-
-\method{SCPreProcess}{AnnDataR6}(
-  sc,
-  meta_data = NULL,
-  column2only_tumor = NULL,
-  project = "SC_Screening_Proj",
-  min_cells = 400L,
-  min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-", "^mt-"),
-  data_filter = TRUE,
-  data_filter.nFeature_RNA_thresh = c(200L, 6000L),
-  data_filter.percent.mt = 20L,
-  normalization_method = "LogNormalize",
-  scale_factor = 10000L,
-  scale_features = NULL,
-  selection_method = "vst",
-  resolution = 0.6,
-  dims = NULL,
-  verbose = TRUE,
-  ...
-)
-
-\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, verbose = TRUE, ...)
+\method{SCPreProcess}{Seurat}(sc, column2only_tumor = NULL, ...)
 }
 \arguments{
 \item{sc}{Input data, one of:
 \itemize{
 \item \code{data.frame/matrix/dgCMatrix}: Raw count matrix (features x cells)
-\item \code{AnnDataR6}: Python AnnData object via reticulate
+\item \code{R6}: Python AnnData object, obtained via package \code{anndata} or \code{anndataR}
 \item \code{Seurat}: Preprocessed Seurat object
 }}
 
-\item{...}{Additional arguments passed to specific methods. Currently unused.}
+\item{...}{Additional arguments passed to specific methods. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{dims_Neighbors}: Dimensions to use for \code{FindNeighbors}. Defaults to \code{NULL}, using \code{dims}.
+\item \code{dims_TSNE}: Dimensions to use for \code{RunTSNE}. Defaults to \code{NULL}, using \code{dims}.
+\item \code{dims_UMAP}: Dimensions to use for \code{RunUMAP}. Defaults to \code{NULL}, using \code{dims}.
+}}
 
 \item{meta_data}{A data.frame containing metadata for each cell. It will be
-added to the Seurat object as \verb{@meta.data}. If \code{NULL}, it will be
-extracted from the input object if possible.}
+added to the Seurat object as \verb{@meta.data}. If sc is an anndata object,
+\code{obs} will be automatically used.}
 
 \item{column2only_tumor}{A character of column names in \code{meta_data}, used to
 filter the Seurat object to only tumor cells. If \code{NULL}, no filtering is performed.}
@@ -146,31 +79,36 @@ filter the Seurat object to only tumor cells. If \code{NULL}, no filtering is pe
 \item{project}{A character of project name, used to name the Seurat object.}
 
 \item{min_cells}{Minimum number of cells that must express a feature for it
-to be included in the analysis. Defaults to \code{400}.}
+to be included in the analysis. Defaults to \code{400L}.}
 
 \item{min_features}{Minimum number of features that must be detected in a
-cell for it to be included in the analysis. Defaults to \code{0}.}
+cell for it to be included in the analysis. Defaults to \code{0L}.}
 
-\item{quality_control}{Logical indicating whether to perform mitochondrial
-percentage quality control. Defaults to \code{TRUE}.}
+\item{quality_control}{Logical, for identification of the proportion of mitochondrial genes,
+ribosomal protein genes, or other types of genes (without filtering),
+the results will be stored in \code{meta.data}. Defaults to \code{TRUE}.}
 
-\item{quality_control.pattern}{Character pattern to identify mitochondrial
-genes, ribosomal protein genes, or other unwanted genes, as well as combinations
+\item{quality_control.pattern}{A vector or character containing regex pattern(s) to identify
+mitochondrial genes, ribosomal protein genes, or other unwanted genes, as well as combinations
 of these genes. Customized patterns are supported. Defaults to \code{"^MT-"}.}
 
 \item{data_filter}{Logical indicating whether to filter cells based on
 quality metrics. Defaults to \code{TRUE}.}
 
-\item{data_filter.nFeature_RNA_thresh}{Numeric vector of length 2 specifying
-the minimum and maximum number of features per cell. Defaults to \code{c(200, 6000)}.}
-
-\item{data_filter.percent.mt}{Maximum mitochondrial percentage allowed.
-Defaults to \code{20}.}
+\item{data_filter.thresh}{A list containing filtering thresholds for different quality metrics:
+\itemize{
+\item \code{nFeature_RNA_thresh}: Numeric vector of length 2 specifying the minimum and maximum
+number of features per cell. Defaults to \code{c(200L, 6000L)}
+\item \code{percent.mt}: Maximum mitochondrial percentage allowed. Defaults to \code{20L}
+\item \code{percent.rp}: Maximum ribosomal protein percentage allowed. Not used in default
+unless ribosomal protein genes filter pattern (like \verb{^RP[LS]}) is added to
+\code{quality_control.pattern}
+}}
 
 \item{normalization_method}{Method for normalization: "LogNormalize", "CLR",
 or "RC". Defaults to \code{"LogNormalize"}.}
 
-\item{scale_factor}{Scaling factor for normalization. Defaults to \code{10000}.}
+\item{scale_factor}{Scaling factor for normalization. Defaults to \code{10000L}.}
 
 \item{scale_features}{Features to use for scaling. If NULL, uses all variable
 features. Defaults to \code{NULL}.}
@@ -183,20 +121,18 @@ more clusters. Defaults to \code{0.6}.}
 
 \item{dims}{Dimensions to use for clustering and dimensionality reduction.
 If NULL, automatically determined by elbow method. Defaults to \code{NULL}.}
-
-\item{verbose}{Logical indicating whether to print progress messages.
-Defaults to \code{TRUE}.}
 }
 \value{
 A Seurat object containing:
 \itemize{
-\item Data filter and quality control
 \item Normalized and scaled expression data
-\item Variable features
-\item PCA/tSNE/UMAP reductions
-\item Cluster identities
+\item Variable features identified by selection method
+\item PCA, t-SNE, and UMAP dimensionality reductions
+\item Cluster identities at specified resolution
+\item Quality control metrics in \verb{@meta.data}
 \item When tumor cells filtered: original dimensions in \verb{@misc$raw_dim}
 \item Final dimensions in \verb{@misc$self_dim}
+\item Quality control column names in \verb{@misc$qc_colnames}
 }
 }
 \description{
@@ -204,6 +140,25 @@ A generic function for standardized preprocessing of single-cell RNA-seq data
 from multiple sources. Handles data.frame/matrix, AnnData, and Seurat inputs
 with tumor cell filtering. Implements a complete analysis pipeline
 from raw data to clustered embeddings.
+}
+\details{
+\strong{Quality Control Patterns:}
+The function supports flexible pattern matching for quality control, for example:
+\itemize{
+\item \code{"^MT-"} - Mitochondrial genes (default)
+\item \code{"^RP\[LS\]"} - Ribosomal protein genes
+\item \code{"^\[rt\]rna"} - rRNA and tRNA genes
+\item Custom patterns using regular expressions
+\item Combined patterns: \code{"^MT-|^RP\[LS\]"} for both mitochondrial and ribosomal genes
+}
+
+\strong{Flexible Filtering:}
+The filtering system dynamically adapts to detected quality control patterns:
+\itemize{
+\item Column names are automatically generated from patterns
+\item Multiple thresholds can be specified in \code{data_filter.thresh}
+\item Use \code{SigBridgeR:::Pattern2Colname} to determine correct column names for custom patterns if still confused
+}
 }
 \examples{
 \dontrun{

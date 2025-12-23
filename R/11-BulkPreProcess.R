@@ -6,10 +6,13 @@
 #' Preprocess bulk expression data: convert Ensembles version IDs and TCGA version IDs to genes. NA values are replaced with `unknown_k` format (k stands for the position of the NA value in the row).
 #'
 #' @param data bulk expression data (matrix or data.frame)
+#' @param unknown_format A glue pattern containing `{k}` for replace the NA value during conversion.
+#'     k must be wrapped in curly braces, stands for the position of the NA value in the row.
+#'     Default: `"unknown_{k}"`.
 #'
 #' @export
 #'
-SymbolConvert <- function(data) {
+SymbolConvert <- function(data, unknown_format = "unknown_{k}") {
     row_names <- gsub("\\..*$", "", rownames(data))
     if (is.null(row_names)) {
         cli::cli_abort(c("x" = "Row names are missing in the data"))
@@ -25,15 +28,15 @@ SymbolConvert <- function(data) {
             "Found {.val {na_count}} NA values in gene symbols during conversion."
         ))
 
-        na_indices <- which(is.na(gene_symbols))
-        gene_symbols[na_indices] <- glue::glue("unknown_{na_indices}")
+        k <- which(is.na(gene_symbols))
+        gene_symbols[k] <- glue::glue(unknown_format)
         cli::cli_warn(
-            "Replaced {.val {na_count}} NA values with `unknown_k` format."
+            "Replaced {.val {na_count}} NA values with {.code {unknown_format}} format."
         )
     }
 
     rownames(data) <- gene_symbols
-    return(data)
+    data
 }
 
 
@@ -62,7 +65,7 @@ SymbolConvert <- function(data) {
 #' }
 #'
 #' @param data Expression matrix with genes as rows and samples as columns, or a list containing count_matrix and sample_info
-#' @param sample_info Sample information data frame (optional), ignored if data is a list. A qualified `sample_info` should contain both `sample` and `condition` columns (case-sensitive), and there are no specific requirements for the data type stored in the `condition` column.
+#' @param sample_info Sample information data frame (optional), ignored if data is a list. A qualified `sample_info` should contain both `sample` and `condition` columns (case-sensitive), and there are no specific requirements for the data type stored in the `condition` column. `batch` column is optional, which is used for batch effect detection.
 #' @param gene_symbol_conversion Whether to convert Ensembles version IDs and TCGA version IDs to genes with IDConverter, default: FALSE
 #' @param check Whether to perform detailed quality checks, default: TRUE
 #' @param min_count_threshold Minimum count threshold for gene filtering, default: 10
@@ -72,8 +75,9 @@ SymbolConvert <- function(data) {
 #' @param min_correlation Minimum correlation threshold between samples, default: 0.8
 #' @param n_top_genes Number of top variable genes for PCA analysis, default: 500
 #' @param show_plot_results Whether to generate visualization plots, default: TRUE
-#' @param verbose Whether to output detailed information, default: TRUE
-#'
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'    - `seed`: For reproducibility, default is `123L`
 #'
 #' @section Quality Metrics:
 #' The function calculates and reports several quality metrics:
@@ -124,14 +128,14 @@ BulkPreProcess <- function(
     sample_info = NULL,
     gene_symbol_conversion = FALSE,
     check = TRUE,
-    min_count_threshold = 10,
-    min_gene_expressed = 3,
-    min_total_reads = 1e6,
-    min_genes_detected = 10000,
+    min_count_threshold = 10L,
+    min_gene_expressed = 3L,
+    min_total_reads = 1e6L,
+    min_genes_detected = 10000L,
     min_correlation = 0.8,
-    n_top_genes = 500,
+    n_top_genes = 500L,
     show_plot_results = TRUE,
-    verbose = TRUE
+    ...
 ) {
     purrr::walk(
         list(
@@ -144,12 +148,29 @@ BulkPreProcess <- function(
         ),
         ~ chk::chk_numeric
     )
-    purrr::walk(list(check, show_plot_results, verbose), ~ chk::chk_flag)
+    purrr::walk(list(check, show_plot_results), ~ chk::chk_flag)
+
+    # dots arguments
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+    seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
+    method <- dots$method
+
+    set.seed(seed)
 
     if (verbose) {
         ts_cli$cli_alert_info(
             cli::col_green("Starting data preprocessing...")
         )
+    }
+
+    if (any(duplicated(rownames(data)))) {
+        cli::cli_alert_info("Aggregate Duplicated genes in rownames")
+        data <- AggregateDupRows(data)
+    }
+    if (any(duplicated(colnames(data)))) {
+        cli::cli_alert_info("Aggregate Duplicated samples in colnames")
+        data <- AggregateDupCols(data)
     }
 
     # Handle input data format
@@ -307,7 +328,7 @@ BulkPreProcess <- function(
 
         # Select highly variable genes
         n_genes_for_pca <- min(n_top_genes, nrow(cpm_values))
-        gene_vars <- rowVars(cpm_values, na.rm = TRUE)
+        gene_vars <- SigBridgeRUtils::rowVars3(cpm_values, na.rm = TRUE)
         top_var_idx <- order(gene_vars, decreasing = TRUE)[seq_len(
             n_genes_for_pca
         )]
@@ -340,7 +361,7 @@ BulkPreProcess <- function(
             if (length(outliers) > 0) {
                 outlier_names <- sample_info$sample[outliers]
                 cli::cli_warn(sprintf(
-                    "Outlier samples detected: {.emph {%s}}",
+                    "Outlier samples detected: {.emph %s}",
                     glue::glue_collapse(outlier_names, sep = ', ')
                 ))
             }
@@ -364,15 +385,11 @@ BulkPreProcess <- function(
                     if (all(is.na(gene_expression))) {
                         return(1)
                     }
-                    rlang::try_fetch(
-                        {
-                            aov_result <- stats::aov(
-                                gene_expression ~ batch_info
-                            )
-                            summary(aov_result)[[1]]["Pr(>F)"][1, 1]
-                        },
-                        error = function(e) 1
+
+                    aov_result <- stats::aov(
+                        gene_expression ~ batch_info
                     )
+                    summary(aov_result)[[1]]["Pr(>F)"][1, 1]
                 }
 
                 batch_pvalues <- cpm_values[batch_test_idx, , drop = FALSE] %>%
@@ -402,6 +419,8 @@ BulkPreProcess <- function(
                     "Generating visualization plots..."
                 )
             }
+            rlang::check_installed(c("ggplot2", "ggforce"))
+
             # PCA graphics::plot
             if (exists("pca_result")) {
                 pca_df <- data.frame(

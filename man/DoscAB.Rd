@@ -10,11 +10,10 @@ DoscAB(
   phenotype,
   label_type = "scAB",
   phenotype_class = c("binary", "survival"),
-  alpha = 0.005,
-  alpha_2 = 5e-05,
-  maxiter = 2000,
-  tred = 2,
-  verbose = TRUE,
+  alpha = c(0.005, NULL),
+  alpha_2 = c(0.005, NULL),
+  maxiter = 2000L,
+  tred = 2L,
   ...
 )
 }
@@ -35,17 +34,19 @@ DoscAB(
 - \code{"binary"}: Case-control design (e.g., responder/non-responder)
 - \code{"survival"}: Time-to-event analysis data.frame}
 
-\item{alpha}{Coefficient of phenotype regularization (default=0.005).}
+\item{alpha}{Coefficient of phenotype regularization (default=\code{0.005}).}
 
-\item{alpha_2}{Coefficent of cell-cell similarity regularization (default=5e-05).}
+\item{alpha_2}{Coefficent of cell-cell similarity regularization (default=\code{0.005}).}
 
-\item{maxiter}{NMF optimization iterations (default=2000).}
+\item{maxiter}{Maximum number of iterations for NMF (default=2000).}
 
-\item{tred}{Z-score threshold (default=2).}
+\item{tred}{Z-score threshold in finding subsets (default=2).}
 
-\item{verbose}{Logical indicating whether to print progress messages. Default: \code{TRUE}.}
-
-\item{...}{For future update.}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 A list containing:
@@ -76,7 +77,7 @@ result <- DoscAB(
   label_type = "disease_status",
   phenotype_class = "binary",
   alpha = 0.005,
-  alpha_2 = 5e-05,
+  alpha_2 = 0.005,
   maxiter = 2000,
   tred = 2
 )
@@ -89,16 +90,11 @@ Zhang Q, Jin S, Zou X. scAB detects multiresolution cell states with clinical si
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscPAS}()},
 \code{\link{DoscPP}()}
-
-Other scAB: 
-\code{\link{NMF.optimized}()},
-\code{\link{create_scAB.v5}()},
-\code{\link{findSubset.optimized}()},
-\code{\link{scAB.optimized}()},
-\code{\link{select_K.optimized}()}
 }
 \concept{scAB}
 \concept{screen_method}

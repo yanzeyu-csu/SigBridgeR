@@ -4,15 +4,19 @@
 \alias{FindRobustElbow}
 \title{Automatically determine optimal PCA dimensions using multiple robust methods}
 \usage{
-FindRobustElbow(obj, verbose = TRUE, ndims = 50)
+FindRobustElbow(
+  obj,
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
+  ndims = 50L
+)
 }
 \arguments{
-\item{obj}{A Seurat object that has PCA computed (after RunPCA)}
+\item{obj}{A Seurat object that has PCA computed (after \code{RunPCA})}
 
 \item{verbose}{Logical, if TRUE outputs detailed method results and creates
 visualization plot. If FALSE returns only the final dimension.}
 
-\item{ndims}{Integer, maximum number of dimensions to consider (default: 50)}
+\item{ndims}{Integer, maximum number of dimensions to consider (default: \code{50L})}
 }
 \value{
 Integer, the recommended number of PCA dimensions for downstream analysis
@@ -34,9 +38,9 @@ pbmc <- FindNeighbors(pbmc, dims = 1:optimal_dims)
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FilterTumorCell}()},
+\code{\link{Pattern2Colname}()},
 \code{\link{ProcessSeuratObject}()},
-\code{\link{QCPatternFilter}()}
+\code{\link{QCPatternDetect}()}
 }
 \concept{single_cell_preprocess}

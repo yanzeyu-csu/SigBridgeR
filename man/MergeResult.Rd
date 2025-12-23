@@ -4,7 +4,7 @@
 \alias{MergeResult}
 \title{Merge Multiple Screening Analysis Results}
 \usage{
-MergeResult(...)
+MergeResult(..., verbose = SigBridgeRUtils::getFuncOption("verbose"))
 }
 \arguments{
 \item{...}{Input objects to merge. Can be:
@@ -12,6 +12,8 @@ MergeResult(...)
 - Lists containing \code{scRNA_data} (Seurat objects)
 - Mixed combinations of the above
 - The first one will be used as base object for merging, priority given to first one when duplicate columns are found}
+
+\item{verbose}{Logical, whether to print a message}
 }
 \value{
 A merged Seurat object containing:

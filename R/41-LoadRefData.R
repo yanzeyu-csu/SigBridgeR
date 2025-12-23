@@ -6,8 +6,10 @@
 #'
 #' @param data_type The type of data to download. Must be one of "survival", "binary", or "continuous".
 #' @param path Optional path to save the downloaded file, default: NULL, saving in package.
-#' @param cache Logical. If TRUE (default), saves the data for future sessions.
-#' @param timeout Integer. Connection timeout in seconds (default: 60).
+#' @param timeout Integer. Connection timeout in seconds (default: 60)
+#' @param ... Additional arguments. Currently supports:
+#'    - `verbose`: Logical indicating whether to print progress messages. Defaults to `TRUE`.
+#'
 #' @return The requested datasets, stored in a list.
 #' @export
 #'
@@ -19,10 +21,10 @@
 LoadRefData <- function(
     data_type = c("survival", "binary", "continuous"),
     path = NULL,
-    cache = TRUE,
-    timeout = 60
+    timeout = SigBridgeRUtils::getFuncOption("timeout"),
+    ...
 ) {
-    data_type <- MatchArg(
+    data_type <- SigBridgeRUtils::MatchArg(
         data_type,
         c("survival", "binary", "continuous"),
         NULL
@@ -37,14 +39,22 @@ LoadRefData <- function(
         }
         dir.create(path, recursive = TRUE, showWarnings = FALSE)
     }
-    chk::chk_flag(cache)
     chk::chk_whole_number(timeout)
 
+    dots <- rlang::list2(...)
+    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+
     local_file <- file.path(path, glue::glue("{data_type}_ref_data.rds"))
+
+    # Set timeout for the download
     old_timeout <- getOption("timeout")
+    options(timeout = timeout)
+    on.exit(options(timeout = old_timeout))
 
     if (!file.exists(local_file)) {
-        cli::cli_alert_info("Downloading reference data...")
+        if (verbose) {
+            cli::cli_alert_info("Downloading reference data...")
+        }
 
         # Define multiple sources with priority order
         data_urls <- list(
@@ -73,24 +83,24 @@ LoadRefData <- function(
             source_name <- names(available_urls)[i]
             data_url <- available_urls[[i]]
 
-            cli::cli_alert_info(glue::glue("Trying {source_name}..."))
+            if (verbose) {
+                cli::cli_alert_info(glue::glue("Trying {source_name}..."))
+            }
 
             success <- rlang::try_fetch(
                 {
-                    # Set timeout for the download
-                    old_timeout <- getOption("timeout")
-                    options(timeout = timeout)
-
-                    utils::download.file(
+                    fileDownload(
                         url = data_url,
                         destfile = local_file,
                         mode = "wb",
                         quiet = FALSE # Show progress
                     )
 
-                    cli::cli_alert_success(glue::glue(
-                        "Successfully downloaded from {source_name}"
-                    ))
+                    if (verbose) {
+                        cli::cli_alert_success(
+                            "Successfully downloaded from {source_name}"
+                        )
+                    }
                     TRUE
                 },
                 error = function(e) {
@@ -98,9 +108,11 @@ LoadRefData <- function(
                         unlink(local_file)
                     }
 
-                    cli::cli_warn(glue::glue(
-                        "Failed from {source_name}: {e$message}"
-                    ))
+                    if (verbose) {
+                        cli::cli_warn(
+                            "Failed from {source_name}: {e$message}"
+                        )
+                    }
 
                     # If this was the last source, show final error
                     if (i == length(available_urls)) {
@@ -117,8 +129,7 @@ LoadRefData <- function(
 
             if (success) break
         }
-        options(timeout = old_timeout)
-    } else {
+    } else if (verbose) {
         cli::cli_alert_info("Found cached data.")
     }
 
@@ -129,14 +140,15 @@ LoadRefData <- function(
                 unlink(local_file) # Clean up corrupted file
             }
             cli::cli_abort(c(
-                "x" = cli::col_red("Downloaded file appears to be corrupted."),
-                "i" = "Please try again. Error: {e$message}"
+                "x" = e$message
             ))
         }
     )
-    cli::cli_alert_success(cli::col_green("Data loaded successfully."))
+    if (verbose) {
+        cli::cli_alert_success(cli::col_green("Data loaded successfully."))
+    }
 
-    if (!cache && file.exists(local_file)) {
+    if (file.exists(local_file)) {
         unlink(local_file)
     }
 

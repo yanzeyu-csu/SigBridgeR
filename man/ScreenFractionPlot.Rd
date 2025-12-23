@@ -20,7 +20,8 @@ ScreenFractionPlot(
   y_lab = "Fraction of Status",
   ncol = 2, # number of columns for facet wrap
   nrow = NULL, # number of rows for facet wrap
-  ... # unused
+  verbose = SigBridgeRUtils::getFuncOption("verbose"),
+  ... # ggplot2 theme arguments
 )
 }
 \arguments{
@@ -58,6 +59,8 @@ can be a vector of titles or single title (will append screen type).}
 \item{ncol}{Number of columns for facet wrap when multiple screen types (default: 2).}
 
 \item{nrow}{Number of rows for facet wrap when multiple screen types (default: NULL).}
+
+\item{verbose}{Logical, whether to print a message}
 
 \item{...}{Other arguments passed to ggplot2::theme()}
 }

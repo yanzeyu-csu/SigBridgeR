@@ -13,15 +13,30 @@ FilterTumorCell(obj, column2only_tumor = NULL, verbose = TRUE)
 
 \item{verbose}{logical, whether to print progress messages}
 }
+\value{
+A Seurat object containing only tumor cells, with the following
+attributes stored in \verb{@misc}:
+\itemize{
+\item \code{self_dim}: Dimensions of the filtered object
+\item \code{raw_dim}: Original dimensions before filtering
+\item \code{column2only_tumor}: The column name used for filtering
+}
+If \code{column2only_tumor} is \code{NULL} or the specified column is not found,
+returns the original object unchanged.
+}
 \description{
-Filter tumor cells from Seurat object.
+An internal function that filters tumor cells from a Seurat object based on
+metadata column values. This function identifies tumor cells using pattern
+matching on cell type labels and creates a subset containing only tumor cells.
+It also records dimension information before and after filtering for
+traceability.
 }
 \seealso{
 Other single_cell_preprocess: 
-\code{\link{ClusterAndReduce}()},
 \code{\link{FindRobustElbow}()},
+\code{\link{Pattern2Colname}()},
 \code{\link{ProcessSeuratObject}()},
-\code{\link{QCPatternFilter}()}
+\code{\link{QCPatternDetect}()}
 }
 \concept{single_cell_preprocess}
 \keyword{internal}

@@ -6,10 +6,10 @@
 #' It integrates variance-based heuristics, elbow detection algorithms, and provides
 #' comprehensive visualization for result validation.
 #'
-#' @param obj A Seurat object that has PCA computed (after RunPCA)
+#' @param obj A Seurat object that has PCA computed (after `RunPCA`)
 #' @param verbose Logical, if TRUE outputs detailed method results and creates
 #'                visualization plot. If FALSE returns only the final dimension.
-#' @param ndims Integer, maximum number of dimensions to consider (default: 50)
+#' @param ndims Integer, maximum number of dimensions to consider (default: `50L`)
 #'
 #' @return Integer, the recommended number of PCA dimensions for downstream analysis
 #'
@@ -24,7 +24,11 @@
 #' @family single_cell_preprocess
 #' @export
 #'
-FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
+FindRobustElbow <- function(
+    obj,
+    verbose = SigBridgeRUtils::getFuncOption("verbose"),
+    ndims = 50L
+) {
     # Input validation
     if (!"pca" %chin% names(obj)) {
         cli::cli_abort(c(
@@ -52,7 +56,15 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
             dims_90pct
         )
 
-        # 1B: PCs explaining more than mean variance
+        # 1B: Cumulative variance > 80%
+        dims_80pct <- which(cumulative_variance > 80)[1]
+        method1_results$cumulative_80 <- ifelse(
+            is.na(dims_80pct),
+            ndims,
+            dims_80pct
+        )
+
+        # 1C: PCs explaining more than mean variance
         dims_above_mean <- which(pct_variance > mean(pct_variance))
         method1_results$above_mean <- ifelse(
             length(dims_above_mean) > 0,
@@ -60,7 +72,7 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
             10
         )
 
-        # 1C: PCs explaining more than 2*SD of variance
+        # 1D: PCs explaining more than 2*SD of variance
         threshold_2sd <- 2 * stats::sd(pct_variance)
         dims_above_2sd <- which(pct_variance > threshold_2sd)
         method1_results$above_2sd <- ifelse(
@@ -136,10 +148,13 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
             "Method 1A (Cumulative Variance > 90%): 1:{method1_results$cumulative_90}"
         )
         cli::cli_alert_info(
-            "Method 1B (Variance > Mean): 1:{method1_results$above_mean}"
+            "Method 1B (Cumulative Variance > 80%): 1:{method1_results$cumulative_80}"
         )
         cli::cli_alert_info(
-            "Method 1C (Variance > 2*SD): 1:{method1_results$above_2sd}"
+            "Method 1C (Variance > Mean): 1:{method1_results$above_mean}"
+        )
+        cli::cli_alert_info(
+            "Method 1D (Variance > 2*SD): 1:{method1_results$above_2sd}"
         )
         cli::cli_alert_info(
             "Method 2 (Second Derivative): 1:{method2_final}"
@@ -152,109 +167,129 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
         )
 
         # Create comprehensive visualization
-        plot_data <- data.table::data.table(
-            PC = seq_len(ndims),
-            Variance = pct_variance,
-            Cumulative = cumulative_variance
-        )
+        if (interactive()) {
+            rlang::check_installed("ggplot2")
+            plot_data <- data.table::data.table(
+                PC = seq_len(ndims),
+                Variance = pct_variance,
+                Cumulative = cumulative_variance
+            )
 
-        p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = PC, y = Variance)) +
-            ggplot2::geom_point(alpha = 0.6) +
-            ggplot2::geom_line(alpha = 0.8) +
-            ggplot2::geom_vline(
-                xintercept = method1_results$cumulative_90,
-                color = "#0a9696ff",
-                linetype = "dashed",
-                alpha = 0.8,
-                linewidth = 1.2
+            p <- ggplot2::ggplot(
+                plot_data,
+                ggplot2::aes(x = PC, y = Variance)
             ) +
-            ggplot2::geom_vline(
-                xintercept = method1_results$above_mean,
-                color = "#63118aff",
-                linetype = "dashed",
-                alpha = 0.8,
-                linewidth = 1.2
-            ) +
-            ggplot2::geom_vline(
-                xintercept = method1_results$above_2sd,
-                color = "#193db3ff",
-                linetype = "dashed",
-                alpha = 0.8,
-                linewidth = 1.2
-            ) +
-            ggplot2::geom_vline(
-                xintercept = method2_final,
-                color = "#15b915ff",
-                linetype = "dashed",
-                alpha = 0.8,
-                linewidth = 1.2
-            ) +
-            ggplot2::geom_vline(
-                xintercept = method3_final,
-                color = "#ffac30ff",
-                linetype = "dashed",
-                alpha = 0.8,
-                linewidth = 1.2
-            ) +
-            ggplot2::annotate(
-                "text",
-                x = method1_results$cumulative_90,
-                y = max(pct_variance),
-                label = "Method 1A",
-                color = "#0a9696ff",
-                hjust = -0.1,
-                linewidth = 4,
-                fontface = "bold"
-            ) +
-            ggplot2::annotate(
-                "text",
-                x = method1_results$above_mean,
-                y = max(pct_variance) * 0.9,
-                label = "Method 1B",
-                color = "#63118aff",
-                hjust = -0.1,
-                linewidth = 4,
-                fontface = "bold"
-            ) +
-            ggplot2::annotate(
-                "text",
-                x = method1_results$above_2sd,
-                y = max(pct_variance) * 0.8,
-                label = "Method 1C",
-                color = "#193db3ff",
-                hjust = -0.1,
-                size = 4,
-                fontface = "bold"
-            ) +
-            ggplot2::annotate(
-                "text",
-                x = method2_final,
-                y = max(pct_variance) * 0.7,
-                label = "Method 2",
-                color = "#15b915ff",
-                hjust = -0.1,
-                size = 4,
-                fontface = "bold"
-            ) +
-            ggplot2::annotate(
-                "text",
-                x = method3_final,
-                y = max(pct_variance) * 0.6,
-                label = "Method 3",
-                color = "#ffac30ff",
-                hjust = -0.1,
-                size = 4,
-                fontface = "bold"
-            ) +
-            ggplot2::labs(
-                title = "Robust Elbow Detection for PCA Dimension Selection",
-                subtitle = "Multiple methods combined for optimal PC selection",
-                x = "Principal Component",
-                y = "Percentage of Variance Explained"
-            ) +
-            ggplot2::theme_minimal()
+                ggplot2::geom_point(alpha = 0.6) +
+                ggplot2::geom_line(alpha = 0.8) +
+                ggplot2::geom_vline(
+                    xintercept = method1_results$cumulative_90,
+                    color = "#0a9696ff",
+                    linetype = "dashed",
+                    alpha = 0.8,
+                    linewidth = 1.2
+                ) +
+                ggplot2::geom_vline(
+                    xintercept = method1_results$cumulative_80,
+                    color = "#d699ffff",
+                    linetype = "dashed",
+                    alpha = 0.8,
+                    linewidth = 1.2
+                ) +
+                ggplot2::geom_vline(
+                    xintercept = method1_results$above_mean,
+                    color = "#63118aff",
+                    linetype = "dashed",
+                    alpha = 0.8
+                ) +
+                ggplot2::geom_vline(
+                    xintercept = method1_results$above_2sd,
+                    color = "#193db3ff",
+                    linetype = "dashed",
+                    alpha = 0.8,
+                    linewidth = 1.2
+                ) +
+                ggplot2::geom_vline(
+                    xintercept = method2_final,
+                    color = "#15b915ff",
+                    linetype = "dashed",
+                    alpha = 0.8,
+                    linewidth = 1.2
+                ) +
+                ggplot2::geom_vline(
+                    xintercept = method3_final,
+                    color = "#ffac30ff",
+                    linetype = "dashed",
+                    alpha = 0.8,
+                    linewidth = 1.2
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method1_results$cumulative_90,
+                    y = max(pct_variance),
+                    label = "Method 1A",
+                    color = "#0a9696ff",
+                    hjust = -0.1,
+                    fontface = "bold"
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method1_results$cumulative_80,
+                    y = max(pct_variance),
+                    label = "Method 1B",
+                    color = "#d699ffff",
+                    hjust = -0.1,
+                    fontface = "bold"
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method1_results$above_mean,
+                    y = max(pct_variance) * 0.9,
+                    label = "Method 1C",
+                    color = "#63118aff",
+                    hjust = -0.1,
+                    linewidth = 4,
+                    fontface = "bold"
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method1_results$above_2sd,
+                    y = max(pct_variance) * 0.8,
+                    label = "Method 1D",
+                    color = "#193db3ff",
+                    hjust = -0.1,
+                    size = 4,
+                    fontface = "bold"
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method2_final,
+                    y = max(pct_variance) * 0.7,
+                    label = "Method 2",
+                    color = "#15b915ff",
+                    hjust = -0.1,
+                    size = 4,
+                    fontface = "bold"
+                ) +
+                ggplot2::annotate(
+                    "text",
+                    x = method3_final,
+                    y = max(pct_variance) * 0.6,
+                    label = "Method 3",
+                    color = "#ffac30ff",
+                    hjust = -0.1,
+                    size = 4,
+                    fontface = "bold"
+                ) +
+                ggplot2::labs(
+                    title = "Robust Elbow Detection for PCA Dimension Selection",
+                    subtitle = "Multiple methods combined for optimal PC selection",
+                    x = "Principal Component",
+                    y = "Percentage of Variance Explained"
+                ) +
+                ggplot2::theme_minimal()
 
-        methods::show(p)
+            methods::show(p)
+        }
 
         # Additional summary
         cli::cli_h3(cli::col_green("Summary"))
@@ -265,11 +300,11 @@ FindRobustElbow <- function(obj, verbose = TRUE, ndims = 50) {
             "Variance explained by PC{final_dims}: {.val {round(pct_variance[final_dims], 2)}}%"
         )
 
-        if (cumulative_variance[final_dims] < 80) {
-            cli::cli_warn(
-                "Cumulative variance < 80%. Consider increasing dimensions."
-            )
-        }
+        # if (cumulative_variance[final_dims] < 80) {
+        #     cli::cli_warn(
+        #         "Cumulative variance < 80%. Consider increasing dimensions."
+        #     )
+        # }
     }
 
     final_dims

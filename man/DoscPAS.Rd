@@ -20,7 +20,6 @@ DoscPAS(
   permutation_times = 2000L,
   FDR_threshold = 0.05,
   independent = TRUE,
-  verbose = TRUE,
   ...
 )
 }
@@ -55,9 +54,11 @@ DoscPAS(
 
 \item{independent}{Logical. The background distribution of risk scores is constructed independently of each cell. (default: TRUE)}
 
-\item{verbose}{Logical. Whether to print progress messages (default: TRUE)}
-
-\item{...}{Additional arguments passed to \code{DoscPAS} functions}
+\item{...}{Additional arguments. Currently supports:
+\itemize{
+\item \code{verbose}: Logical indicating whether to print progress messages. Defaults to \code{TRUE}.
+\item \code{seed}: For reproducibility, default is \code{123L}
+}}
 }
 \value{
 A Seurat object from scPAS analysis
@@ -78,12 +79,11 @@ Xie A, Wang H, Zhao J, Wang Z, Xu J, Xu Y. scPAS: single-cell phenotype-associat
 \seealso{
 Other screen_method: 
 \code{\link{DoDEGAS}()},
+\code{\link{DoLP_SGL}()},
+\code{\link{DoPIPET}()},
 \code{\link{DoScissor}()},
 \code{\link{DoscAB}()},
 \code{\link{DoscPP}()}
-
-Other scPAS: 
-\code{\link{scPAS.optimized}()}
 }
 \concept{scPAS}
 \concept{screen_method}
