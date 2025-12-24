@@ -62,141 +62,141 @@
 #' @family scAB
 #'
 DoscAB <- function(
-    matched_bulk,
-    sc_data,
-    phenotype,
-    label_type = "scAB",
-    phenotype_class = c("binary", "survival"),
-    alpha = c(0.005, NULL),
-    alpha_2 = c(0.005, NULL),
-    maxiter = 2000L,
-    tred = 2L,
-    ...
+  matched_bulk,
+  sc_data,
+  phenotype,
+  label_type = "scAB",
+  phenotype_class = c("binary", "survival"),
+  alpha = c(0.005, NULL),
+  alpha_2 = c(0.005, NULL),
+  maxiter = 2000L,
+  tred = 2L,
+  ...
 ) {
-    chk::chk_is(sc_data, "Seurat")
-    chk::chk_character(label_type)
-    phenotype_class <- SigBridgeRUtils::MatchArg(
-        phenotype_class,
-        c("binary", "survival"),
-        NULL
+  chk::chk_is(sc_data, "Seurat")
+  chk::chk_character(label_type)
+  phenotype_class <- SigBridgeRUtils::MatchArg(
+    phenotype_class,
+    c("binary", "survival"),
+    NULL
+  )
+  chk::chk_range(alpha)
+  chk::chk_range(alpha_2)
+  chk::chk_number(maxiter)
+  chk::chk_number(tred)
+  # scAB can't tolerate NA
+  chk::chk_not_any_na(matched_bulk)
+  chk::chk_not_any_na(phenotype)
+
+  # scAB is more strict than Scissor and scPAS
+  if (phenotype_class == "survival") {
+    if (!all(rownames(phenotype) == colnames(matched_bulk))) {
+      cli::cli_abort(c(
+        "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
+      ))
+    }
+  } else {
+    if (!all(names(phenotype) == colnames(matched_bulk))) {
+      cli::cli_abort(c(
+        "x" = "Please check the names of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
+      ))
+    }
+  }
+
+  dots <- rlang::list2(...)
+  verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
+  seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
+  parallel <- (dots$parallel %||% FALSE) &
+    !inherits(future::plan("list")[[1]], "sequential")
+
+  if (verbose) {
+    ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
+  }
+
+  scAB_obj <- scAB::create_scAB.v5(
+    Object = sc_data,
+    bulk_dataset = matched_bulk,
+    phenotype = phenotype,
+    method = phenotype_class,
+    verbose = verbose
+  )
+
+  if (verbose) {
+    ts_cli$cli_alert_info("Selecting K")
+  }
+
+  k <- scAB::select_K.optimized(
+    Object = scAB_obj,
+    K_max = 20L,
+    repeat_times = 10L,
+    maxiter = 2000L, # default in scAB
+    seed = seed,
+    verbose = verbose
+  )
+
+  if (verbose) {
+    ts_cli$cli_alert_info(
+      "Run NMF with phenotype and cell-cell similarity regularization at K = {.val {k}}"
     )
-    chk::chk_range(alpha)
-    chk::chk_range(alpha_2)
-    chk::chk_number(maxiter)
-    chk::chk_number(tred)
-    # scAB can't tolerate NA
-    chk::chk_not_any_na(matched_bulk)
-    chk::chk_not_any_na(phenotype)
+  }
 
-    # scAB is more strict than Scissor and scPAS
-    if (phenotype_class == "survival") {
-        if (!all(rownames(phenotype) == colnames(matched_bulk))) {
-            cli::cli_abort(c(
-                "x" = "Please check the rownames of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
-            ))
-        }
-    } else {
-        if (!all(names(phenotype) == colnames(matched_bulk))) {
-            cli::cli_abort(c(
-                "x" = "Please check the names of {.var phenotype} and colnames of {.var bulk_dataset}, they should be the same."
-            ))
-        }
-    }
-
-    dots <- rlang::list2(...)
-    verbose <- dots$verbose %||% SigBridgeRUtils::getFuncOption("verbose")
-    seed <- dots$seed %||% SigBridgeRUtils::getFuncOption("seed")
-    parallel <- !inherits(future::plan("list")[[1]], "sequential")
-
-    if (verbose) {
-        ts_cli$cli_alert_info(cli::col_green("Start scAB screening."))
-    }
-
-    scAB_obj <- scAB::create_scAB.v5(
-        Object = sc_data,
-        bulk_dataset = matched_bulk,
-        phenotype = phenotype,
-        method = phenotype_class,
-        verbose = verbose
-    )
-
-    if (verbose) {
-        ts_cli$cli_alert_info("Selecting K")
-    }
-
-    k <- scAB::select_K.optimized(
-        Object = scAB_obj,
-        K_max = 20L,
-        repeat_times = 10L,
-        maxiter = 2000L, # default in scAB
-        seed = seed,
-        verbose = verbose
-    )
-
-    if (verbose) {
-        ts_cli$cli_alert_info(
-            "Run NMF with phenotype and cell-cell similarity regularization at K = {.val {k}}"
-        )
-    }
-
-    # Find optimal alpha and alpha_2
-    if (
-        is.null(alpha) ||
-            is.null(alpha_2) ||
-            length(alpha) > 1 ||
-            length(alpha_2) > 1
-    ) {
-        para_list <- scAB::select_alpha.optimized(
-            Object = scAB_obj,
-            method = phenotype_class,
-            K = k,
-            cross_k = 5,
-            para_1_list = alpha %||% c(0.01, 0.005, 0.001),
-            para_2_list = alpha_2 %||% c(0.01, 0.005, 0.001),
-            seed = seed,
-            parallel = parallel,
-            workers = workers,
-            verbose = verbose
-        )
-
-        alpha <- para_list$para$alpha_1
-        alpha_2 <- para_list$para$alpha_2
-    }
-
-    scAB_result <- scAB::scAB.optimized(
-        Object = scAB_obj,
-        K = k,
-        alpha = alpha,
-        alpha_2 = alpha_2,
-        maxiter = maxiter,
-        convergence_threshold = 1e-05
+  # Find optimal alpha and alpha_2
+  if (
+    is.null(alpha) ||
+      is.null(alpha_2) ||
+      length(alpha) > 1 ||
+      length(alpha_2) > 1
+  ) {
+    para_list <- scAB::select_alpha.optimized(
+      Object = scAB_obj,
+      method = phenotype_class,
+      K = k,
+      cross_k = 5,
+      para_1_list = alpha %||% c(0.01, 0.005, 0.001),
+      para_2_list = alpha_2 %||% c(0.01, 0.005, 0.001),
+      seed = seed,
+      parallel = parallel,
+      verbose = verbose
     )
 
-    if (verbose) {
-        ts_cli$cli_alert_info("Screening cells...")
-    }
+    alpha <- para_list$para$alpha_1
+    alpha_2 <- para_list$para$alpha_2
+  }
 
-    sc_data <- scAB::findSubset.optimized(
-        Object = sc_data,
-        scAB_Object = scAB_result,
+  scAB_result <- scAB::scAB.optimized(
+    Object = scAB_obj,
+    K = k,
+    alpha = alpha,
+    alpha_2 = alpha_2,
+    maxiter = maxiter,
+    convergence_threshold = 1e-05
+  )
+
+  if (verbose) {
+    ts_cli$cli_alert_info("Screening cells...")
+  }
+
+  sc_data <- scAB::findSubset.optimized(
+    Object = sc_data,
+    scAB_Object = scAB_result,
+    tred = tred
+  ) %>%
+    SigBridgeRUtils::AddMisc(
+      scAB_type = label_type,
+      scAB_para = list(
+        iter = scAB_result$iter,
+        loss = scAB_result$loss,
+        method = scAB_result$method,
         tred = tred
-    ) %>%
-        SigBridgeRUtils::AddMisc(
-            scAB_type = label_type,
-            scAB_para = list(
-                iter = scAB_result$iter,
-                loss = scAB_result$loss,
-                method = scAB_result$method,
-                tred = tred
-            ),
-            cover = FALSE
-        )
+      ),
+      cover = FALSE
+    )
 
-    if (verbose) {
-        ts_cli$cli_alert_info(
-            cli::col_green("scAB screening done.")
-        )
-    }
+  if (verbose) {
+    ts_cli$cli_alert_info(
+      cli::col_green("scAB screening done.")
+    )
+  }
 
-    list(scRNA_data = sc_data, scAB_result = scAB_result)
+  list(scRNA_data = sc_data, scAB_result = scAB_result)
 }

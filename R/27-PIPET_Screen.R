@@ -91,7 +91,8 @@ DoPIPET <- function(
   dots <- rlang::list2(...)
   verbose <- dots$verbose %||% getFuncOption("verbose")
   seed <- dots$seed %||% getFuncOption("seed")
-  parallel <- dots$seed & !inherits(future::plan("list")[[1]], "sequential")
+  parallel <- (dots$parallel %||% FALSE) &
+    !inherits(future::plan("list")[[1]], "sequential")
   ## * PIPET params
   distance <- SigBridgeRUtils::MatchArg(
     distance,

@@ -24,28 +24,24 @@
 #'    to be included in the analysis. Defaults to `400L`.
 #' @param min_features Minimum number of features that must be detected in a
 #'    cell for it to be included in the analysis. Defaults to `0L`.
-#' @param quality_control Logical, for identification of the proportion of mitochondrial genes,
-#'    ribosomal protein genes, or other types of genes (without filtering),
-#'    the results will be stored in `meta.data`. Defaults to `TRUE`.
-#' @param quality_control.pattern A vector or character containing regex pattern(s) to identify
-#'    mitochondrial genes, ribosomal protein genes, or other unwanted genes, as well as combinations
-#'    of these genes. Customized patterns are supported. Defaults to `"^MT-"`.
-#' @param data_filter Logical indicating whether to filter cells based on
-#'    quality metrics. Defaults to `TRUE`.
-#' @param data_filter.thresh A list containing filtering thresholds for different quality metrics:
-#'    \itemize{
-#'      \item `nFeature_RNA_thresh`: Numeric vector of length 2 specifying the minimum and maximum
-#'            number of features per cell. Defaults to `c(200L, 6000L)`
-#'      \item `percent.mt`: Maximum mitochondrial percentage allowed. Defaults to `20L`
-#'      \item `percent.rp`: Maximum ribosomal protein percentage allowed. Not used in default
-#'            unless ribosomal protein genes filter pattern (like `^RP[LS]`) is added to
-#'            `quality_control.pattern`
+#' @param quality_control A `list` of QC settings. If `NULL`, no QC metrics are computed.
+#'    Default: `list(pattern = "^MT-")`.
+#'    \describe{
+#'      \item{pattern}{A character vector of regex patterns to identify gene groups (e.g., mitochondrial, ribosomal).}
 #'    }
+#' @param data_filter A `list` of filtering thresholds. If `NULL`, no cell filtering is performed.
+#'    Default:
+#'    \code{list(
+#'      nFeature_RNA_thresh = c(200L, 6000L),
+#'      nCount_RNA_thresh = c(500L, 50000L),
+#'      percent.mt = 20L,
+#'      percent.rp = 60L
+#'    )}
 #' @param normalization_method Method for normalization: "LogNormalize", "CLR",
 #'    or "RC". Defaults to `"LogNormalize"`.
 #' @param scale_factor Scaling factor for normalization. Defaults to `10000L`.
 #' @param scale_features Features to use for scaling. If NULL, uses all variable
-#'    features. Defaults to `NULL`.
+#'    features. If `"hvg"`, uses high-variance genes via `VariableFeatures()`. Defaults to `NULL`.
 #' @param selection_method Method for variable feature selection: "vst", "mvp",
 #'    or "disp". Defaults to `"vst"`.
 #' @param resolution Resolution parameter for clustering. Higher values lead to
@@ -146,21 +142,22 @@ SCPreProcess.default <- function(
   project = "SC_Screening_Proj",
   min_cells = 400L,
   min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(
+  quality_control = list(
+    pattern = c("^MT-")
+  ),
+  data_filter = list(
     nFeature_RNA_thresh = c(200L, 6000L),
+    nCount_RNA_thresh = c(500L, 50000L),
     # * only used when specifed in `quality_control.pattern`
     percent.mt = 20L, # mitochondrial genes
     percent.rp = 60L # ribosomal protein genes
-    # ? When combined pattern is used, like `quality_control.pattern = "^MT-|^RP[LS]"`
+    # ? When combined pattern is used, like `quality_control$pattern <- "^MT-|^RP[LS]"`
     # ? Use `_` to separate different patterns like this:
     # percent.mt_rp = 60L
 
     # ? When filtering for non-mitochondrial genes and non-ribosomal proteins RNA genes,
     # ? the column names are in lowercase letter form with regular expression symbols removed.
-    # `quality_control.pattern = "^[rt]rna"`
+    # `quality_control$pattern <- "^[rt]rna"`
     # Correct threshhold setting is `percent.rt_rna = 60L`
 
     # ? Use `SigBridgeR:::Pattern2Colname()` to get the correct colname if still confused.
@@ -196,24 +193,27 @@ SCPreProcess.default <- function(
     min.features = min_features
   )
 
-  if (quality_control) {
-    chk::chk_character(quality_control.pattern)
-
+  if (has_pattern(quality_control)) {
+    chk::chk_character(quality_control$pattern)
     sc_seurat <- QCPatternDetect(
       obj = sc_seurat,
-      pattern = quality_control.pattern,
+      pattern = quality_control$pattern,
       verbose = verbose
     )
   }
-  if (data_filter) {
+  if (is_filtering(data_filter)) {
     # first 2 numbers will be used
     chk::chk_lt(
-      data_filter.thresh$nFeature_RNA_thresh[1],
-      data_filter.thresh$nFeature_RNA_thresh[2]
+      data_filter$nFeature_RNA_thresh[1],
+      data_filter$nFeature_RNA_thresh[2]
+    )
+    chk::chk_lt(
+      data_filter$nCount_RNA_thresh[1],
+      data_filter$nCount_RNA_thresh[2]
     )
     sc_seurat <- QCFilter(
       seurat_obj = sc_seurat,
-      data_filter.thresh = data_filter.thresh,
+      data_filter.thresh = data_filter,
       verbose = verbose
     )
   }
@@ -254,11 +254,12 @@ SCPreProcess.R6 <- function(
   project = "SC_Screening_Proj",
   min_cells = 400L,
   min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(
+  quality_control = list(
+    pattern = c("^MT-")
+  ),
+  data_filter = list(
     nFeature_RNA_thresh = c(200L, 6000L),
+    nCount_RNA_thresh = c(500L, 50000L),
     percent.mt = 20L, # mitochondrial genes
     percent.rp = 60L # ribosomal protein genes
   ),
@@ -270,8 +271,20 @@ SCPreProcess.R6 <- function(
   dims = NULL,
   ...
 ) {
+  if (!is.null(meta_data)) {
+    chk::chk_data(meta_data)
+  }
+  if (!is.null(column2only_tumor)) {
+    chk::chk_character(column2only_tumor)
+  }
+
+  # dots arguments
   dots <- rlang::list2(...)
-  verbose <- dots$verbose %||% getFuncOption("verbose")
+  verbose <- dots$verbose %||% getFuncOption("verbose") %||% TRUE
+  # pass to `FindNeighbors`, `RunTSNE`, `RunUMAP`
+  dims_Neighbors <- dots$dims_Neighbors
+  dims_TSNE <- dots$dims_TSNE
+  dims_UMAP <- dots$dims_UMAP
 
   # Both `anndata` and `anndataR` are based on R6
   if (is.null(sc$X)) {
@@ -279,37 +292,95 @@ SCPreProcess.R6 <- function(
   }
   if (verbose) {
     cli::cli_text(
-      "Start from an anndata object, attempt to retrieve the count matrix and cell-level metadata from it."
+      "Start from an anndata object"
     )
   }
-  meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
-    cbind(meta_data, sc$obs)
-  } else if (!is.null(sc$obs)) {
-    sc$obs
-  }
 
-  NextMethod(
-    generic = "SCPreProcess",
-    sc = Matrix::t(sc$X),
-    meta_data = meta_data,
-    column2only_tumor = column2only_tumor,
-    project = project,
-    min_cells = min_cells,
-    min_features = min_features,
-    quality_control = quality_control,
-    quality_control.pattern = quality_control.pattern,
-    data_filter = data_filter,
-    data_filter.thresh = data_filter.thresh,
+  sc_seurat <- if (inherits(sc, "InMemoryAnnData")) {
+    # * from AnnDataR
+    seurat <- sc$as_Seurat()
+    if (!is.null(meta_data)) {
+      seurat <- SeuratObject::AddMetaData(seurat, meta_data)
+    }
+    seurat
+  } else if (inherits(sc, "AnnDataR6")) {
+    # * from anndata
+
+    meta_data <- if (!is.null(sc$obs) && !is.null(meta_data)) {
+      cbind(meta_data, sc$obs)
+    } else if (!is.null(sc$obs)) {
+      sc$obs
+    }
+    count_mat <- sc$transpose()$X
+    seurat <- SeuratObject::CreateSeuratObject(
+      counts = count_mat,
+      project = project,
+      meta.data = meta_data
+    )
+
+    if (ncol(sc$var) != 0) {
+      seurat <- AddMetaFeature(seurat, sc$var)
+    }
+    seurat
+  } else {
+    cli::cli_abort(c(
+      "x" = "Input must be an anndata or anndataR object",
+      ">" = "Current input is of class {.cls {class(sc)}}"
+    ))
+  }
+  rm(sc)
+  gc(verbose = FALSE)
+
+  if (has_pattern(quality_control)) {
+    chk::chk_character(quality_control$pattern)
+    sc_seurat <- QCPatternDetect(
+      obj = sc_seurat,
+      pattern = quality_control$pattern,
+      verbose = verbose
+    )
+  }
+  if (is_filtering(data_filter)) {
+    # first 2 numbers will be used
+    chk::chk_lt(
+      data_filter$nFeature_RNA_thresh[1],
+      data_filter$nFeature_RNA_thresh[2]
+    )
+    chk::chk_lt(
+      data_filter$nCount_RNA_thresh[1],
+      data_filter$nCount_RNA_thresh[2]
+    )
+    sc_seurat <- QCFilter(
+      seurat_obj = sc_seurat,
+      data_filter.thresh = data_filter,
+      verbose = verbose
+    )
+  }
+  sc_seurat <- ProcessSeuratObject(
+    obj = sc_seurat,
     normalization_method = normalization_method,
     scale_factor = scale_factor,
     scale_features = scale_features,
     selection_method = selection_method,
-    resolution = resolution,
+    verbose = verbose
+  )
+
+  sc_seurat <- ClusterAndReduce(
+    sc_seurat,
     dims = dims,
-    verbose = verbose,
-    ...
+    dims_Neighbors = dims_Neighbors,
+    dims_TSNE = dims_TSNE,
+    dims_UMAP = dims_UMAP,
+    resolution = resolution,
+    verbose = verbose
+  )
+
+  FilterTumorCell(
+    obj = sc_seurat,
+    column2only_tumor = column2only_tumor,
+    verbose = verbose
   )
 }
+
 
 #' @rdname SCPreProcess
 #' @export
@@ -426,18 +497,15 @@ ProcessSeuratObject <- function(
     scale_features <- Seurat::VariableFeatures(obj)
   }
 
-  # Scale (NULL features = scale all)
-  obj <- Seurat::ScaleData(
+  Seurat::ScaleData(
     object = obj,
-    features = scale_features, # works: NULL → all; character() → subset
+    features = scale_features,
     verbose = verbose
-  )
-
-  Seurat::RunPCA(
-    object = obj,
-    features = Seurat::VariableFeatures(obj),
-    verbose = verbose
-  )
+  ) %>%
+    Seurat::RunPCA(
+      features = Seurat::VariableFeatures(obj),
+      verbose = verbose
+    )
 }
 
 
@@ -655,8 +723,12 @@ QCPatternDetect <- function(
 #'
 #' @param seurat_obj A \code{Seurat} object.
 #' @param data_filter.thresh A named list with thresholds. Default:
-#'   \code{list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L, percent.rp = 60L)}.
-#'   Keys not in default are treated as QC column names.
+#'   \code{list(
+#'     nFeature_RNA_thresh = c(200L, 6000L),
+#'     nCount_RNA_thresh    = c(500L, 25000L),
+#'     percent.mt = 20L,
+#'     percent.rp = 60L
+#'   )}.
 #' @param verbose Logical; whether to print progress messages via \code{cli}.
 #' @param ... No use
 #'
@@ -668,6 +740,7 @@ QCFilter <- function(
   seurat_obj,
   data_filter.thresh = list(
     nFeature_RNA_thresh = c(200L, 6000L),
+    nCount_RNA_thresh = c(500L, 50000L),
     percent.mt = 20L,
     percent.rp = 60L
   ),
@@ -692,6 +765,7 @@ QCFilter <- function(
 
   defaults <- list(
     nFeature_RNA_thresh = c(200L, 6000L),
+    nCount_RNA_thresh = c(500L, 50000L),
     percent.mt = 20L,
     percent.rp = 60L
   )
@@ -700,16 +774,26 @@ QCFilter <- function(
   # Ensure nFeature_RNA_thresh is length-2 integer
   if (length(thresh$nFeature_RNA_thresh) != 2) {
     cli::cli_abort(c(
-      "x" = "{.arg nFeature_RNA_thresh} must be a numeric vector of length 2."
+      "x" = "{.arg nFeature_RNA_thresh} must be a integer vector of length 2."
+    ))
+  }
+  if (length(thresh$nCount_RNA_thresh) != 2) {
+    cli::cli_abort(c(
+      "x" = "{.arg nCount_RNA_thresh} must be a integer vector of length 2."
     ))
   }
   thresh$nFeature_RNA_thresh <- as.integer(thresh$nFeature_RNA_thresh)
+  thresh$nCount_RNA_thresh <- as.integer(thresh$nCount_RNA_thresh)
 
   # filter expr is a string of the form
   # which is used to subset the Seurat object
   nfeat_condition <- rlang::expr(
     nFeature_RNA > !!thresh$nFeature_RNA_thresh[1] &
       nFeature_RNA < !!thresh$nFeature_RNA_thresh[2]
+  )
+  ncount_condition <- rlang::expr(
+    nCount_RNA > !!thresh$nCount_RNA_thresh[1] &
+      nCount_RNA < !!thresh$nCount_RNA_thresh[2]
   )
 
   # see `QCPatternDetect()` for the column names generation
@@ -753,14 +837,14 @@ QCFilter <- function(
         return(NULL)
       }
       rlang::expr(!!dplyr::sym(col) < !!thresh[[col]])
-    }) |>
+    }) %>%
       purrr::compact()
   }
   # be aware of expr is not supported in `subset()`
   meta <- seurat_obj[[]]
   qc_conds <- get_qc_condition(qc_colnames, meta, thresh)
 
-  all_conds <- c(list(nfeat_condition), qc_conds)
+  all_conds <- c(list(nfeat_condition, ncount_condition), qc_conds)
   if (length(all_conds) == 0) {
     cli::cli_abort(c("x" = "No valid filtering conditions generated."))
   }
@@ -786,7 +870,7 @@ QCFilter <- function(
     n_total <- nrow(meta)
     pct_off <- if (n_total > 0) 100 * (1 - n_kept / n_total) else 0
     cli::cli_text(sprintf(
-      "Kept  %d/ %d (%.2f%% off) cells after filtering",
+      "Kept  %d/%d (%.2f%% off) cells after filtering",
       n_kept,
       n_total,
       pct_off
@@ -855,4 +939,15 @@ Pattern2Colname <- function(pat) {
       tolower(clean)
     }
   )
+}
+
+
+#' @keywords internal
+has_pattern <- function(qc_list) {
+  !is.null(qc) && !is.null(qc$pattern) && length(qc$pattern) > 0
+}
+
+#' @keywords internal
+is_filtering <- function(filter_list) {
+  !is.null(filter_list)
 }

@@ -16,11 +16,9 @@ SCPreProcess(sc, ...)
   project = "SC_Screening_Proj",
   min_cells = 400L,
   min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
+  quality_control = list(pattern = c("^MT-")),
+  data_filter = list(nFeature_RNA_thresh = c(200L, 6000L), nCount_RNA_thresh = c(500L,
+    50000L), percent.mt = 20L, percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
@@ -37,11 +35,9 @@ SCPreProcess(sc, ...)
   project = "SC_Screening_Proj",
   min_cells = 400L,
   min_features = 0L,
-  quality_control = TRUE,
-  quality_control.pattern = c("^MT-"),
-  data_filter = TRUE,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
+  quality_control = list(pattern = c("^MT-")),
+  data_filter = list(nFeature_RNA_thresh = c(200L, 6000L), nCount_RNA_thresh = c(500L,
+    50000L), percent.mt = 20L, percent.rp = 60L),
   normalization_method = "LogNormalize",
   scale_factor = 10000L,
   scale_features = NULL,
@@ -84,26 +80,20 @@ to be included in the analysis. Defaults to \code{400L}.}
 \item{min_features}{Minimum number of features that must be detected in a
 cell for it to be included in the analysis. Defaults to \code{0L}.}
 
-\item{quality_control}{Logical, for identification of the proportion of mitochondrial genes,
-ribosomal protein genes, or other types of genes (without filtering),
-the results will be stored in \code{meta.data}. Defaults to \code{TRUE}.}
-
-\item{quality_control.pattern}{A vector or character containing regex pattern(s) to identify
-mitochondrial genes, ribosomal protein genes, or other unwanted genes, as well as combinations
-of these genes. Customized patterns are supported. Defaults to \code{"^MT-"}.}
-
-\item{data_filter}{Logical indicating whether to filter cells based on
-quality metrics. Defaults to \code{TRUE}.}
-
-\item{data_filter.thresh}{A list containing filtering thresholds for different quality metrics:
-\itemize{
-\item \code{nFeature_RNA_thresh}: Numeric vector of length 2 specifying the minimum and maximum
-number of features per cell. Defaults to \code{c(200L, 6000L)}
-\item \code{percent.mt}: Maximum mitochondrial percentage allowed. Defaults to \code{20L}
-\item \code{percent.rp}: Maximum ribosomal protein percentage allowed. Not used in default
-unless ribosomal protein genes filter pattern (like \verb{^RP[LS]}) is added to
-\code{quality_control.pattern}
+\item{quality_control}{A \code{list} of QC settings. If \code{NULL}, no QC metrics are computed.
+Default: \code{list(pattern = "^MT-")}.
+\describe{
+\item{pattern}{A character vector of regex patterns to identify gene groups (e.g., mitochondrial, ribosomal).}
 }}
+
+\item{data_filter}{A \code{list} of filtering thresholds. If \code{NULL}, no cell filtering is performed.
+Default:
+\code{list(
+     nFeature_RNA_thresh = c(200L, 6000L),
+     nCount_RNA_thresh = c(500L, 50000L),
+     percent.mt = 20L,
+     percent.rp = 60L
+   )}}
 
 \item{normalization_method}{Method for normalization: "LogNormalize", "CLR",
 or "RC". Defaults to \code{"LogNormalize"}.}
@@ -111,7 +101,7 @@ or "RC". Defaults to \code{"LogNormalize"}.}
 \item{scale_factor}{Scaling factor for normalization. Defaults to \code{10000L}.}
 
 \item{scale_features}{Features to use for scaling. If NULL, uses all variable
-features. Defaults to \code{NULL}.}
+features. If \code{"hvg"}, uses high-variance genes via \code{VariableFeatures()}. Defaults to \code{NULL}.}
 
 \item{selection_method}{Method for variable feature selection: "vst", "mvp",
 or "disp". Defaults to \code{"vst"}.}

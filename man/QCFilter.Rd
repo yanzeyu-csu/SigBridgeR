@@ -6,8 +6,8 @@
 \usage{
 QCFilter(
   seurat_obj,
-  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L,
-    percent.rp = 60L),
+  data_filter.thresh = list(nFeature_RNA_thresh = c(200L, 6000L), nCount_RNA_thresh =
+    c(500L, 50000L), percent.mt = 20L, percent.rp = 60L),
   verbose = TRUE,
   ...
 )
@@ -16,8 +16,12 @@ QCFilter(
 \item{seurat_obj}{A \code{Seurat} object.}
 
 \item{data_filter.thresh}{A named list with thresholds. Default:
-\code{list(nFeature_RNA_thresh = c(200L, 6000L), percent.mt = 20L, percent.rp = 60L)}.
-Keys not in default are treated as QC column names.}
+\code{list(
+    nFeature_RNA_thresh = c(200L, 6000L),
+    nCount_RNA_thresh    = c(500L, 25000L),
+    percent.mt = 20L,
+    percent.rp = 60L
+  )}.}
 
 \item{verbose}{Logical; whether to print progress messages via \code{cli}.}
 
