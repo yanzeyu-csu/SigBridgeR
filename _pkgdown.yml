@@ -70,7 +70,7 @@ navbar:
                 - text: Advanced
                 - text: Find the optimal parameters
                   icon: fa-cogs
-                  href: articles/Optimal_Parameters.html
+                  href: articles/Optimal_Params.html
                 - text: -------
                 - text: Other
                 - text: Other functions
