@@ -10,6 +10,7 @@ vignette: >
   %\VignetteIndexEntry{Troubleshooting}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+sidebar: false
 ---
 
 # Overview

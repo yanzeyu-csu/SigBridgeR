@@ -944,7 +944,7 @@ Pattern2Colname <- function(pat) {
 
 #' @keywords internal
 has_pattern <- function(qc_list) {
-  !is.null(qc) && !is.null(qc$pattern) && length(qc$pattern) > 0
+  !is.null(qc_list) && !is.null(qc_list$pattern) && length(qc_list$pattern) > 0
 }
 
 #' @keywords internal
