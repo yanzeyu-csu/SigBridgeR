@@ -1665,6 +1665,7 @@ table(lpsgl_result$scRNA_data$LP_SGL)
 
 Note that PIPET does not support survival phenotype. We will show how to use PIPET in [Section 5.3](#53-binarized-phenotype-associated-cell-screening)
 
+
 After these algorithms have been run, the four sets of data can be merged since screening methods performed on the same data.
 
 ```{r,example_data_merge,eval=FALSE}
